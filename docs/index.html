@@ -47,6 +47,23 @@
     color: var(--muted);
     font-size: 13px;
   }
+  .tz-toggle {
+    display: inline-flex;
+    gap: 4px;
+    margin-top: 10px;
+  }
+  .tz-btn {
+    background: #191c22;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .tz-btn:hover { color: var(--text); border-color: var(--muted); }
+  .tz-btn.active { color: var(--accent); border-color: var(--accent-dim); background: #142320; }
 
   .staleness-banner {
     max-width: 1100px;
@@ -371,6 +388,10 @@
 
 <header>
   <h1>Soulscam Tracker</h1>
+  <div class="tz-toggle" id="tz-toggle">
+    <button class="tz-btn" data-mode="utc">UTC</button>
+    <button class="tz-btn" data-mode="local">Моё время</button>
+  </div>
 </header>
 
 <div id="staleness-banner" class="staleness-banner" style="display:none">
@@ -464,7 +485,10 @@
 
   <div class="panel">
     <h2>Сравнение дней</h2>
-    <p class="desc">Наложение двух дней по часам (0&ndash;23) &mdash; удобно смотреть тенденцию</p>
+    <p class="desc">Наложение двух дней по часам (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию</p>
+    <div class="controls">
+      <div class="range-btns" id="compare-preset-btns"></div>
+    </div>
     <div class="controls">
       <span><span class="legend-swatch" style="background:var(--accent)"></span>День A:</span>
       <select id="day-a"></select>
@@ -477,7 +501,10 @@
 
   <div class="panel">
     <h2>Активность по часам суток</h2>
-    <p class="desc">Средний онлайн по часу дня (UTC), усреднено за всю собранную историю &mdash; показывает пик-часы</p>
+    <p class="desc" id="hourly-desc">Средний онлайн по часу дня, усреднено за всю собранную историю &mdash; показывает пик-часы</p>
+    <div class="controls">
+      <div class="range-btns" id="hourly-daytype-btns"></div>
+    </div>
     <div id="hourly-chart"><div id="status">Загрузка данных&hellip;</div></div>
   </div>
 
@@ -527,6 +554,24 @@ function drawGridAndAxes(svg, maxVal, xLabels) {
     t.textContent = label;
     svg.appendChild(t);
   });
+}
+
+// Draws a dashed vertical "now" marker at xNow (in SVG coordinates), plus
+// a small label, but only if it actually falls within the visible plot
+// area - i.e. only when the current moment is inside whatever slice of
+// history is being shown right now (skipped when zoomed/panned into the
+// past, or when the chart's data doesn't reach up to the present).
+function drawNowLine(svg, xNow) {
+  if (xNow == null || xNow < PAD.left || xNow > W - PAD.right) return;
+  svg.appendChild(svgEl('line', {
+    x1: xNow, x2: xNow, y1: PAD.top, y2: H - PAD.bottom,
+    stroke: 'var(--muted)', 'stroke-width': 1, 'stroke-dasharray': '3,3', opacity: 0.6
+  }));
+  const label = svgEl('text', {
+    x: xNow, y: PAD.top - 4, class: 'axis-label', 'text-anchor': 'middle'
+  });
+  label.textContent = 'сейчас';
+  svg.appendChild(label);
 }
 
 function linePath(points, xForIndex, maxVal) {
@@ -813,9 +858,19 @@ function renderOverview(rows) {
     const xLabels = [];
     for (let i = 0; i < labelCount; i++) {
       const idx = Math.round(i * (slice.length - 1) / Math.max(1, labelCount - 1));
-      xLabels.push({ x: xForIndex(idx), label: slice[idx].hour.slice(5, 13).replace('T', ' ') });
+      xLabels.push({ x: xForIndex(idx), label: formatDateTimeShort(new Date(slice[idx].hour + ':00:00Z')) });
     }
     drawGridAndAxes(svg, maxVal, xLabels);
+
+    if (slice.length >= 2) {
+      const nowMs = Date.now();
+      const firstMs = new Date(slice[0].hour + ':00:00Z').getTime();
+      const lastMs = new Date(slice[slice.length - 1].hour + ':00:00Z').getTime();
+      if (nowMs >= firstMs && nowMs <= lastMs) {
+        const frac = (nowMs - firstMs) / Math.max(1, lastMs - firstMs);
+        drawNowLine(svg, PAD.left + innerW * frac);
+      }
+    }
 
     const coords = linePath(slice.map(r => r.avg), xForIndex, maxVal);
     const path = svgEl('path', { d: pathD(coords), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2 });
@@ -824,13 +879,14 @@ function renderOverview(rows) {
     const trendLabel = trendHoursSelected == null
       ? 'тренд (авто)'
       : 'тренд';
+    const tz = tzSuffix();
 
     const series = [{
       coords,
       color: 'var(--accent)',
       labelFor: i => ({
         value: slice[i].avg,
-        sub: slice[i].hour.replace('T', ' ') + ':00 UTC (max ' + slice[i].max + ', min ' + slice[i].min + ')'
+        sub: formatDateTime(new Date(slice[i].hour + ':00:00Z')) + ` ${tz} (max ${slice[i].max}, min ${slice[i].min})`
       })
     }];
 
@@ -847,7 +903,7 @@ function renderOverview(rows) {
         labelFor: i => ({
           value: trendSlice[i] != null ? Math.round(trendSlice[i]) : '—',
           name: trendLabel,
-          sub: slice[i].hour.replace('T', ' ') + ':00 UTC'
+          sub: formatDateTime(new Date(slice[i].hour + ':00:00Z')) + ` ${tz}`
         })
       });
     }
@@ -930,10 +986,22 @@ function renderLive(recentPoints, historyStore) {
     for (let i = 0; i < labelCount; i++) {
       const idx = Math.round(i * (slice.length - 1) / Math.max(1, labelCount - 1));
       const d = new Date(slice[idx].ts);
-      const label = d.toISOString().slice(5, 16).replace('T', ' ');
-      xLabels.push({ x: xForIndex(idx), label });
+      xLabels.push({ x: xForIndex(idx), label: formatDateTimeShort(d) });
     }
     drawGridAndAxes(svg, maxVal, xLabels);
+
+    // "now" marker: interpolate its x position between the two slice
+    // points that straddle the current time, so it lines up correctly
+    // even though points aren't evenly spaced in real time.
+    if (slice.length >= 2) {
+      const nowMs = Date.now();
+      const firstMs = new Date(slice[0].ts).getTime();
+      const lastMs = new Date(slice[slice.length - 1].ts).getTime();
+      if (nowMs >= firstMs && nowMs <= lastMs) {
+        const frac = (nowMs - firstMs) / Math.max(1, lastMs - firstMs);
+        drawNowLine(svg, PAD.left + innerW * frac);
+      }
+    }
 
     const coords = linePath(values, xForIndex, maxVal);
     const path = svgEl('path', { d: pathD(coords), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 1.5 });
@@ -944,12 +1012,13 @@ function renderLive(recentPoints, historyStore) {
     wrap.appendChild(svg);
     container.appendChild(wrap);
 
+    const tz = tzSuffix();
     attachTooltip(wrap, svg, [{
       coords,
       color: 'var(--accent)',
       labelFor: i => ({
         value: slice[i].player_count,
-        sub: new Date(slice[i].ts).toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+        sub: formatDateTime(new Date(slice[i].ts)) + ` ${tz}`
       })
     }], xForIndex, slice.length);
 
@@ -982,63 +1051,114 @@ function groupByDay(rows) {
 
 function renderHourlyActivity(rows) {
   const container = document.getElementById('hourly-chart');
+  const daytypeBtns = document.getElementById('hourly-daytype-btns');
   container.innerHTML = '';
   if (!rows.length) {
     container.innerHTML = '<div id="status">Пока нет данных.</div>';
     return;
   }
 
-  // average avg-player-count per hour-of-day across all collected history
-  const sums = new Array(24).fill(0);
-  const counts = new Array(24).fill(0);
-  rows.forEach(r => {
-    const hour = parseInt(r.hour.slice(11, 13), 10);
-    sums[hour] += r.avg;
-    counts[hour] += 1;
-  });
-  const hourlyAvg = sums.map((s, h) => counts[h] ? s / counts[h] : null);
+  const daytypeOptions = [
+    { label: 'Все дни', filter: null },
+    { label: 'Будни', filter: 'weekday' },
+    { label: 'Выходные', filter: 'weekend' },
+  ];
+  let daytypeSelected = null; // null = all days
 
-  const maxVal = Math.max(...hourlyAvg.filter(v => v != null), 1);
-  const innerW = W - PAD.left - PAD.right;
-  const barGap = 3;
-  const barW = innerW / 24 - barGap;
-  const xForBar = h => PAD.left + (innerW / 24) * h;
-  const xForIndex = h => xForBar(h) + barW / 2; // center, for tooltip alignment
-
-  const svg = makeSvg();
-  const xLabels = [0, 6, 12, 18, 23].map(h => ({ x: xForIndex(h), label: `${h}:00` }));
-  drawGridAndAxes(svg, maxVal, xLabels);
-
-  const peakHour = hourlyAvg.reduce((best, v, h) => (v != null && (best === -1 || v > hourlyAvg[best])) ? h : best, -1);
-
-  const bars = [];
-  hourlyAvg.forEach((v, h) => {
-    if (v == null) return;
-    const y = scaleY(v, maxVal);
-    const isPeak = h === peakHour;
-    const rect = svgEl('rect', {
-      x: xForBar(h), y, width: barW, height: (H - PAD.bottom) - y,
-      rx: 2,
-      fill: isPeak ? 'var(--accent)' : 'var(--accent-dim)'
+  daytypeBtns.innerHTML = '';
+  const daytypeButtons = daytypeOptions.map(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'range-btn';
+    btn.textContent = opt.label;
+    btn.addEventListener('click', () => {
+      daytypeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      daytypeSelected = opt.filter;
+      draw();
     });
-    svg.appendChild(rect);
-    bars.push(rect);
+    daytypeBtns.appendChild(btn);
+    return btn;
   });
+  daytypeButtons[0].classList.add('active');
 
-  const wrap = document.createElement('div');
-  wrap.className = 'chart-wrap';
-  wrap.appendChild(svg);
-  container.appendChild(wrap);
+  function draw() {
+    container.innerHTML = '';
 
-  const coords = hourlyAvg.map((v, h) => v == null ? { x: xForIndex(h), y: null } : { x: xForIndex(h), y: scaleY(v, maxVal) });
-  attachTooltip(wrap, svg, [{
-    coords,
-    color: 'var(--accent)',
-    labelFor: h => ({
-      value: hourlyAvg[h] != null ? Math.round(hourlyAvg[h]) : '—',
-      sub: `${h}:00&ndash;${(h + 1) % 24}:00 UTC` + (h === peakHour ? ' &middot; пик-час' : '')
-    })
-  }], xForIndex, 24);
+    // average avg-player-count per hour-of-day across all collected history.
+    // When displaying in local time, bucket by the local hour of each row's
+    // actual timestamp (not just shifting UTC-hour labels afterward), so an
+    // hour bucket really does represent "this hour, in your timezone" and
+    // not a mislabeled UTC bucket. Weekday/weekend is likewise judged by
+    // the same local (or UTC) calendar date the hour bucket falls into -
+    // e.g. late UTC evening hours can be "the next day" locally in
+    // timezones ahead of UTC, so this uses the same Date object rather
+    // than the raw UTC date string.
+    const localMode = getTzMode() === 'local';
+    const sums = new Array(24).fill(0);
+    const counts = new Array(24).fill(0);
+    rows.forEach(r => {
+      const d = new Date(r.hour + ':00:00Z');
+      const hour = localMode ? d.getHours() : parseInt(r.hour.slice(11, 13), 10);
+      if (daytypeSelected) {
+        const dow = localMode ? d.getDay() : d.getUTCDay(); // 0=Sun..6=Sat
+        const isWeekend = dow === 0 || dow === 6;
+        if (daytypeSelected === 'weekend' && !isWeekend) return;
+        if (daytypeSelected === 'weekday' && isWeekend) return;
+      }
+      sums[hour] += r.avg;
+      counts[hour] += 1;
+    });
+    const hourlyAvg = sums.map((s, h) => counts[h] ? s / counts[h] : null);
+    const hasAnyData = hourlyAvg.some(v => v != null);
+
+    if (!hasAnyData) {
+      container.innerHTML = '<div id="status">Недостаточно данных для этого фильтра.</div>';
+      return;
+    }
+
+    const maxVal = Math.max(...hourlyAvg.filter(v => v != null), 1);
+    const innerW = W - PAD.left - PAD.right;
+    const barGap = 3;
+    const barW = innerW / 24 - barGap;
+    const xForBar = h => PAD.left + (innerW / 24) * h;
+    const xForIndex = h => xForBar(h) + barW / 2; // center, for tooltip alignment
+
+    const svg = makeSvg();
+    const xLabels = [0, 6, 12, 18, 23].map(h => ({ x: xForIndex(h), label: `${h}:00` }));
+    drawGridAndAxes(svg, maxVal, xLabels);
+
+    const peakHour = hourlyAvg.reduce((best, v, h) => (v != null && (best === -1 || v > hourlyAvg[best])) ? h : best, -1);
+
+    hourlyAvg.forEach((v, h) => {
+      if (v == null) return;
+      const y = scaleY(v, maxVal);
+      const isPeak = h === peakHour;
+      const rect = svgEl('rect', {
+        x: xForBar(h), y, width: barW, height: (H - PAD.bottom) - y,
+        rx: 2,
+        fill: isPeak ? 'var(--accent)' : 'var(--accent-dim)'
+      });
+      svg.appendChild(rect);
+    });
+
+    const wrap = document.createElement('div');
+    wrap.className = 'chart-wrap';
+    wrap.appendChild(svg);
+    container.appendChild(wrap);
+
+    const coords = hourlyAvg.map((v, h) => v == null ? { x: xForIndex(h), y: null } : { x: xForIndex(h), y: scaleY(v, maxVal) });
+    const tzLabel = localMode ? '' : ' UTC';
+    attachTooltip(wrap, svg, [{
+      coords,
+      color: 'var(--accent)',
+      labelFor: h => ({
+        value: hourlyAvg[h] != null ? Math.round(hourlyAvg[h]) : '—',
+        sub: `${h}:00&ndash;${(h + 1) % 24}:00${tzLabel}` + (h === peakHour ? ' &middot; пик-час' : '')
+      })
+    }], xForIndex, 24);
+  }
+
+  draw();
 }
 
 // Bucket a day's raw points onto a fixed 5-minute-of-day grid (288 slots),
@@ -1060,6 +1180,7 @@ function renderCompare(historyStore) {
   const dayKeys = historyStore.availableDays;
   const selA = document.getElementById('day-a');
   const selB = document.getElementById('day-b');
+  const presetBtns = document.getElementById('compare-preset-btns');
   selA.innerHTML = dayKeys.map(d => `<option value="${d}">${d}</option>`).join('');
   selB.innerHTML = dayKeys.map(d => `<option value="${d}">${d}</option>`).join('');
 
@@ -1069,6 +1190,47 @@ function renderCompare(historyStore) {
   } else if (dayKeys.length === 1) {
     selA.value = dayKeys[0];
     selB.value = dayKeys[0];
+  }
+
+  // Quick presets for the most common comparisons, so the person doesn't
+  // have to manually count back days in the dropdowns. Each offset is in
+  // days before the most recent available day (index dayKeys.length-1).
+  const lastIdx = dayKeys.length - 1;
+  const presets = [
+    { label: 'Вчера vs сегодня', offsetA: 1, offsetB: 0 },
+    { label: 'Позавчера vs вчера', offsetA: 2, offsetB: 1 },
+    { label: 'Неделю назад vs сегодня', offsetA: 7, offsetB: 0 },
+  ];
+
+  presetBtns.innerHTML = '';
+  const presetButtons = presets
+    .filter(p => lastIdx - p.offsetA >= 0 && lastIdx - p.offsetB >= 0)
+    .map(p => {
+      const btn = document.createElement('button');
+      btn.className = 'range-btn';
+      btn.textContent = p.label;
+      btn.addEventListener('click', () => {
+        selA.value = dayKeys[lastIdx - p.offsetA];
+        selB.value = dayKeys[lastIdx - p.offsetB];
+        presetButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        draw();
+      });
+      presetBtns.appendChild(btn);
+      return btn;
+    });
+  // Mark the default selection's matching preset active, if any (usually
+  // "Вчера vs сегодня" since that's what's pre-selected above).
+  const matchingDefault = presets.findIndex(p =>
+    dayKeys[lastIdx - p.offsetA] === selA.value && dayKeys[lastIdx - p.offsetB] === selB.value);
+  if (matchingDefault !== -1 && presetButtons[matchingDefault]) {
+    presetButtons[matchingDefault].classList.add('active');
+  }
+
+  // Manually changing a dropdown no longer matches a preset exactly, so
+  // clear any active highlight to avoid a stale/misleading selection.
+  function clearPresetActive() {
+    presetButtons.forEach(b => b.classList.remove('active'));
   }
 
   async function draw() {
@@ -1171,8 +1333,8 @@ function renderCompare(historyStore) {
       </div>`;
   }
 
-  selA.addEventListener('change', draw);
-  selB.addEventListener('change', draw);
+  selA.addEventListener('change', () => { clearPresetActive(); draw(); });
+  selB.addEventListener('change', () => { clearPresetActive(); draw(); });
   draw();
 }
 
@@ -1260,15 +1422,50 @@ function createHistoryStore(recentPoints, pointsIndex) {
   };
 }
 
-function formatKyivTime(date) {
-  // Europe/Kyiv, DST-aware, formatted as YYYY-MM-DD HH:MM
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Kyiv',
+// --- Timezone display mode -------------------------------------------
+// Every timestamp on the dashboard (chart axes, tooltips, "now") is
+// rendered through these two functions so switching the toggle updates
+// everything consistently instead of leaving some labels in UTC and
+// others in local time, which is confusing to mentally reconcile.
+const TZ_STORAGE_KEY = 'soulscam-tz-mode'; // 'utc' | 'local'
+function getTzMode() {
+  try {
+    return localStorage.getItem(TZ_STORAGE_KEY) === 'local' ? 'local' : 'utc';
+  } catch (e) {
+    return 'utc';
+  }
+}
+function setTzMode(mode) {
+  try { localStorage.setItem(TZ_STORAGE_KEY, mode); } catch (e) { /* ignore */ }
+}
+function tzSuffix() {
+  return getTzMode() === 'utc' ? 'UTC' : '';
+}
+// "2026-08-08 14:30" style, for tooltips / axis labels of a full timestamp.
+function formatDateTime(date) {
+  if (getTzMode() === 'utc') {
+    return date.toISOString().slice(0, 16).replace('T', ' ');
+  }
+  const parts = new Intl.DateTimeFormat('sv-SE', {
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false
   }).formatToParts(date);
-  const get = type => parts.find(p => p.type === type).value;
+  const get = t => parts.find(p => p.type === t).value;
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}`;
+}
+// Short "MM-DD HH:MM" for axis tick labels.
+function formatDateTimeShort(date) {
+  return formatDateTime(date).slice(5);
+}
+// Just "HH:00" for a given hour bucket, used by hour-of-day charts.
+function formatHourOfDay(hour) {
+  if (getTzMode() === 'utc') return `${String(hour).padStart(2, '0')}:00`;
+  // Shift by the browser's current UTC offset (approximate for a fixed
+  // hour-of-day bucket - DST transition edge cases aren't meaningful
+  // here since this is an aggregate over many different days).
+  const offsetMin = -new Date().getTimezoneOffset();
+  const localHour = (((hour + Math.round(offsetMin / 60)) % 24) + 24) % 24;
+  return `${String(localHour).padStart(2, '0')}:00`;
 }
 
 // Polling writes a point roughly once a minute and the workflow commits
@@ -1337,18 +1534,41 @@ async function init() {
   }
   const historyStore = createHistoryStore(points, pointsIndex);
 
-  if (points.length) {
-    const lastPoint = points[points.length - 1];
-    document.getElementById('stat-now').textContent = lastPoint.player_count;
-    document.getElementById('stat-now-time').textContent =
-      formatKyivTime(new Date(lastPoint.ts)) + ' (Киев)';
-  } else if (recent.length) {
-    const last = recent[recent.length - 1];
-    document.getElementById('stat-now').textContent = last.avg;
-    document.getElementById('stat-now-time').textContent =
-      formatKyivTime(new Date(last.hour + ':00:00Z')) + ' (Киев)';
+  function renderAll() {
+    if (points.length) {
+      const lastPoint = points[points.length - 1];
+      document.getElementById('stat-now').textContent = lastPoint.player_count;
+      document.getElementById('stat-now-time').textContent =
+        formatDateTime(new Date(lastPoint.ts)) + ' ' + tzSuffix();
+    } else if (recent.length) {
+      const last = recent[recent.length - 1];
+      document.getElementById('stat-now').textContent = last.avg;
+      document.getElementById('stat-now-time').textContent =
+        formatDateTime(new Date(last.hour + ':00:00Z')) + ' ' + tzSuffix();
+    }
+
+    if (recent.length) {
+      renderOverview(recent);
+      renderHourlyActivity(recent);
+    }
+
+    if (points.length) {
+      renderLive(points, historyStore);
+    } else {
+      document.getElementById('live-chart').innerHTML =
+        '<div id="status">Пока нет данных.</div>';
+    }
+
+    if (historyStore.availableDays.length) {
+      renderCompare(historyStore);
+    } else {
+      document.getElementById('compare-chart').innerHTML =
+        '<div id="status">Пока нет данных.</div>';
+    }
   }
 
+  // Stats that don't depend on timezone mode (peaks/averages/trend) are
+  // computed once, not on every tz toggle.
   if (recent.length) {
     const last24 = recent.slice(-24);
     document.getElementById('stat-peak24').textContent = Math.max(...last24.map(r => r.max));
@@ -1379,24 +1599,25 @@ async function init() {
     document.getElementById('stat-min-all').textContent = Math.min(...recent.map(r => r.min));
     const avgAll = recent.reduce((s, r) => s + r.avg, 0) / recent.length;
     document.getElementById('stat-avg-all').textContent = Math.round(avgAll);
-
-    renderOverview(recent);
-    renderHourlyActivity(recent);
   }
 
-  if (points.length) {
-    renderLive(points, historyStore);
-  } else {
-    document.getElementById('live-chart').innerHTML =
-      '<div id="status">Пока нет данных.</div>';
+  // Timezone toggle: re-render every timestamp-dependent chart/label in
+  // place, without re-fetching data, so switching feels instant.
+  const tzButtons = document.querySelectorAll('#tz-toggle .tz-btn');
+  function syncTzButtons() {
+    const mode = getTzMode();
+    tzButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   }
+  tzButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      setTzMode(btn.dataset.mode);
+      syncTzButtons();
+      renderAll();
+    });
+  });
+  syncTzButtons();
 
-  if (historyStore.availableDays.length) {
-    renderCompare(historyStore);
-  } else {
-    document.getElementById('compare-chart').innerHTML =
-      '<div id="status">Пока нет данных.</div>';
-  }
+  renderAll();
 }
 
 init();
