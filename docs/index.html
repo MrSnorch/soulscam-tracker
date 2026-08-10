@@ -959,12 +959,28 @@ function renderLive(recentPoints, historyStore) {
   const lastTs = new Date(recentPoints[recentPoints.length - 1].ts).getTime();
   const totalMs = Math.max(1, lastTs - firstTs);
   const hoursAgoFrac = h => Math.max(0, 1 - (h * 3600000) / totalMs);
+  // Short ranges (up to 48h) work off the inline recentPoints window, so
+  // they're instant. Anything longer than the inline window needs the
+  // full history fetched first (same as "Всё" already did) - the actual
+  // start fraction for those gets recomputed against the full points
+  // array once loaded, since hoursAgoFrac here is only valid pre-load.
   const ranges = [
-    { label: '1ч', start: hoursAgoFrac(1), end: 1, needsFull: false },
-    { label: '6ч', start: hoursAgoFrac(6), end: 1, needsFull: false },
-    { label: '24ч', start: hoursAgoFrac(24), end: 1, needsFull: false },
-    { label: 'Всё', start: 0, end: 1, needsFull: true }
-  ];
+    { label: '15м', hours: 0.25, needsFull: false },
+    { label: '30м', hours: 0.5, needsFull: false },
+    { label: '1ч', hours: 1, needsFull: false },
+    { label: '3ч', hours: 3, needsFull: false },
+    { label: '6ч', hours: 6, needsFull: false },
+    { label: '12ч', hours: 12, needsFull: false },
+    { label: '24ч', hours: 24, needsFull: false },
+    { label: '48ч', hours: 48, needsFull: false },
+    { label: '7д', hours: 24 * 7, needsFull: true },
+    { label: '30д', hours: 24 * 30, needsFull: true },
+    { label: 'Всё', hours: null, needsFull: true, isAll: true }
+  ].map(r => ({
+    ...r,
+    start: r.isAll ? 0 : hoursAgoFrac(r.hours),
+    end: 1
+  }));
   const state = { start: 0, end: 1, minWindow: Math.min(1, 10 / recentPoints.length) };
   const slider = setupSliderZoom(zoomSlider, posSlider, state, draw);
 
@@ -1029,6 +1045,18 @@ function renderLive(recentPoints, historyStore) {
     if (range && range.needsFull) {
       await loadFullHistory();
       state.minWindow = Math.min(1, 10 / points.length);
+      if (!range.isAll) {
+        // Recompute the start fraction against the now-loaded full
+        // points array - the value precomputed in `ranges` was only
+        // valid against the 48h inline window, and points may span
+        // much further back than that once fully loaded.
+        const fullFirstTs = new Date(points[0].ts).getTime();
+        const fullLastTs = new Date(points[points.length - 1].ts).getTime();
+        const fullTotalMs = Math.max(1, fullLastTs - fullFirstTs);
+        const cutoffMs = range.hours * 3600000;
+        state.start = Math.max(0, 1 - cutoffMs / fullTotalMs);
+        state.end = 1;
+      }
     }
     slider.syncFromState();
     draw();
@@ -1193,25 +1221,35 @@ function renderCompare(historyStore) {
   }
 
   // Quick presets for the most common comparisons, so the person doesn't
-  // have to manually count back days in the dropdowns. Each offset is in
-  // days before the most recent available day (index dayKeys.length-1).
+  // have to manually count back days in the dropdowns. Most are offsets
+  // in days before the most recent available day (index dayKeys.length-1);
+  // "Первый vs последний день" instead pins to the two ends of whatever
+  // history exists, regardless of how many days that spans.
   const lastIdx = dayKeys.length - 1;
   const presets = [
     { label: 'Вчера vs сегодня', offsetA: 1, offsetB: 0 },
     { label: 'Позавчера vs вчера', offsetA: 2, offsetB: 1 },
     { label: 'Неделю назад vs сегодня', offsetA: 7, offsetB: 0 },
+    { label: '2 недели назад vs сегодня', offsetA: 14, offsetB: 0 },
+    { label: 'Месяц назад vs сегодня', offsetA: 30, offsetB: 0 },
+    { label: 'Первый vs последний день', pinFirstLast: true },
   ];
 
   presetBtns.innerHTML = '';
   const presetButtons = presets
-    .filter(p => lastIdx - p.offsetA >= 0 && lastIdx - p.offsetB >= 0)
+    .filter(p => p.pinFirstLast ? dayKeys.length >= 2 : (lastIdx - p.offsetA >= 0 && lastIdx - p.offsetB >= 0))
     .map(p => {
       const btn = document.createElement('button');
       btn.className = 'range-btn';
       btn.textContent = p.label;
       btn.addEventListener('click', () => {
-        selA.value = dayKeys[lastIdx - p.offsetA];
-        selB.value = dayKeys[lastIdx - p.offsetB];
+        if (p.pinFirstLast) {
+          selA.value = dayKeys[0];
+          selB.value = dayKeys[lastIdx];
+        } else {
+          selA.value = dayKeys[lastIdx - p.offsetA];
+          selB.value = dayKeys[lastIdx - p.offsetB];
+        }
         presetButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         draw();
@@ -1221,8 +1259,10 @@ function renderCompare(historyStore) {
     });
   // Mark the default selection's matching preset active, if any (usually
   // "Вчера vs сегодня" since that's what's pre-selected above).
-  const matchingDefault = presets.findIndex(p =>
-    dayKeys[lastIdx - p.offsetA] === selA.value && dayKeys[lastIdx - p.offsetB] === selB.value);
+  const matchingDefault = presets.findIndex(p => {
+    if (p.pinFirstLast) return dayKeys[0] === selA.value && dayKeys[lastIdx] === selB.value;
+    return dayKeys[lastIdx - p.offsetA] === selA.value && dayKeys[lastIdx - p.offsetB] === selB.value;
+  });
   if (matchingDefault !== -1 && presetButtons[matchingDefault]) {
     presetButtons[matchingDefault].classList.add('active');
   }
@@ -1283,10 +1323,35 @@ function renderCompare(historyStore) {
       }
     ], xForIndex, a.length);
 
-    renderCompareSummary(a, b, selA.value, selB.value);
+    renderCompareSummary(a, b, selA.value, selB.value, ptsA, ptsB);
   }
 
-  function statsFor(slots) {
+  // Integrates player_count over time (trapezoidal rule) to get total
+// "player-hours" for a day - the area under the online-count curve. This
+// is NOT unique players (Steam's public API has no way to know that -
+// it only ever reports a point-in-time count, never player identities or
+// session data), but it's an honestly computable engagement metric: it's
+// what the total would be if the average concurrent count held constant,
+// integrated over real elapsed time between polls. Works from the raw,
+// unbucketed points so gaps in polling don't get silently treated as
+// flat segments the way a bucketed-grid trapezoid would.
+function computePlayerHours(points) {
+  if (points.length < 2) return null;
+  const sorted = [...points].sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0);
+  let hours = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    const dtHours = (new Date(sorted[i].ts) - new Date(sorted[i - 1].ts)) / 3600000;
+    // Skip gaps bigger than 30 min (collector downtime) rather than
+    // integrating a flat line across a period with no real data - that
+    // would overstate player-hours during an outage.
+    if (dtHours > 0.5) continue;
+    const avgCount = (sorted[i].player_count + sorted[i - 1].player_count) / 2;
+    hours += avgCount * dtHours;
+  }
+  return Math.round(hours);
+}
+
+function statsFor(slots) {
     const vals = slots.filter(v => v != null);
     if (!vals.length) return null;
     return {
@@ -1296,7 +1361,7 @@ function renderCompare(historyStore) {
     };
   }
 
-  function renderCompareSummary(a, b, labelA, labelB) {
+  function renderCompareSummary(a, b, labelA, labelB, ptsA, ptsB) {
     const summary = document.getElementById('compare-summary');
     const statsA = statsFor(a);
     const statsB = statsFor(b);
@@ -1305,12 +1370,16 @@ function renderCompare(historyStore) {
       return;
     }
 
-    const col = (label, color, stats) => `
+    const phA = computePlayerHours(ptsA);
+    const phB = computePlayerHours(ptsB);
+
+    const col = (label, color, stats, playerHours) => `
       <div class="col">
         <div class="col-title"><span class="legend-swatch" style="background:${color}"></span>${label}</div>
         <div class="row"><span>Пик</span><span class="v">${stats.peak}</span></div>
         <div class="row"><span>Среднее</span><span class="v">${stats.avg}</span></div>
         <div class="row"><span>Минимум</span><span class="v">${stats.min}</span></div>
+        <div class="row"><span>Игро-часов за день</span><span class="v">${playerHours != null ? playerHours.toLocaleString('ru-RU') : '—'}</span></div>
       </div>`;
 
     const avgDiff = statsB.avg - statsA.avg;
@@ -1320,16 +1389,25 @@ function renderCompare(historyStore) {
     const sign = n => (n > 0 ? '+' : '');
     const cls = n => (Math.abs(n) < 1 ? 'trend-flat' : n > 0 ? 'trend-up' : 'trend-down');
 
+    let phDiffLine = '';
+    if (phA != null && phB != null) {
+      const phDiff = phB - phA;
+      const phPct = phA > 0 ? (phDiff / phA) * 100 : 0;
+      phDiffLine = `, игро-часов
+        <span class="v ${cls(phPct)}">${sign(phDiff)}${phDiff.toLocaleString('ru-RU')}</span>
+        (<span class="v ${cls(phPct)}">${sign(phPct)}${phPct.toFixed(1)}%</span>)`;
+    }
+
     summary.innerHTML =
-      col(labelA, 'var(--accent)', statsA) +
-      col(labelB, 'var(--warn)', statsB) +
+      col(labelA, 'var(--accent)', statsA, phA) +
+      col(labelB, 'var(--warn)', statsB, phB) +
       `<div class="compare-diff">
         ${labelB} к ${labelA}: среднее
         <span class="v ${cls(avgPct)}">${sign(avgDiff)}${avgDiff}</span>
         (<span class="v ${cls(avgPct)}">${sign(avgPct)}${avgPct.toFixed(1)}%</span>),
         пик
         <span class="v ${cls(peakPct)}">${sign(peakDiff)}${peakDiff}</span>
-        (<span class="v ${cls(peakPct)}">${sign(peakPct)}${peakPct.toFixed(1)}%</span>)
+        (<span class="v ${cls(peakPct)}">${sign(peakPct)}${peakPct.toFixed(1)}%</span>)${phDiffLine}
       </div>`;
   }
 
