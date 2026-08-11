@@ -508,6 +508,14 @@
     <div id="hourly-chart"><div id="status">Загрузка данных&hellip;</div></div>
   </div>
 
+  <div class="panel">
+    <h2>Отзывы Steam</h2>
+    <p class="desc">Позитивные / негативные / подозрительные отзывы по дням &mdash; из отдельного пайплайна анализа отзывов</p>
+    <div class="stats" id="reviews-stats"></div>
+    <div id="reviews-chart"><div id="status">Загрузка данных&hellip;</div></div>
+    <div class="compare-summary" id="reviews-suspicion-summary"></div>
+  </div>
+
 </main>
 
 <footer>Обновляется автоматически из docs/hourly/ &middot; данные: Steam Web API</footer>
@@ -1577,6 +1585,135 @@ function checkStaleness(lastTs) {
   banner.style.display = 'flex';
 }
 
+// Reviews panel: driven by docs/reviews/summary-only.json, written by
+// the separate fetch-reviews.yml pipeline (scripts/reviews/*.py). This
+// covers a different signal than the player-count charts above - review
+// sentiment/velocity/suspicious-review activity - on the same appid, so
+// it's useful to see side by side even though the two pipelines run
+// fully independently (reviews every 12h, player count every minute).
+function renderReviews(data) {
+  const statsEl = document.getElementById('reviews-stats');
+  const chartEl = document.getElementById('reviews-chart');
+  const suspicionEl = document.getElementById('reviews-suspicion-summary');
+
+  if (!data || !data.summary) {
+    statsEl.innerHTML = '';
+    chartEl.innerHTML = '<div id="status">Данные по отзывам недоступны &mdash; пайплайн fetch-reviews ещё не запускался или не настроен.</div>';
+    suspicionEl.innerHTML = '';
+    return;
+  }
+
+  const s = data.summary;
+  const genDate = new Date(data.generated_at);
+  statsEl.innerHTML = `
+    <div class="stat">
+      <div class="label">Всего отзывов</div>
+      <div class="value mono">${s.total_reviews}</div>
+      <div class="sub mono">обновлено ${formatDateTime(genDate)} ${tzSuffix()}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Позитивных</div>
+      <div class="value mono trend-up">${s.positive_pct}%</div>
+      <div class="sub mono">${s.positive_count} из ${s.total_reviews}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Подозрительных</div>
+      <div class="value mono ${s.suspicious_count > 0 ? 'trend-down' : 'trend-flat'}">${s.suspicious_count}</div>
+      <div class="sub mono">${s.suspicious_pct_of_positive}% от позитивных &middot; ${s.highly_suspicious_count} высокий риск</div>
+    </div>
+  `;
+
+  const timeline = data.timeline || [];
+  if (!timeline.length) {
+    chartEl.innerHTML = '<div id="status">Недостаточно данных для графика по дням.</div>';
+    suspicionEl.innerHTML = '';
+    return;
+  }
+
+  chartEl.innerHTML = '';
+  const maxVal = Math.max(...timeline.map(t => t.positive + t.negative), 1);
+  const innerW = W - PAD.left - PAD.right;
+  const barGap = Math.max(1, Math.min(4, innerW / timeline.length * 0.15));
+  const barW = innerW / timeline.length - barGap;
+  const xForBar = i => PAD.left + (innerW / timeline.length) * i;
+  const xForIndex = i => xForBar(i) + barW / 2;
+
+  const svg = makeSvg();
+  const labelCount = Math.min(6, timeline.length);
+  const xLabels = [];
+  for (let i = 0; i < labelCount; i++) {
+    const idx = Math.round(i * (timeline.length - 1) / Math.max(1, labelCount - 1));
+    xLabels.push({ x: xForIndex(idx), label: timeline[idx].date.slice(5) });
+  }
+  drawGridAndAxes(svg, maxVal, xLabels);
+
+  // Stacked bars: positive (green) below, negative (muted red) on top,
+  // with a small suspicious-count marker overlaid on the positive
+  // segment (suspicious reviews are checked against positive reviews
+  // specifically - review-bombing detection targets suspicious praise,
+  // not suspicious criticism).
+  timeline.forEach((t, i) => {
+    const total = t.positive + t.negative;
+    if (total === 0) return;
+    const x = xForBar(i);
+    const posH = (H - PAD.bottom - PAD.top) * (t.positive / maxVal);
+    const negH = (H - PAD.bottom - PAD.top) * (t.negative / maxVal);
+    const posY = (H - PAD.bottom) - posH;
+    const negY = posY - negH;
+    svg.appendChild(svgEl('rect', { x, y: posY, width: barW, height: posH, fill: 'var(--accent-dim)', rx: 1 }));
+    if (t.negative > 0) {
+      svg.appendChild(svgEl('rect', { x, y: negY, width: barW, height: negH, fill: '#5e2a2e', rx: 1 }));
+    }
+    if (t.suspicious > 0) {
+      const suspH = Math.max(2, posH * Math.min(1, t.suspicious / Math.max(1, t.positive)));
+      svg.appendChild(svgEl('rect', {
+        x, y: (H - PAD.bottom) - suspH, width: barW, height: suspH,
+        fill: 'var(--warn)', opacity: 0.55, rx: 1
+      }));
+    }
+  });
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-wrap';
+  wrap.appendChild(svg);
+  chartEl.appendChild(wrap);
+
+  const coords = timeline.map((t, i) => ({ x: xForIndex(i), y: PAD.top }));
+  attachTooltip(wrap, svg, [{
+    coords,
+    color: 'var(--accent)',
+    labelFor: i => ({
+      value: `${timeline[i].positive}+ / ${timeline[i].negative}-`,
+      sub: timeline[i].date + (timeline[i].suspicious ? ` &middot; ${timeline[i].suspicious} подозрит.` : '')
+    })
+  }], xForIndex, timeline.length);
+
+  // Top suspicion reasons, for context on what's driving the count.
+  const reasons = s.suspicion_reason_counts || {};
+  const reasonLabels = {
+    posted_during_review_burst: 'всплеск отзывов в короткий период',
+    edited_days_later: 'отредактирован спустя дни',
+    private_profile: 'закрытый профиль',
+    low_effort_text: 'короткий/шаблонный текст',
+    prolific_reviewer_few_games: 'много отзывов, мало игр в библиотеке',
+    positive_under_1h: 'позитив при <1ч в игре',
+    positive_under_30min: 'позитив при <30 мин в игре',
+    account_under_30d_old_at_review: 'аккаунту <30 дней',
+    high_votes_low_effort_text: 'много лайков при пустом тексте',
+  };
+  const topReasons = Object.entries(reasons)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([key, count]) => `<div class="row"><span>${reasonLabels[key] || key}</span><span class="v">${count}</span></div>`)
+    .join('');
+
+  suspicionEl.innerHTML = topReasons ? `
+    <div class="col" style="grid-column: 1 / -1;">
+      <div class="col-title">Основные признаки подозрительности</div>
+      ${topReasons}
+    </div>` : '';
+}
+
 async function init() {
   let recent = [];
   try {
@@ -1612,6 +1749,18 @@ async function init() {
   }
   const historyStore = createHistoryStore(points, pointsIndex);
 
+  // Reviews data comes from a separate, independent pipeline (its own
+  // workflow, its own commit cadence - every 12h vs every minute for
+  // player counts) so a missing/failed fetch here shouldn't affect
+  // anything else on the dashboard. The panel just quietly stays empty.
+  let reviewsData = null;
+  try {
+    reviewsData = await loadJSON('reviews/summary-only.json');
+  } catch (e) {
+    // No reviews pipeline configured for this deployment, or it hasn't
+    // run yet - the panel below handles reviewsData being null.
+  }
+
   function renderAll() {
     if (points.length) {
       const lastPoint = points[points.length - 1];
@@ -1643,6 +1792,8 @@ async function init() {
       document.getElementById('compare-chart').innerHTML =
         '<div id="status">Пока нет данных.</div>';
     }
+
+    renderReviews(reviewsData);
   }
 
   // Stats that don't depend on timezone mode (peaks/averages/trend) are
