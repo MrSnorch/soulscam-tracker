@@ -119,17 +119,33 @@ jobs:
           git config user.name "review-watch-bot"
           git config user.email "actions@users.noreply.github.com"
           git add -f docs/reviews
-          # This workflow runs on its own 12h schedule, independent of
-          # poll.yml's much more frequent commits - pull --rebase first
-          # so a review-data push doesn't race with a concurrent
-          # player-count commit and get rejected.
-          git pull --rebase --quiet || true
+
           if git diff --cached --quiet; then
             echo "No data changes to commit."
-          else
-            git commit -m "chore: update review data ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
-            git push
+            exit 0
           fi
+
+          git commit -m "chore: update review data ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+
+          # Commit first, then rebase - `git pull --rebase` needs a clean
+          # index/working tree to replay commits onto, so it must run
+          # after committing, not before (running it right after `git
+          # add` fails with "cannot pull with rebase: Your index contains
+          # uncommitted changes"). poll.yml commits every minute on its
+          # own schedule against the same branch, so retry push a few
+          # times with a fresh rebase each time rather than failing on
+          # the first race.
+          for attempt in 1 2 3 4 5; do
+            if git push --quiet; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5), rebasing onto latest and retrying..."
+            git pull --rebase --quiet
+            sleep 2
+          done
+          echo "::error::Failed to push review data after 5 attempts."
+          exit 1
 
       - name: Write job summary
         if: always()
