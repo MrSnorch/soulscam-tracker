@@ -29,7 +29,7 @@ import os
 import glob
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 HOURLY_DIR = os.path.join(os.path.dirname(__file__), "..", "docs", "hourly")
 
@@ -39,6 +39,20 @@ HOURLY_DIR = os.path.join(os.path.dirname(__file__), "..", "docs", "hourly")
 # another 0, or one with no nonzero neighbor close by in time - those
 # look like a real (possibly sustained) drop, not a one-poll blip.
 MAX_NEIGHBOR_GAP_SEC = 180
+
+# Skip the current UTC hour and the one before it - poll.py may be
+# actively appending to those exact hourly files right now (it flushes
+# every minute). Rewriting a file poll.py is mid-write to is a real race:
+# whichever of the two processes writes last wins and the other's change
+# is silently lost. Every older hour is finalized and safe to touch, so
+# this cleanup can run any time without needing to wait for the poller
+# to be idle (no concurrency lock required in the workflow).
+def live_hour_keys():
+    now = datetime.now(timezone.utc)
+    return {
+        now.strftime("%Y-%m-%dT%H"),
+        (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H"),
+    }
 
 
 def write_gzip_json(path, obj):
@@ -116,8 +130,15 @@ def main():
 
     total_removed = 0
     touched_files = 0
+    live_hours = live_hour_keys()
+    skipped_live = 0
 
     for path in sorted(glob.glob(os.path.join(HOURLY_DIR, "*.json.gz"))):
+        hour = os.path.basename(path).removesuffix(".json.gz")
+        if hour in live_hours:
+            skipped_live += 1
+            continue
+
         with gzip.open(path, "rt") as f:
             data = json.load(f)
         points = data.get("points", [])
@@ -139,6 +160,8 @@ def main():
             write_gzip_json(path, data)
 
     print()
+    if skipped_live:
+        print(f"Skipped {skipped_live} file(s) for the current/previous UTC hour (may be actively written by the poller): {sorted(live_hours)}")
     if args.dry_run:
         print(f"DRY RUN: would remove {total_removed} glitch zero point(s) across {touched_files} file(s).")
         print("Re-run without --dry-run to apply.")
