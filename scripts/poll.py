@@ -54,6 +54,56 @@ def fetch_player_count():
     return None
 
 
+# How many recent non-null readings to remember, purely to sanity-check a
+# fresh 0 against - Steam's endpoint occasionally returns result=1 with
+# player_count=0 as a transient glitch (seen in practice: a string of
+# zero readings sandwiched between normal ~130-150 values a minute
+# apart, which is not a real "everyone logged off" event). This is NOT
+# meant to hide a genuine drop to zero for a low-population game - it
+# only asks for one extra confirmation before trusting an unexpected 0.
+RECENT_HISTORY_LEN = 5
+_recent_counts = []
+
+
+def is_suspicious_zero(count):
+    """A fresh 0 reading right after a run of healthy nonzero readings is
+    treated as suspicious and worth re-confirming rather than recorded
+    immediately. A 0 that follows other recent 0s (or no history yet) is
+    not suspicious - could be a genuinely dead/delisted game, and we
+    shouldn't loop forever re-fetching a real value."""
+    if count != 0:
+        return False
+    if not _recent_counts:
+        return False
+    return any(c > 0 for c in _recent_counts)
+
+
+def fetch_player_count_confirmed():
+    """Wraps fetch_player_count() with a re-confirmation pass for
+    suspicious zeroes, and updates the rolling history used to judge
+    future readings."""
+    count = fetch_player_count()
+    if count is None:
+        return None
+
+    if is_suspicious_zero(count):
+        print(f"WARN: got player_count=0 after nonzero history {_recent_counts}, re-confirming...", file=sys.stderr)
+        time.sleep(5)
+        confirm = fetch_player_count()
+        if confirm is not None and confirm != 0:
+            print(f"INFO: re-fetch got player_count={confirm}, discarding the earlier 0 as a glitch", file=sys.stderr)
+            count = confirm
+        elif confirm == 0:
+            print("INFO: re-fetch also returned 0, accepting it as a real reading", file=sys.stderr)
+        # if the retry itself failed (confirm is None), fall through and
+        # keep the original 0 rather than losing this poll entirely
+
+    _recent_counts.append(count)
+    if len(_recent_counts) > RECENT_HISTORY_LEN:
+        _recent_counts.pop(0)
+    return count
+
+
 def hour_key(dt):
     return dt.strftime("%Y-%m-%dT%H")
 
@@ -96,7 +146,7 @@ def main():
             buffer.pop(current_hour, None)
         current_hour = hk
 
-        count = fetch_player_count()
+        count = fetch_player_count_confirmed()
         if count is not None:
             buffer.setdefault(hk, []).append({
                 "ts": now.isoformat(),
