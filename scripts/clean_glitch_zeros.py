@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""
+One-off cleanup for player_count=0 glitch readings recorded before
+poll.py gained its own re-confirmation guard against them (see the
+is_suspicious_zero()/fetch_player_count_confirmed() functions there).
+
+This does NOT delete every 0 - a game can genuinely have zero
+concurrent players, especially a small/dead one, and that's real data
+worth keeping. It only removes a 0 that's "sandwiched": surrounded on
+both sides (within a short time window) by clearly nonzero readings,
+which is the exact pattern a transient API glitch produces and a real
+population crash to zero does not (a real crash doesn't un-crash a
+minute later).
+
+Usage:
+    python3 scripts/clean_glitch_zeros.py --dry-run     # just report
+    python3 scripts/clean_glitch_zeros.py                # apply + rebuild index
+
+After removing points, run build-index.py again (this script does that
+automatically unless --skip-rebuild is passed) so recent.json,
+points.json, and points-by-day/*.json.gz reflect the cleaned data.
+"""
+
+import argparse
+import gzip
+import io
+import json
+import os
+import glob
+import subprocess
+import sys
+from datetime import datetime
+
+HOURLY_DIR = os.path.join(os.path.dirname(__file__), "..", "docs", "hourly")
+
+# A 0 is only considered a glitch if both its immediate neighbors (by
+# time, not just adjacent in the file) are within this many seconds and
+# both nonzero. This deliberately does not touch a 0 that sits next to
+# another 0, or one with no nonzero neighbor close by in time - those
+# look like a real (possibly sustained) drop, not a one-poll blip.
+MAX_NEIGHBOR_GAP_SEC = 180
+
+
+def write_gzip_json(path, obj):
+    payload = json.dumps(obj).encode("utf-8")
+    buf = io.BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=buf, mtime=0) as gz:
+        gz.write(payload)
+    with open(path, "wb") as f:
+        f.write(buf.getvalue())
+
+
+def clean_points(points):
+    """Returns (cleaned_points, changed_points).
+
+    A run of consecutive player_count=0 readings that is bounded on both
+    sides (within MAX_NEIGHBOR_GAP_SEC of the run's edges) by clearly
+    nonzero readings is treated as an API glitch, not a real drop to
+    zero - a real crash to zero doesn't un-crash a few minutes later on
+    its own. Each 0 in such a run is replaced with the last known-good
+    (nonzero) count that preceded it (forward-fill), rather than deleted,
+    so the timeline keeps its normal point spacing instead of gaining
+    gaps.
+
+    A 0 that isn't bounded like this (leading/trailing run with no
+    healthy neighbor close by, or the very first/last points overall) is
+    left untouched - that looks like a real and possibly still-ongoing
+    drop, and forward-filling it would be fabricating data instead of
+    correcting a known glitch pattern.
+    """
+    pts = sorted(points, key=lambda p: p["ts"])
+    n = len(pts)
+    changed = []
+    result = [dict(p) for p in pts]
+
+    i = 0
+    while i < n:
+        if result[i]["player_count"] != 0:
+            i += 1
+            continue
+
+        # found the start of a run of zeros; find its end
+        j = i
+        while j < n and result[j]["player_count"] == 0:
+            j += 1
+        run = result[i:j]  # zeros at indices [i, j)
+
+        prev_point = pts[i - 1] if i > 0 else None
+        next_point = pts[j] if j < n else None
+
+        prev_ok = (
+            prev_point is not None and prev_point["player_count"] > 0
+            and abs((datetime.fromisoformat(run[0]["ts"]) - datetime.fromisoformat(prev_point["ts"])).total_seconds()) <= MAX_NEIGHBOR_GAP_SEC
+        )
+        next_ok = (
+            next_point is not None and next_point["player_count"] > 0
+            and abs((datetime.fromisoformat(next_point["ts"]) - datetime.fromisoformat(run[-1]["ts"])).total_seconds()) <= MAX_NEIGHBOR_GAP_SEC
+        )
+
+        if prev_ok and next_ok:
+            fill_value = prev_point["player_count"]
+            for k in range(i, j):
+                result[k]["player_count"] = fill_value
+                changed.append({"ts": pts[k]["ts"], "from": 0, "to": fill_value})
+
+        i = j
+
+    return result, changed
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dry-run", action="store_true", help="report what would be removed, don't write anything")
+    ap.add_argument("--skip-rebuild", action="store_true", help="don't run build-index.py afterward")
+    args = ap.parse_args()
+
+    total_removed = 0
+    touched_files = 0
+
+    for path in sorted(glob.glob(os.path.join(HOURLY_DIR, "*.json.gz"))):
+        with gzip.open(path, "rt") as f:
+            data = json.load(f)
+        points = data.get("points", [])
+        if not points:
+            continue
+
+        cleaned, removed = clean_points(points)
+        if not removed:
+            continue
+
+        touched_files += 1
+        total_removed += len(removed)
+        print(f"{os.path.basename(path)}: removing {len(removed)} glitch zero(s)")
+        for r in removed:
+            print(f"  - {r['ts']} player_count=0")
+
+        if not args.dry_run:
+            data["points"] = cleaned
+            write_gzip_json(path, data)
+
+    print()
+    if args.dry_run:
+        print(f"DRY RUN: would remove {total_removed} glitch zero point(s) across {touched_files} file(s).")
+        print("Re-run without --dry-run to apply.")
+        return
+
+    print(f"Removed {total_removed} glitch zero point(s) across {touched_files} file(s).")
+
+    if total_removed and not args.skip_rebuild:
+        print("Rebuilding recent.json / points.json / points-by-day/ from cleaned hourly files...")
+        build_index = os.path.join(os.path.dirname(__file__), "build-index.py")
+        subprocess.run([sys.executable, build_index], check=True)
+
+
+if __name__ == "__main__":
+    main()
