@@ -467,7 +467,7 @@
 
   <div class="panel">
     <h2>Общая динамика</h2>
-    <p class="desc">Среднее число игроков по часам за весь собранный период</p>
+    <p class="desc">Среднее число игроков по часам за весь собранный период &middot; <span style="color:var(--warn)">&#9650;</span> &mdash; всплеск подозрительных отзывов в этот день</p>
     <div class="controls">
       <span class="legend-swatch" style="background:var(--warn)"></span>
       <span class="trend-controls-label">Тренд:</span>
@@ -587,6 +587,33 @@ function drawNowLine(svg, xNow) {
   });
   label.textContent = 'сейчас';
   svg.appendChild(label);
+}
+
+// Marks days with a notable spike in suspicious review activity directly
+// on the player-count timeline, so it's visible at a glance whether an
+// online-count jump lines up with review-bombing activity or not - the
+// two pipelines are independent, but both track the same appid, and
+// that correlation is exactly the kind of thing this dashboard exists
+// to surface. xForDate maps a Date to an x coordinate in the *already
+// rendered* chart's scale (same as the chart's own xForIndex, just
+// keyed by calendar day instead of by row index).
+function drawReviewSpikeMarkers(svg, reviewsTimeline, xForDate, minSuspicious) {
+  if (!reviewsTimeline || !reviewsTimeline.length) return [];
+  const markers = [];
+  reviewsTimeline.forEach(day => {
+    if (!day.suspicious || day.suspicious < minSuspicious) return;
+    const x = xForDate(day.date);
+    if (x == null || x < PAD.left || x > W - PAD.right) return;
+    const y = PAD.top - 2;
+    const marker = svgEl('path', {
+      d: `M ${x - 4} ${y} L ${x + 4} ${y} L ${x} ${y + 7} Z`,
+      fill: 'var(--warn)',
+      opacity: 0.9
+    });
+    svg.appendChild(marker);
+    markers.push({ x, date: day.date, suspicious: day.suspicious, positive: day.positive, negative: day.negative });
+  });
+  return markers;
 }
 
 function linePath(points, xForIndex, maxVal) {
@@ -784,7 +811,7 @@ function movingAverage(values, windowSize) {
   });
 }
 
-function renderOverview(rows) {
+function renderOverview(rows, reviewsTimeline) {
   const container = document.getElementById('overview-chart');
   const rangeBtns = document.getElementById('overview-range-btns');
   const trendBtns = document.getElementById('overview-trend-btns');
@@ -887,6 +914,23 @@ function renderOverview(rows) {
       }
     }
 
+    // Review-bombing spike markers: map each flagged day's date onto
+    // this same hourly x-axis by finding the matching row (hour bucket
+    // at 00:00 UTC for that date is close enough for a day-granularity
+    // marker on an hourly-resolution chart).
+    let spikeMarkers = [];
+    if (reviewsTimeline && slice.length >= 2) {
+      const sliceFirstMs = new Date(slice[0].hour + ':00:00Z').getTime();
+      const sliceLastMs = new Date(slice[slice.length - 1].hour + ':00:00Z').getTime();
+      const sliceTotalMs = Math.max(1, sliceLastMs - sliceFirstMs);
+      const xForDate = dateStr => {
+        const ms = new Date(dateStr + 'T00:00:00Z').getTime();
+        if (ms < sliceFirstMs || ms > sliceLastMs) return null;
+        return PAD.left + innerW * ((ms - sliceFirstMs) / sliceTotalMs);
+      };
+      spikeMarkers = drawReviewSpikeMarkers(svg, reviewsTimeline, xForDate, 3);
+    }
+
     const coords = linePath(slice.map(r => r.avg), xForIndex, maxVal);
     const path = svgEl('path', { d: pathD(coords), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2 });
     svg.appendChild(path);
@@ -929,6 +973,32 @@ function renderOverview(rows) {
     container.appendChild(wrap);
 
     attachTooltip(wrap, svg, series, xForIndex, slice.length);
+
+    if (spikeMarkers.length) {
+      const spikeTooltip = document.createElement('div');
+      spikeTooltip.className = 'tooltip';
+      wrap.appendChild(spikeTooltip);
+
+      spikeMarkers.forEach(m => {
+        const hitArea = svgEl('rect', {
+          x: m.x - 6, y: PAD.top - 10, width: 12, height: 16,
+          fill: 'transparent', style: 'cursor: help;'
+        });
+        hitArea.addEventListener('mouseenter', () => {
+          spikeTooltip.innerHTML =
+            `<div><span class="tt-value" style="color:var(--warn)">${m.suspicious} подозрительных</span> &middot; ${m.positive}+ / ${m.negative}-</div>` +
+            `<div class="tt-label">${m.date} &middot; всплеск активности отзывов</div>`;
+          const pct = (m.x / W) * 100;
+          spikeTooltip.style.left = pct + '%';
+          spikeTooltip.style.top = ((PAD.top / H) * 100) + '%';
+          spikeTooltip.style.opacity = 1;
+        });
+        hitArea.addEventListener('mouseleave', () => {
+          spikeTooltip.style.opacity = 0;
+        });
+        svg.appendChild(hitArea);
+      });
+    }
 
     resetBtn.classList.toggle('visible', state.start > 0 || state.end < 1);
   }
@@ -1802,7 +1872,7 @@ async function init() {
     }
 
     if (recent.length) {
-      renderOverview(recent);
+      renderOverview(recent, reviewsData && reviewsData.timeline);
       renderHourlyActivity(recent);
     }
 
