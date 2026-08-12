@@ -1237,22 +1237,40 @@ function renderCompare(historyStore) {
 
   // Quick presets for the most common comparisons, so the person doesn't
   // have to manually count back days in the dropdowns. Most are offsets
-  // in days before the most recent available day (index dayKeys.length-1);
+  // in days before the most recent available day (index dayKeys.length-1).
   // "Первый vs последний день" instead pins to the two ends of whatever
   // history exists, regardless of how many days that spans.
+  //
+  // clamp: true means the preset stays visible even when there isn't
+  // enough history for its exact offset (e.g. "Месяц назад" with only 10
+  // days collected) - it falls back to the earliest available day instead
+  // of hiding the button, so longer-range presets don't just disappear
+  // early on and only "arrive" once enough history exists. Short-range
+  // presets (yesterday/day-before) aren't clamped since there's no
+  // meaningful fallback for those - hiding them when there's truly no
+  // earlier day is correct.
   const lastIdx = dayKeys.length - 1;
   const presets = [
     { label: 'Вчера vs сегодня', offsetA: 1, offsetB: 0 },
     { label: 'Позавчера vs вчера', offsetA: 2, offsetB: 1 },
-    { label: 'Неделю назад vs сегодня', offsetA: 7, offsetB: 0 },
-    { label: '2 недели назад vs сегодня', offsetA: 14, offsetB: 0 },
-    { label: 'Месяц назад vs сегодня', offsetA: 30, offsetB: 0 },
+    { label: 'Неделю назад vs сегодня', offsetA: 7, offsetB: 0, clamp: true },
+    { label: '2 недели назад vs сегодня', offsetA: 14, offsetB: 0, clamp: true },
+    { label: 'Месяц назад vs сегодня', offsetA: 30, offsetB: 0, clamp: true },
     { label: 'Первый vs последний день', pinFirstLast: true },
   ];
 
+  function resolveDayIndex(offset) {
+    const idx = lastIdx - offset;
+    return Math.max(0, idx);
+  }
+
   presetBtns.innerHTML = '';
   const presetButtons = presets
-    .filter(p => p.pinFirstLast ? dayKeys.length >= 2 : (lastIdx - p.offsetA >= 0 && lastIdx - p.offsetB >= 0))
+    .filter(p => {
+      if (p.pinFirstLast) return dayKeys.length >= 2;
+      if (p.clamp) return lastIdx - p.offsetB >= 0 && lastIdx > 0; // need at least 2 distinct days total
+      return lastIdx - p.offsetA >= 0 && lastIdx - p.offsetB >= 0;
+    })
     .map(p => {
       const btn = document.createElement('button');
       btn.className = 'range-btn';
@@ -1262,8 +1280,8 @@ function renderCompare(historyStore) {
           selA.value = dayKeys[0];
           selB.value = dayKeys[lastIdx];
         } else {
-          selA.value = dayKeys[lastIdx - p.offsetA];
-          selB.value = dayKeys[lastIdx - p.offsetB];
+          selA.value = dayKeys[resolveDayIndex(p.offsetA)];
+          selB.value = dayKeys[resolveDayIndex(p.offsetB)];
         }
         presetButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -1276,7 +1294,9 @@ function renderCompare(historyStore) {
   // "Вчера vs сегодня" since that's what's pre-selected above).
   const matchingDefault = presets.findIndex(p => {
     if (p.pinFirstLast) return dayKeys[0] === selA.value && dayKeys[lastIdx] === selB.value;
-    return dayKeys[lastIdx - p.offsetA] === selA.value && dayKeys[lastIdx - p.offsetB] === selB.value;
+    const idxA = p.clamp ? resolveDayIndex(p.offsetA) : lastIdx - p.offsetA;
+    const idxB = p.clamp ? resolveDayIndex(p.offsetB) : lastIdx - p.offsetB;
+    return dayKeys[idxA] === selA.value && dayKeys[idxB] === selB.value;
   });
   if (matchingDefault !== -1 && presetButtons[matchingDefault]) {
     presetButtons[matchingDefault].classList.add('active');
