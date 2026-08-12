@@ -1,0 +1,70 @@
+name: Clean glitch zeros (manual, one-off)
+
+# Manually triggered only - this isn't meant to run on a schedule. It's a
+# one-off cleanup tool for player_count=0 glitch readings that slipped
+# into docs/hourly/*.json.gz before poll.py gained its own
+# re-confirmation guard against them. Safe to re-run any time; it's a
+# no-op (reports 0 changes) once the data's already clean.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run only (report what would change, commit nothing)'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  # Same group as poll.yml so this never runs at the same time as the
+  # poller - both write to docs/hourly/ and docs/recent.json etc., and
+  # this workflow rewrites files poll.yml is actively appending to.
+  group: poll-steam-players
+  cancel-in-progress: false
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Dry run (report only)
+        if: ${{ inputs.dry_run }}
+        run: python3 scripts/clean_glitch_zeros.py --dry-run
+
+      - name: Clean and rebuild index
+        if: ${{ !inputs.dry_run }}
+        run: python3 scripts/clean_glitch_zeros.py
+
+      - name: Commit and push cleaned data
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "glitch-zero-cleanup-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/hourly/ docs/points-by-day/ docs/recent.json docs/points.json docs/points-index.json docs/.recent-cache.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit (data was already clean)."
+            exit 0
+          fi
+          git commit -m "chore: clean glitch zero readings from hourly data"
+          for attempt in 1 2 3 4 5; do
+            if git push --quiet; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5), rebasing onto latest and retrying..."
+            git pull --rebase --quiet
+            sleep 2
+          done
+          echo "::error::Failed to push cleaned data after 5 attempts."
+          exit 1
