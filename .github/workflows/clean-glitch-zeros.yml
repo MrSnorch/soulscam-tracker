@@ -5,6 +5,17 @@ name: Clean glitch zeros (manual, one-off)
 # into docs/hourly/*.json.gz before poll.py gained its own
 # re-confirmation guard against them. Safe to re-run any time; it's a
 # no-op (reports 0 changes) once the data's already clean.
+#
+# No concurrency lock against the poller on purpose: it would otherwise
+# queue behind poll.yml for its entire ~5.5h run, which defeats the
+# point of a one-off manual cleanup. Instead this stays safe to run
+# alongside the poller in two ways:
+#   1. clean_glitch_zeros.py itself skips the current + previous UTC
+#      hour's file, since the poller may be actively appending to those
+#      specific files right now - every older hour is finalized.
+#   2. The commit/push step below retries with rebase if the poller's
+#      own frequent commits get there first, same pattern as
+#      fetch-reviews.yml uses.
 on:
   workflow_dispatch:
     inputs:
@@ -16,13 +27,6 @@ on:
 
 permissions:
   contents: write
-
-concurrency:
-  # Same group as poll.yml so this never runs at the same time as the
-  # poller - both write to docs/hourly/ and docs/recent.json etc., and
-  # this workflow rewrites files poll.yml is actively appending to.
-  group: poll-steam-players
-  cancel-in-progress: false
 
 jobs:
   clean:
