@@ -188,6 +188,13 @@
     font-size: 12px;
     margin: 0 0 16px;
   }
+  .reviews-link {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .reviews-link:hover {
+    text-decoration: underline;
+  }
 
   .controls {
     display: flex;
@@ -510,7 +517,7 @@
 
   <div class="panel">
     <h2>Отзывы Steam</h2>
-    <p class="desc">Позитивные / негативные / подозрительные отзывы по дням &mdash; из отдельного пайплайна анализа отзывов</p>
+    <p class="desc">Позитивные / негативные / подозрительные отзывы по дням &mdash; из отдельного пайплайна анализа отзывов &middot; <a href="reviews.html" class="reviews-link">открыть полную таблицу отзывов с фильтрами и сортировкой &rarr;</a></p>
     <div class="stats" id="reviews-stats"></div>
     <div id="reviews-chart"><div id="status">Загрузка данных&hellip;</div></div>
     <div class="compare-summary" id="reviews-suspicion-summary"></div>
