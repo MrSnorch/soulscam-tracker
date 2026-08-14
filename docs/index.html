@@ -363,6 +363,84 @@
     color: var(--muted);
     border-top: 1px solid var(--line);
   }
+
+  .reviews-extra-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  @media (max-width: 640px) {
+    .reviews-extra-grid { grid-template-columns: 1fr; }
+  }
+  .reviews-extra-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .reviews-extra-card .card-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 12px;
+  }
+  .bar-row .bar-label {
+    width: 90px;
+    flex-shrink: 0;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bar-row .bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bar-row .bar-fill {
+    height: 100%;
+    background: var(--accent-dim);
+    border-radius: 4px;
+  }
+  .bar-row .bar-count {
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+    color: var(--text);
+    font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+  }
+  .reviews-extra-card .row {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    padding: 3px 0;
+    font-size: 12px;
+  }
+  .reviews-extra-card .row .v { color: var(--text); font-family: "SF Mono", "Cascadia Code", Consolas, monospace; }
+  .velocity-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .velocity-item .label {
+    color: var(--muted);
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+  .velocity-item .value {
+    font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+    font-size: 15px;
+    font-weight: 600;
+  }
   .compare-diff .v { font-weight: 600; font-family: "SF Mono", "Cascadia Code", Consolas, monospace; }
 
   #status {
@@ -394,10 +472,14 @@
 <body>
 
 <header>
-  <h1>Soulscam Tracker</h1>
+  <h1 data-i18n="app.title">Soulscam Tracker</h1>
   <div class="tz-toggle" id="tz-toggle">
-    <button class="tz-btn" data-mode="utc">UTC</button>
-    <button class="tz-btn" data-mode="local">Моё время</button>
+    <button class="tz-btn" data-mode="utc" data-i18n="tz.utc">UTC</button>
+    <button class="tz-btn" data-mode="local" data-i18n="tz.local">Моё время</button>
+  </div>
+  <div class="tz-toggle" id="lang-toggle">
+    <button class="tz-btn" data-mode="ru" data-i18n="lang.ru">RU</button>
+    <button class="tz-btn" data-mode="en" data-i18n="lang.en">EN</button>
   </div>
 </header>
 
@@ -409,28 +491,28 @@
 <div class="stats-wrap">
 <div class="stats" id="stats">
   <div class="stat">
-    <div class="label">Минимум за 24ч</div>
+    <div class="label" data-i18n="stats.min24">Минимум за 24ч</div>
     <div class="value mono" id="stat-min24">&mdash;</div>
   </div>
   <div class="stat">
-    <div class="label">Среднее за 24ч</div>
+    <div class="label" data-i18n="stats.avg24">Среднее за 24ч</div>
     <div class="value mono" id="stat-avg24">&mdash;</div>
     <div class="sub mono" id="stat-trend24">&mdash;</div>
   </div>
   <div class="stat">
-    <div class="label">Пик за 24ч</div>
+    <div class="label" data-i18n="stats.peak24">Пик за 24ч</div>
     <div class="value mono" id="stat-peak24">&mdash;</div>
   </div>
   <div class="stat">
-    <div class="label">Минимум за всё время</div>
+    <div class="label" data-i18n="stats.minAll">Минимум за всё время</div>
     <div class="value mono" id="stat-min-all">&mdash;</div>
   </div>
   <div class="stat">
-    <div class="label">Среднее за всё время</div>
+    <div class="label" data-i18n="stats.avgAll">Среднее за всё время</div>
     <div class="value mono" id="stat-avg-all">&mdash;</div>
   </div>
   <div class="stat">
-    <div class="label">Пик за всё время</div>
+    <div class="label" data-i18n="stats.peakAll">Пик за всё время</div>
     <div class="value mono" id="stat-peak-all">&mdash;</div>
   </div>
 </div>
@@ -441,65 +523,65 @@
   <div class="panel">
     <div class="panel-head">
       <div>
-        <h2>Live (раз в минуту)</h2>
+        <h2 data-i18n="live.title">Live (раз в минуту)</h2>
       </div>
       <div class="stat-now-card">
-        <div class="label">Сейчас онлайн <span id="stat-now-time">&mdash;</span></div>
+        <div class="label"><span data-i18n="live.nowOnline">Сейчас онлайн</span> <span id="stat-now-time">&mdash;</span></div>
         <div class="value mono" id="stat-now">&mdash;</div>
       </div>
     </div>
     <div class="controls">
       <div class="range-btns" id="live-range-btns"></div>
-      <button class="zoom-reset-btn" id="live-zoom-reset">Сбросить зум</button>
+      <button class="zoom-reset-btn" id="live-zoom-reset" data-i18n="live.resetZoom">Сбросить зум</button>
     </div>
-    <div id="live-chart"><div id="status">Загрузка данных&hellip;</div></div>
+    <div id="live-chart"><div id="status" data-i18n-html="live.loading">Загрузка данных&hellip;</div></div>
     <div class="zoom-sliders">
       <div class="zoom-slider-row">
-        <span class="slider-label">Масштаб</span>
+        <span class="slider-label" data-i18n="live.zoom">Масштаб</span>
         <input type="range" id="live-zoom-slider" min="1" max="100" value="100">
       </div>
       <div class="zoom-slider-row">
-        <span class="slider-label">Позиция</span>
+        <span class="slider-label" data-i18n="live.position">Позиция</span>
         <input type="range" id="live-pos-slider" min="0" max="100" value="100">
       </div>
     </div>
   </div>
 
   <div class="panel">
-    <h2>Общая динамика</h2>
-    <p class="desc">Среднее число игроков по часам за весь собранный период &middot; <span style="color:var(--warn)">&#9650;</span> &mdash; всплеск подозрительных отзывов в этот день</p>
+    <h2 data-i18n="overview.title">Общая динамика</h2>
+    <p class="desc" data-i18n-html="overview.desc">Среднее число игроков по часам за весь собранный период &middot; <span style="color:var(--warn)">&#9650;</span> &mdash; всплеск подозрительных отзывов &middot; <span style="color:#e6707a">&#9711;</span> &mdash; необычный скачок онлайна</p>
     <div class="controls">
       <span class="legend-swatch" style="background:var(--warn)"></span>
-      <span class="trend-controls-label">Тренд:</span>
+      <span class="trend-controls-label" data-i18n="overview.trend">Тренд:</span>
       <div class="range-btns" id="overview-trend-btns"></div>
     </div>
     <div class="controls">
       <div class="range-btns" id="overview-range-btns"></div>
-      <button class="zoom-reset-btn" id="overview-zoom-reset">Сбросить зум</button>
+      <button class="zoom-reset-btn" id="overview-zoom-reset" data-i18n="live.resetZoom">Сбросить зум</button>
     </div>
-    <div id="overview-chart"><div id="status">Загрузка данных&hellip;</div></div>
+    <div id="overview-chart"><div id="status" data-i18n-html="live.loading">Загрузка данных&hellip;</div></div>
     <div class="zoom-sliders">
       <div class="zoom-slider-row">
-        <span class="slider-label">Масштаб</span>
+        <span class="slider-label" data-i18n="live.zoom">Масштаб</span>
         <input type="range" id="overview-zoom-slider" min="1" max="100" value="100">
       </div>
       <div class="zoom-slider-row">
-        <span class="slider-label">Позиция</span>
+        <span class="slider-label" data-i18n="live.position">Позиция</span>
         <input type="range" id="overview-pos-slider" min="0" max="100" value="100">
       </div>
     </div>
   </div>
 
   <div class="panel">
-    <h2>Сравнение дней</h2>
-    <p class="desc">Наложение двух дней по часам (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию</p>
+    <h2 data-i18n="compare.title">Сравнение дней</h2>
+    <p class="desc" data-i18n-html="compare.desc">Наложение двух дней по часам (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию</p>
     <div class="controls">
       <div class="range-btns" id="compare-preset-btns"></div>
     </div>
     <div class="controls">
-      <span><span class="legend-swatch" style="background:var(--accent)"></span>День A:</span>
+      <span><span class="legend-swatch" style="background:var(--accent)"></span><span data-i18n="compare.dayA">День A:</span></span>
       <select id="day-a"></select>
-      <span><span class="legend-swatch" style="background:var(--warn)"></span>День B:</span>
+      <span><span class="legend-swatch" style="background:var(--warn)"></span><span data-i18n="compare.dayB">День B:</span></span>
       <select id="day-b"></select>
     </div>
     <div id="compare-chart"></div>
@@ -507,27 +589,369 @@
   </div>
 
   <div class="panel">
-    <h2>Активность по часам суток</h2>
-    <p class="desc" id="hourly-desc">Средний онлайн по часу дня, усреднено за всю собранную историю &mdash; показывает пик-часы</p>
+    <h2 data-i18n="hourly.title">Активность по часам суток</h2>
+    <p class="desc" id="hourly-desc" data-i18n-html="hourly.desc">Средний онлайн по часу дня, усреднено за всю собранную историю &mdash; показывает пик-часы</p>
     <div class="controls">
       <div class="range-btns" id="hourly-daytype-btns"></div>
     </div>
-    <div id="hourly-chart"><div id="status">Загрузка данных&hellip;</div></div>
+    <div id="hourly-chart"><div id="status" data-i18n-html="live.loading">Загрузка данных&hellip;</div></div>
   </div>
 
   <div class="panel">
-    <h2>Отзывы Steam</h2>
-    <p class="desc">Позитивные / негативные / подозрительные отзывы по дням &mdash; из отдельного пайплайна анализа отзывов &middot; <a href="reviews.html" class="reviews-link">открыть полную таблицу отзывов с фильтрами и сортировкой &rarr;</a></p>
+    <h2 data-i18n="reviews.title">Отзывы Steam</h2>
+    <p class="desc" data-i18n-html="reviews.desc">Позитивные / негативные / подозрительные отзывы по дням &mdash; из отдельного пайплайна анализа отзывов &middot; <a href="reviews.html" class="reviews-link">открыть полную таблицу отзывов с фильтрами и сортировкой &rarr;</a></p>
     <div class="stats" id="reviews-stats"></div>
-    <div id="reviews-chart"><div id="status">Загрузка данных&hellip;</div></div>
+    <div id="reviews-chart"><div id="status" data-i18n-html="live.loading">Загрузка данных&hellip;</div></div>
     <div class="compare-summary" id="reviews-suspicion-summary"></div>
+    <div class="reviews-extra-grid" id="reviews-extra-grid"></div>
   </div>
 
 </main>
 
-<footer>Обновляется автоматически из docs/hourly/ &middot; данные: Steam Web API</footer>
+<footer data-i18n-html="footer.text">Обновляется автоматически из docs/hourly/ &middot; данные: Steam Web API</footer>
 
 <script>
+// --- i18n ---------------------------------------------------------------
+// Simple dictionary-based translation: t(key, vars) looks up key in the
+// dictionary for the current language, substitutes {placeholders} with
+// vars, and falls back to the Russian string (or the key itself) if a
+// translation is missing, so a partially-translated deploy never shows a
+// blank string. Language choice persists in localStorage. Static HTML
+// elements are tagged with data-i18n / data-i18n-html and translated in
+// applyStaticTranslations(); dynamically generated content (chart labels,
+// tooltips, table rows) calls t() directly when building its strings.
+const I18N_STORAGE_KEY = 'soulscam-lang'; // 'ru' | 'en'
+
+const I18N = {
+  ru: {
+    // header / global
+    'app.title': 'Soulscam Tracker',
+    'tz.utc': 'UTC',
+    'tz.local': 'Моё время',
+    'lang.ru': 'RU',
+    'lang.en': 'EN',
+    'footer.text': 'Обновляется автоматически из docs/hourly/ &middot; данные: Steam Web API',
+
+    // top stats
+    'stats.min24': 'Минимум за 24ч',
+    'stats.avg24': 'Среднее за 24ч',
+    'stats.peak24': 'Пик за 24ч',
+    'stats.minAll': 'Минимум за всё время',
+    'stats.avgAll': 'Среднее за всё время',
+    'stats.peakAll': 'Пик за всё время',
+    'stats.noChange': '&#8776; без изменений',
+    'stats.upVsPrev': '&#9650; +{pct}% к пред. суткам',
+    'stats.downVsPrev': '&#9660; {pct}% к пред. суткам',
+    'stats.notEnoughHistory': 'недостаточно истории',
+
+    // Live panel
+    'live.title': 'Live (раз в минуту)',
+    'live.nowOnline': 'Сейчас онлайн',
+    'live.resetZoom': 'Сбросить зум',
+    'live.loading': 'Загрузка данных&hellip;',
+    'live.zoom': 'Масштаб',
+    'live.position': 'Позиция',
+    'live.noData': 'Пока нет данных &mdash; появятся после первого флаша.',
+    'live.loadingHistory': 'Загрузка всей истории&hellip;',
+
+    // Overview panel
+    'overview.title': 'Общая динамика',
+    'overview.desc': 'Среднее число игроков по часам за весь собранный период &middot; <span style="color:var(--warn)">&#9650;</span> &mdash; всплеск подозрительных отзывов &middot; <span style="color:#e6707a">&#9711;</span> &mdash; необычный скачок онлайна',
+    'overview.trend': 'Тренд:',
+    'overview.noData': 'Пока нет данных &mdash; появятся после первого часа сбора.',
+    'overview.trendAuto': 'Авто',
+    'overview.trendLabel': 'тренд',
+    'overview.trendLabelAuto': 'тренд (авто)',
+    'overview.now': 'сейчас',
+    'overview.anomalyTooltip': '{value} вместо обычных ~{expected}',
+    'overview.anomalySub': 'z={z} &middot; аномалия онлайна',
+    'overview.spikeTooltip': '{count} подозрительных',
+    'overview.spikeSub': 'всплеск активности отзывов',
+
+    // Compare panel
+    'compare.title': 'Сравнение дней',
+    'compare.desc': 'Наложение двух дней по часам (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию',
+    'compare.dayA': 'День A:',
+    'compare.dayB': 'День B:',
+    'compare.presetYesterdayToday': 'Вчера vs сегодня',
+    'compare.presetDayBeforeToYesterday': 'Позавчера vs вчера',
+    'compare.presetWeekAgoToday': 'Неделю назад vs сегодня',
+    'compare.preset2WeeksAgoToday': '2 недели назад vs сегодня',
+    'compare.presetMonthAgoToday': 'Месяц назад vs сегодня',
+    'compare.presetFirstVsLast': 'Первый vs последний день',
+    'compare.peak': 'Пик',
+    'compare.average': 'Среднее',
+    'compare.minimum': 'Минимум',
+    'compare.playerHoursPerDay': 'Игро-часов за день',
+    'compare.vsSummary': '{labelB} к {labelA}: среднее {avgDiff} ({avgPct}), пик {peakDiff} ({peakPct}){phLine}',
+    'compare.playerHoursDiff': ', игро-часов {phDiff} ({phPct})',
+    'compare.loading': 'Загрузка данных&hellip;',
+    'compare.noData': 'Пока нет данных.',
+
+    // Hourly activity panel
+    'hourly.title': 'Активность по часам суток',
+    'hourly.desc': 'Средний онлайн по часу дня, усреднено за всю собранную историю &mdash; показывает пик-часы',
+    'hourly.allDays': 'Все дни',
+    'hourly.weekdays': 'Будни',
+    'hourly.weekends': 'Выходные',
+    'hourly.noData': 'Пока нет данных.',
+    'hourly.notEnoughForFilter': 'Недостаточно данных для этого фильтра.',
+    'hourly.peakHour': ' &middot; пик-час',
+
+    // Reviews panel (main dashboard)
+    'reviews.title': 'Отзывы Steam',
+    'reviews.desc': 'Позитивные / негативные / подозрительные отзывы по дням &mdash; из отдельного пайплайна анализа отзывов &middot; <a href="reviews.html" class="reviews-link">открыть полную таблицу отзывов с фильтрами и сортировкой &rarr;</a>',
+    'reviews.totalReviews': 'Всего отзывов',
+    'reviews.updated': 'обновлено {time} {tz}',
+    'reviews.positive': 'Позитивных',
+    'reviews.ofTotal': '{count} из {total}',
+    'reviews.suspicious': 'Подозрительных',
+    'reviews.suspiciousPctHighRisk': '{pct}% от позитивных &middot; {count} высокий риск',
+    'reviews.unavailable': 'Данные по отзывам недоступны &mdash; пайплайн fetch-reviews ещё не запускался или не настроен.',
+    'reviews.notEnoughForChart': 'Недостаточно данных для графика по дням.',
+    'reviews.spikeSuffix': ' &middot; {count} подозрит.',
+    'reviews.topReasons': 'Основные признаки подозрительности',
+    'reviews.steamOfficial': 'Данные напрямую от Steam',
+    'reviews.officialTotal': 'Всего отзывов (офиц.)',
+    'reviews.steamScore': 'Оценка Steam',
+    'reviews.velocity': 'Темп vs пред. неделя',
+    'reviews.spikeDays': 'Дней-всплесков (30д)',
+    'reviews.positive30d': 'Позитив за 30д',
+    'reviews.reviewsPerDay7d': 'Отзывов/день (7д)',
+    'reviews.languages': 'Языки отзывов',
+    'reviews.other': 'другие',
+    'reviews.playtimeAtReview': 'Наигранность на момент отзыва',
+    'reviews.otherSignals': 'Прочие признаки',
+    'reviews.devResponses': 'Ответов разработчика',
+    'reviews.freeKeys': 'Бесплатных ключей',
+    'reviews.notViaSteam': 'Не через Steam',
+    'reviews.privateProfiles': 'Закрытых профилей',
+    'reviews.editedLater': 'Отредактировано позже',
+    'reviews.newAccounts7d': 'Новых аккаунтов (<7д)',
+    'reviews.correlationTitle': 'Онлайн в дни всплеска отзывов vs обычные дни',
+    'reviews.correlationNoOverlap': 'Дни всплесков отзывов пока не пересекаются с периодом сбора данных об онлайне.',
+    'reviews.spikeDaysCount': 'Дни со всплеском ({count})',
+    'reviews.normalDaysCount': 'Обычные дни ({count})',
+    'reviews.difference': 'Разница',
+
+    // suspicion reason labels
+    'reason.posted_during_review_burst': 'всплеск отзывов в короткий период',
+    'reason.edited_days_later': 'отредактирован спустя дни',
+    'reason.private_profile': 'закрытый профиль',
+    'reason.low_effort_text': 'короткий/шаблонный текст',
+    'reason.prolific_reviewer_few_games': 'много отзывов, мало игр в библиотеке',
+    'reason.positive_under_1h': 'позитив при <1ч в игре',
+    'reason.positive_under_30min': 'позитив при <30 мин в игре',
+    'reason.account_under_30d_old_at_review': 'аккаунту <30 дней',
+    'reason.high_votes_low_effort_text': 'много лайков при пустом тексте',
+
+    // language names
+    'lang.name.english': 'английский', 'lang.name.russian': 'русский', 'lang.name.german': 'немецкий',
+    'lang.name.french': 'французский', 'lang.name.spanish': 'испанский', 'lang.name.brazilian': 'португальский (BR)',
+    'lang.name.schinese': 'китайский (упр.)', 'lang.name.tchinese': 'китайский (трад.)', 'lang.name.polish': 'польский',
+    'lang.name.koreana': 'корейский', 'lang.name.japanese': 'японский', 'lang.name.vietnamese': 'вьетнамский',
+    'lang.name.dutch': 'нидерландский', 'lang.name.thai': 'тайский', 'lang.name.czech': 'чешский',
+    'lang.name.latam': 'испанский (LatAm)', 'lang.name.turkish': 'турецкий', 'lang.name.ukrainian': 'украинский',
+    'lang.name.italian': 'итальянский', 'lang.name.swedish': 'шведский', 'lang.name.finnish': 'финский',
+    'lang.name.danish': 'датский', 'lang.name.norwegian': 'норвежский', 'lang.name.hungarian': 'венгерский',
+    'lang.name.romanian': 'румынский', 'lang.name.greek': 'греческий', 'lang.name.bulgarian': 'болгарский',
+    'lang.name.arabic': 'арабский', 'lang.name.portuguese': 'португальский',
+
+    // staleness banner
+    'stale.warn': 'Данные не обновлялись {age} &mdash; возможна временная заминка сборщика.',
+    'stale.error': 'Данные не обновлялись {age} &mdash; сборщик, похоже, не работает. Проверьте workflow в GitHub Actions.',
+    'stale.min': '{n} мин',
+    'stale.hours': '{n} ч',
+
+    // short time-range button labels (used across Live/Overview/Compare/Hourly)
+    'range.24h': '24ч', 'range.7d': '7д', 'range.30d': '30д', 'range.all': 'Всё',
+    'range.15m': '15м', 'range.30m': '30м', 'range.1h': '1ч', 'range.3h': '3ч',
+    'range.6h': '6ч', 'range.12h': '12ч', 'range.48h': '48ч', 'range.14d': '14д',
+    'range.1d': '1д', 'range.3d': '3д',
+  },
+
+  en: {
+    'app.title': 'Soulscam Tracker',
+    'tz.utc': 'UTC',
+    'tz.local': 'My time',
+    'lang.ru': 'RU',
+    'lang.en': 'EN',
+    'footer.text': 'Auto-updated from docs/hourly/ &middot; data: Steam Web API',
+
+    'stats.min24': 'Min (24h)',
+    'stats.avg24': 'Average (24h)',
+    'stats.peak24': 'Peak (24h)',
+    'stats.minAll': 'Min (all-time)',
+    'stats.avgAll': 'Average (all-time)',
+    'stats.peakAll': 'Peak (all-time)',
+    'stats.noChange': '&#8776; no change',
+    'stats.upVsPrev': '&#9650; +{pct}% vs prev. day',
+    'stats.downVsPrev': '&#9660; {pct}% vs prev. day',
+    'stats.notEnoughHistory': 'not enough history',
+
+    'live.title': 'Live (every minute)',
+    'live.nowOnline': 'Online now',
+    'live.resetZoom': 'Reset zoom',
+    'live.loading': 'Loading data&hellip;',
+    'live.zoom': 'Zoom',
+    'live.position': 'Position',
+    'live.noData': 'No data yet &mdash; will appear after the first flush.',
+    'live.loadingHistory': 'Loading full history&hellip;',
+
+    'overview.title': 'Overall trend',
+    'overview.desc': 'Average player count by hour over the whole collected period &middot; <span style="color:var(--warn)">&#9650;</span> &mdash; suspicious review spike &middot; <span style="color:#e6707a">&#9711;</span> &mdash; unusual online-count jump',
+    'overview.trend': 'Trend:',
+    'overview.noData': 'No data yet &mdash; will appear after the first hour of collection.',
+    'overview.trendAuto': 'Auto',
+    'overview.trendLabel': 'trend',
+    'overview.trendLabelAuto': 'trend (auto)',
+    'overview.now': 'now',
+    'overview.anomalyTooltip': '{value} instead of the usual ~{expected}',
+    'overview.anomalySub': 'z={z} &middot; online-count anomaly',
+    'overview.spikeTooltip': '{count} suspicious',
+    'overview.spikeSub': 'review activity spike',
+
+    'compare.title': 'Day comparison',
+    'compare.desc': 'Overlaying two days by hour (0&ndash;23 UTC) &mdash; handy for spotting trends',
+    'compare.dayA': 'Day A:',
+    'compare.dayB': 'Day B:',
+    'compare.presetYesterdayToday': 'Yesterday vs today',
+    'compare.presetDayBeforeToYesterday': 'Day before vs yesterday',
+    'compare.presetWeekAgoToday': 'A week ago vs today',
+    'compare.preset2WeeksAgoToday': '2 weeks ago vs today',
+    'compare.presetMonthAgoToday': 'A month ago vs today',
+    'compare.presetFirstVsLast': 'First vs last day',
+    'compare.peak': 'Peak',
+    'compare.average': 'Average',
+    'compare.minimum': 'Minimum',
+    'compare.playerHoursPerDay': 'Player-hours per day',
+    'compare.vsSummary': '{labelB} vs {labelA}: average {avgDiff} ({avgPct}), peak {peakDiff} ({peakPct}){phLine}',
+    'compare.playerHoursDiff': ', player-hours {phDiff} ({phPct})',
+    'compare.loading': 'Loading data&hellip;',
+    'compare.noData': 'No data yet.',
+
+    'hourly.title': 'Activity by hour of day',
+    'hourly.desc': 'Average online by hour of day, averaged over the whole collected history &mdash; shows peak hours',
+    'hourly.allDays': 'All days',
+    'hourly.weekdays': 'Weekdays',
+    'hourly.weekends': 'Weekends',
+    'hourly.noData': 'No data yet.',
+    'hourly.notEnoughForFilter': 'Not enough data for this filter.',
+    'hourly.peakHour': ' &middot; peak hour',
+
+    'reviews.title': 'Steam reviews',
+    'reviews.desc': 'Positive / negative / suspicious reviews by day &mdash; from a separate review-analysis pipeline &middot; <a href="reviews.html" class="reviews-link">open the full review table with filters and sorting &rarr;</a>',
+    'reviews.totalReviews': 'Total reviews',
+    'reviews.updated': 'updated {time} {tz}',
+    'reviews.positive': 'Positive',
+    'reviews.ofTotal': '{count} of {total}',
+    'reviews.suspicious': 'Suspicious',
+    'reviews.suspiciousPctHighRisk': '{pct}% of positive &middot; {count} high risk',
+    'reviews.unavailable': "Review data unavailable &mdash; the fetch-reviews pipeline hasn't run yet or isn't configured.",
+    'reviews.notEnoughForChart': 'Not enough data for a daily chart.',
+    'reviews.spikeSuffix': ' &middot; {count} suspicious',
+    'reviews.topReasons': 'Main suspicion indicators',
+    'reviews.steamOfficial': 'Direct from Steam',
+    'reviews.officialTotal': 'Total reviews (official)',
+    'reviews.steamScore': 'Steam score',
+    'reviews.velocity': 'Pace vs prev. week',
+    'reviews.spikeDays': 'Spike days (30d)',
+    'reviews.positive30d': 'Positive, last 30d',
+    'reviews.reviewsPerDay7d': 'Reviews/day (7d)',
+    'reviews.languages': 'Review languages',
+    'reviews.other': 'other',
+    'reviews.playtimeAtReview': 'Playtime at time of review',
+    'reviews.otherSignals': 'Other signals',
+    'reviews.devResponses': 'Developer responses',
+    'reviews.freeKeys': 'Free keys',
+    'reviews.notViaSteam': 'Not via Steam',
+    'reviews.privateProfiles': 'Private profiles',
+    'reviews.editedLater': 'Edited later',
+    'reviews.newAccounts7d': 'New accounts (<7d)',
+    'reviews.correlationTitle': 'Online count on review-spike days vs normal days',
+    'reviews.correlationNoOverlap': "Review-spike days don't overlap with the online-tracking period yet.",
+    'reviews.spikeDaysCount': 'Spike days ({count})',
+    'reviews.normalDaysCount': 'Normal days ({count})',
+    'reviews.difference': 'Difference',
+
+    'reason.posted_during_review_burst': 'posted during a review burst',
+    'reason.edited_days_later': 'edited days later',
+    'reason.private_profile': 'private profile',
+    'reason.low_effort_text': 'short/template text',
+    'reason.prolific_reviewer_few_games': 'many reviews, few games owned',
+    'reason.positive_under_1h': 'positive with <1h playtime',
+    'reason.positive_under_30min': 'positive with <30min playtime',
+    'reason.account_under_30d_old_at_review': 'account <30 days old',
+    'reason.high_votes_low_effort_text': 'many upvotes, empty text',
+
+    'lang.name.english': 'English', 'lang.name.russian': 'Russian', 'lang.name.german': 'German',
+    'lang.name.french': 'French', 'lang.name.spanish': 'Spanish', 'lang.name.brazilian': 'Portuguese (BR)',
+    'lang.name.schinese': 'Chinese (Simpl.)', 'lang.name.tchinese': 'Chinese (Trad.)', 'lang.name.polish': 'Polish',
+    'lang.name.koreana': 'Korean', 'lang.name.japanese': 'Japanese', 'lang.name.vietnamese': 'Vietnamese',
+    'lang.name.dutch': 'Dutch', 'lang.name.thai': 'Thai', 'lang.name.czech': 'Czech',
+    'lang.name.latam': 'Spanish (LatAm)', 'lang.name.turkish': 'Turkish', 'lang.name.ukrainian': 'Ukrainian',
+    'lang.name.italian': 'Italian', 'lang.name.swedish': 'Swedish', 'lang.name.finnish': 'Finnish',
+    'lang.name.danish': 'Danish', 'lang.name.norwegian': 'Norwegian', 'lang.name.hungarian': 'Hungarian',
+    'lang.name.romanian': 'Romanian', 'lang.name.greek': 'Greek', 'lang.name.bulgarian': 'Bulgarian',
+    'lang.name.arabic': 'Arabic', 'lang.name.portuguese': 'Portuguese',
+
+    'stale.warn': "Data hasn't updated in {age} &mdash; the collector may be having a temporary hiccup.",
+    'stale.error': "Data hasn't updated in {age} &mdash; the collector appears to be down. Check the workflow in GitHub Actions.",
+    'stale.min': '{n} min',
+    'stale.hours': '{n}h',
+
+    // short time-range button labels (used across Live/Overview/Compare/Hourly)
+    'range.24h': '24h', 'range.7d': '7d', 'range.30d': '30d', 'range.all': 'All',
+    'range.15m': '15m', 'range.30m': '30m', 'range.1h': '1h', 'range.3h': '3h',
+    'range.6h': '6h', 'range.12h': '12h', 'range.48h': '48h', 'range.14d': '14d',
+    'range.1d': '1d', 'range.3d': '3d',
+
+    'error.recentJson': 'Failed to load recent.json',
+    'error.pointsJson': 'Failed to load points.json',
+  }
+};
+
+function getLang() {
+  try {
+    const stored = localStorage.getItem(I18N_STORAGE_KEY);
+    return stored === 'en' ? 'en' : 'ru';
+  } catch (e) {
+    return 'ru';
+  }
+}
+function setLang(lang) {
+  try { localStorage.setItem(I18N_STORAGE_KEY, lang); } catch (e) { /* ignore */ }
+}
+function t(key, vars) {
+  const dict = I18N[getLang()] || I18N.ru;
+  let str = dict[key];
+  if (str == null) str = I18N.ru[key]; // fall back to Russian rather than showing a raw key
+  if (str == null) return key;
+  if (vars) {
+    Object.keys(vars).forEach(k => {
+      str = str.split('{' + k + '}').join(vars[k]);
+    });
+  }
+  return str;
+}
+
+// Translates every element tagged data-i18n (textContent) or
+// data-i18n-html (innerHTML, for strings containing markup like &mdash;
+// or <a> links) in the static markup. Called on load and whenever the
+// language toggle changes.
+function applyStaticTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    el.innerHTML = t(el.getAttribute('data-i18n-html'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+  });
+  document.documentElement.lang = getLang();
+}
+
 const W = 1000, H = 300, PAD = { top: 16, right: 4, bottom: 28, left: 40 };
 
 function svgEl(tag, attrs) {
@@ -585,7 +1009,7 @@ function drawNowLine(svg, xNow) {
   const label = svgEl('text', {
     x: xNow, y: PAD.top - 4, class: 'axis-label', 'text-anchor': 'middle'
   });
-  label.textContent = 'сейчас';
+  label.textContent = t('overview.now');
   svg.appendChild(label);
 }
 
@@ -811,6 +1235,30 @@ function movingAverage(values, windowSize) {
   });
 }
 
+// Flags hourly points whose value deviates sharply from the recent local
+// trend - a simple rolling z-score against a trailing window's mean and
+// standard deviation. This is deliberately basic (no seasonal/hour-of-day
+// modeling) since online-count data is noisy and spiky by nature already;
+// the goal is to catch genuinely unusual jumps (well outside normal
+// variation), not flag every daily peak as an "anomaly". zThreshold of 3
+// is a common starting point (>99.7% of normally-distributed values fall
+// within 3 std devs), tuned loose on purpose to avoid false positives.
+function detectAnomalies(values, windowSize = 24, zThreshold = 3) {
+  const anomalies = [];
+  for (let i = windowSize; i < values.length; i++) {
+    const window = values.slice(i - windowSize, i);
+    const mean = window.reduce((a, b) => a + b, 0) / window.length;
+    const variance = window.reduce((a, b) => a + (b - mean) ** 2, 0) / window.length;
+    const stdDev = Math.sqrt(variance);
+    if (stdDev < 1) continue; // near-constant window, z-score is meaningless/noisy here
+    const z = (values[i] - mean) / stdDev;
+    if (Math.abs(z) >= zThreshold) {
+      anomalies.push({ index: i, value: values[i], expected: Math.round(mean), z: z.toFixed(1), direction: z > 0 ? 'up' : 'down' });
+    }
+  }
+  return anomalies;
+}
+
 function renderOverview(rows, reviewsTimeline) {
   const container = document.getElementById('overview-chart');
   const rangeBtns = document.getElementById('overview-range-btns');
@@ -820,17 +1268,17 @@ function renderOverview(rows, reviewsTimeline) {
   const posSlider = document.getElementById('overview-pos-slider');
   container.innerHTML = '';
   if (!rows.length) {
-    container.innerHTML = '<div id="status">Пока нет данных &mdash; появятся после первого часа сбора.</div>';
+    container.innerHTML = '<div id="status">' + t('overview.noData') + '</div>';
     return;
   }
 
   const totalHours = rows.length;
   const hoursAgoFrac = h => Math.max(0, 1 - h / totalHours);
   const ranges = [
-    { label: '24ч', start: hoursAgoFrac(24), end: 1 },
-    { label: '7д', start: hoursAgoFrac(24 * 7), end: 1 },
-    { label: '30д', start: hoursAgoFrac(24 * 30), end: 1 },
-    { label: 'Всё', start: 0, end: 1 }
+    { label: t('range.24h'), start: hoursAgoFrac(24), end: 1 },
+    { label: t('range.7d'), start: hoursAgoFrac(24 * 7), end: 1 },
+    { label: t('range.30d'), start: hoursAgoFrac(24 * 30), end: 1 },
+    { label: t('range.all'), start: 0, end: 1 }
   ];
   const state = { start: 0, end: 1, minWindow: Math.min(1, 6 / totalHours) };
   const slider = setupSliderZoom(zoomSlider, posSlider, state, draw);
@@ -841,11 +1289,11 @@ function renderOverview(rows, reviewsTimeline) {
   // with only a few days of data; the fixed options are for when the
   // person wants a specific, comparable window instead.
   const trendOptions = [
-    { label: 'Авто', hours: null },
-    { label: '1д', hours: 24 },
-    { label: '3д', hours: 24 * 3 },
-    { label: '7д', hours: 24 * 7 },
-    { label: '14д', hours: 24 * 14 }
+    { label: t('overview.trendAuto'), hours: null },
+    { label: t('range.1d'), hours: 24 },
+    { label: t('range.3d'), hours: 24 * 3 },
+    { label: t('range.7d'), hours: 24 * 7 },
+    { label: t('range.14d'), hours: 24 * 14 }
   ];
   let trendFull = [];
   let hasTrend = false;
@@ -865,6 +1313,12 @@ function renderOverview(rows, reviewsTimeline) {
 
   let trendHoursSelected = null; // null = Авто
   recomputeTrend(trendHoursSelected);
+
+  // Computed once over the full history (not per-slice) so anomaly
+  // markers don't shift or disappear just because of zoom/pan - same
+  // reasoning as the trend line above.
+  const anomalies = detectAnomalies(rows.map(r => r.avg));
+  const anomalyByIndex = new Map(anomalies.map(a => [a.index, a]));
 
   trendBtns.innerHTML = '';
   const trendButtons = trendOptions.map(opt => {
@@ -935,9 +1389,28 @@ function renderOverview(rows, reviewsTimeline) {
     const path = svgEl('path', { d: pathD(coords), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2 });
     svg.appendChild(path);
 
+    // Online-count anomaly markers: small red rings around points that
+    // deviate sharply from their recent local trend (see
+    // detectAnomalies above). i0 is the slice's offset into the full
+    // rows array, so a full-array index maps to slice index (fullIdx - i0).
+    const anomalyMarkers = [];
+    slice.forEach((_, sliceIdx) => {
+      const fullIdx = i0 + sliceIdx;
+      const a = anomalyByIndex.get(fullIdx);
+      if (!a) return;
+      const cx = xForIndex(sliceIdx);
+      const cy = scaleY(slice[sliceIdx].avg, maxVal);
+      svg.appendChild(svgEl('circle', {
+        cx, cy, r: 5, fill: 'none',
+        stroke: a.direction === 'up' ? 'var(--accent)' : '#e6707a',
+        'stroke-width': 2, opacity: 0.9
+      }));
+      anomalyMarkers.push({ x: cx, y: cy, ...a, hour: slice[sliceIdx].hour });
+    });
+
     const trendLabel = trendHoursSelected == null
-      ? 'тренд (авто)'
-      : 'тренд';
+      ? t('overview.trendLabelAuto')
+      : t('overview.trendLabel');
     const tz = tzSuffix();
 
     const series = [{
@@ -986,8 +1459,8 @@ function renderOverview(rows, reviewsTimeline) {
         });
         hitArea.addEventListener('mouseenter', () => {
           spikeTooltip.innerHTML =
-            `<div><span class="tt-value" style="color:var(--warn)">${m.suspicious} подозрительных</span> &middot; ${m.positive}+ / ${m.negative}-</div>` +
-            `<div class="tt-label">${m.date} &middot; всплеск активности отзывов</div>`;
+            `<div><span class="tt-value" style="color:var(--warn)">${t('overview.spikeTooltip', { count: m.suspicious })}</span> &middot; ${m.positive}+ / ${m.negative}-</div>` +
+            `<div class="tt-label">${m.date} &middot; ${t('overview.spikeSub')}</div>`;
           const pct = (m.x / W) * 100;
           spikeTooltip.style.left = pct + '%';
           spikeTooltip.style.top = ((PAD.top / H) * 100) + '%';
@@ -995,6 +1468,33 @@ function renderOverview(rows, reviewsTimeline) {
         });
         hitArea.addEventListener('mouseleave', () => {
           spikeTooltip.style.opacity = 0;
+        });
+        svg.appendChild(hitArea);
+      });
+    }
+
+    if (anomalyMarkers.length) {
+      const anomalyTooltip = document.createElement('div');
+      anomalyTooltip.className = 'tooltip';
+      wrap.appendChild(anomalyTooltip);
+
+      anomalyMarkers.forEach(m => {
+        const hitArea = svgEl('circle', {
+          cx: m.x, cy: m.y, r: 9, fill: 'transparent', style: 'cursor: help;'
+        });
+        hitArea.addEventListener('mouseenter', () => {
+          const color = m.direction === 'up' ? 'var(--accent)' : '#e6707a';
+          const arrow = m.direction === 'up' ? '&#9650;' : '&#9660;';
+          anomalyTooltip.innerHTML =
+            `<div><span class="tt-value" style="color:${color}">${arrow} ${t('overview.anomalyTooltip', { value: m.value, expected: m.expected })}</span></div>` +
+            `<div class="tt-label">${formatDateTime(new Date(m.hour + ':00:00Z'))} ${tz} &middot; ${t('overview.anomalySub', { z: m.z })}</div>`;
+          const pct = (m.x / W) * 100;
+          anomalyTooltip.style.left = pct + '%';
+          anomalyTooltip.style.top = ((m.y / H) * 100) + '%';
+          anomalyTooltip.style.opacity = 1;
+        });
+        hitArea.addEventListener('mouseleave', () => {
+          anomalyTooltip.style.opacity = 0;
         });
         svg.appendChild(hitArea);
       });
@@ -1018,7 +1518,7 @@ function renderLive(recentPoints, historyStore) {
   const posSlider = document.getElementById('live-pos-slider');
   container.innerHTML = '';
   if (!recentPoints.length) {
-    container.innerHTML = '<div id="status">Пока нет данных &mdash; появятся после первого флаша.</div>';
+    container.innerHTML = '<div id="status">' + t('live.noData') + '</div>';
     return;
   }
 
@@ -1030,7 +1530,7 @@ function renderLive(recentPoints, historyStore) {
 
   async function loadFullHistory() {
     if (fullyLoaded) return;
-    container.innerHTML = '<div id="status">Загрузка всей истории&hellip;</div>';
+    container.innerHTML = '<div id="status">' + t('live.loadingHistory') + '</div>';
     const days = historyStore.availableDays;
     await Promise.all(days.map(d => historyStore.ensureDay(d)));
     const merged = [];
@@ -1050,17 +1550,17 @@ function renderLive(recentPoints, historyStore) {
   // start fraction for those gets recomputed against the full points
   // array once loaded, since hoursAgoFrac here is only valid pre-load.
   const ranges = [
-    { label: '15м', hours: 0.25, needsFull: false },
-    { label: '30м', hours: 0.5, needsFull: false },
-    { label: '1ч', hours: 1, needsFull: false },
-    { label: '3ч', hours: 3, needsFull: false },
-    { label: '6ч', hours: 6, needsFull: false },
-    { label: '12ч', hours: 12, needsFull: false },
-    { label: '24ч', hours: 24, needsFull: false },
-    { label: '48ч', hours: 48, needsFull: false },
-    { label: '7д', hours: 24 * 7, needsFull: true },
-    { label: '30д', hours: 24 * 30, needsFull: true },
-    { label: 'Всё', hours: null, needsFull: true, isAll: true }
+    { label: t('range.15m'), hours: 0.25, needsFull: false },
+    { label: t('range.30m'), hours: 0.5, needsFull: false },
+    { label: t('range.1h'), hours: 1, needsFull: false },
+    { label: t('range.3h'), hours: 3, needsFull: false },
+    { label: t('range.6h'), hours: 6, needsFull: false },
+    { label: t('range.12h'), hours: 12, needsFull: false },
+    { label: t('range.24h'), hours: 24, needsFull: false },
+    { label: t('range.48h'), hours: 48, needsFull: false },
+    { label: t('range.7d'), hours: 24 * 7, needsFull: true },
+    { label: t('range.30d'), hours: 24 * 30, needsFull: true },
+    { label: t('range.all'), hours: null, needsFull: true, isAll: true }
   ].map(r => ({
     ...r,
     start: r.isAll ? 0 : hoursAgoFrac(r.hours),
@@ -1167,14 +1667,14 @@ function renderHourlyActivity(rows) {
   const daytypeBtns = document.getElementById('hourly-daytype-btns');
   container.innerHTML = '';
   if (!rows.length) {
-    container.innerHTML = '<div id="status">Пока нет данных.</div>';
+    container.innerHTML = '<div id="status">' + t('hourly.noData') + '</div>';
     return;
   }
 
   const daytypeOptions = [
-    { label: 'Все дни', filter: null },
-    { label: 'Будни', filter: 'weekday' },
-    { label: 'Выходные', filter: 'weekend' },
+    { label: t('hourly.allDays'), filter: null },
+    { label: t('hourly.weekdays'), filter: 'weekday' },
+    { label: t('hourly.weekends'), filter: 'weekend' },
   ];
   let daytypeSelected = null; // null = all days
 
@@ -1225,7 +1725,7 @@ function renderHourlyActivity(rows) {
     const hasAnyData = hourlyAvg.some(v => v != null);
 
     if (!hasAnyData) {
-      container.innerHTML = '<div id="status">Недостаточно данных для этого фильтра.</div>';
+      container.innerHTML = '<div id="status">' + t('hourly.notEnoughForFilter') + '</div>';
       return;
     }
 
@@ -1266,7 +1766,7 @@ function renderHourlyActivity(rows) {
       color: 'var(--accent)',
       labelFor: h => ({
         value: hourlyAvg[h] != null ? Math.round(hourlyAvg[h]) : '—',
-        sub: `${h}:00&ndash;${(h + 1) % 24}:00${tzLabel}` + (h === peakHour ? ' &middot; пик-час' : '')
+        sub: `${h}:00&ndash;${(h + 1) % 24}:00${tzLabel}` + (h === peakHour ? t('hourly.peakHour') : '')
       })
     }], xForIndex, 24);
   }
@@ -1321,12 +1821,12 @@ function renderCompare(historyStore) {
   // earlier day is correct.
   const lastIdx = dayKeys.length - 1;
   const presets = [
-    { label: 'Вчера vs сегодня', offsetA: 1, offsetB: 0 },
-    { label: 'Позавчера vs вчера', offsetA: 2, offsetB: 1 },
-    { label: 'Неделю назад vs сегодня', offsetA: 7, offsetB: 0, clamp: true },
-    { label: '2 недели назад vs сегодня', offsetA: 14, offsetB: 0, clamp: true },
-    { label: 'Месяц назад vs сегодня', offsetA: 30, offsetB: 0, clamp: true },
-    { label: 'Первый vs последний день', pinFirstLast: true },
+    { label: t('compare.presetYesterdayToday'), offsetA: 1, offsetB: 0 },
+    { label: t('compare.presetDayBeforeToYesterday'), offsetA: 2, offsetB: 1 },
+    { label: t('compare.presetWeekAgoToday'), offsetA: 7, offsetB: 0, clamp: true },
+    { label: t('compare.preset2WeeksAgoToday'), offsetA: 14, offsetB: 0, clamp: true },
+    { label: t('compare.presetMonthAgoToday'), offsetA: 30, offsetB: 0, clamp: true },
+    { label: t('compare.presetFirstVsLast'), pinFirstLast: true },
   ];
 
   function resolveDayIndex(offset) {
@@ -1380,7 +1880,7 @@ function renderCompare(historyStore) {
 
   async function draw() {
     const container = document.getElementById('compare-chart');
-    container.innerHTML = '<div id="status">Загрузка данных&hellip;</div>';
+    container.innerHTML = '<div id="status">' + t('compare.loading') + '</div>';
     const [ptsA, ptsB] = await Promise.all([
       historyStore.ensureDay(selA.value),
       historyStore.ensureDay(selB.value)
@@ -1477,14 +1977,15 @@ function statsFor(slots) {
 
     const phA = computePlayerHours(ptsA);
     const phB = computePlayerHours(ptsB);
+    const numLocale = getLang() === 'en' ? 'en-US' : 'ru-RU';
 
     const col = (label, color, stats, playerHours) => `
       <div class="col">
         <div class="col-title"><span class="legend-swatch" style="background:${color}"></span>${label}</div>
-        <div class="row"><span>Пик</span><span class="v">${stats.peak}</span></div>
-        <div class="row"><span>Среднее</span><span class="v">${stats.avg}</span></div>
-        <div class="row"><span>Минимум</span><span class="v">${stats.min}</span></div>
-        <div class="row"><span>Игро-часов за день</span><span class="v">${playerHours != null ? playerHours.toLocaleString('ru-RU') : '—'}</span></div>
+        <div class="row"><span>${t('compare.peak')}</span><span class="v">${stats.peak}</span></div>
+        <div class="row"><span>${t('compare.average')}</span><span class="v">${stats.avg}</span></div>
+        <div class="row"><span>${t('compare.minimum')}</span><span class="v">${stats.min}</span></div>
+        <div class="row"><span>${t('compare.playerHoursPerDay')}</span><span class="v">${playerHours != null ? playerHours.toLocaleString(numLocale) : '&mdash;'}</span></div>
       </div>`;
 
     const avgDiff = statsB.avg - statsA.avg;
@@ -1498,22 +1999,23 @@ function statsFor(slots) {
     if (phA != null && phB != null) {
       const phDiff = phB - phA;
       const phPct = phA > 0 ? (phDiff / phA) * 100 : 0;
-      phDiffLine = `, игро-часов
-        <span class="v ${cls(phPct)}">${sign(phDiff)}${phDiff.toLocaleString('ru-RU')}</span>
-        (<span class="v ${cls(phPct)}">${sign(phPct)}${phPct.toFixed(1)}%</span>)`;
+      phDiffLine = t('compare.playerHoursDiff', {
+        phDiff: `<span class="v ${cls(phPct)}">${sign(phDiff)}${phDiff.toLocaleString(numLocale)}</span>`,
+        phPct: `<span class="v ${cls(phPct)}">${sign(phPct)}${phPct.toFixed(1)}%</span>`
+      });
     }
 
     summary.innerHTML =
       col(labelA, 'var(--accent)', statsA, phA) +
       col(labelB, 'var(--warn)', statsB, phB) +
-      `<div class="compare-diff">
-        ${labelB} к ${labelA}: среднее
-        <span class="v ${cls(avgPct)}">${sign(avgDiff)}${avgDiff}</span>
-        (<span class="v ${cls(avgPct)}">${sign(avgPct)}${avgPct.toFixed(1)}%</span>),
-        пик
-        <span class="v ${cls(peakPct)}">${sign(peakDiff)}${peakDiff}</span>
-        (<span class="v ${cls(peakPct)}">${sign(peakPct)}${peakPct.toFixed(1)}%</span>)${phDiffLine}
-      </div>`;
+      `<div class="compare-diff">${t('compare.vsSummary', {
+        labelA, labelB,
+        avgDiff: `<span class="v ${cls(avgPct)}">${sign(avgDiff)}${avgDiff}</span>`,
+        avgPct: `<span class="v ${cls(avgPct)}">${sign(avgPct)}${avgPct.toFixed(1)}%</span>`,
+        peakDiff: `<span class="v ${cls(peakPct)}">${sign(peakDiff)}${peakDiff}</span>`,
+        peakPct: `<span class="v ${cls(peakPct)}">${sign(peakPct)}${peakPct.toFixed(1)}%</span>`,
+        phLine: phDiffLine
+      })}</div>`;
   }
 
   selA.addEventListener('change', () => { clearPresetActive(); draw(); });
@@ -1673,11 +2175,11 @@ function checkStaleness(lastTs) {
     return;
   }
   const ageMin = Math.round(ageMs / 60000);
-  const ageLabel = ageMin < 60 ? `${ageMin} мин` : `${Math.round(ageMin / 60)} ч`;
+  const ageLabel = ageMin < 60 ? t('stale.min', { n: ageMin }) : t('stale.hours', { n: Math.round(ageMin / 60) });
   if (ageMs >= STALE_ERROR_MS) {
-    text.textContent = `Данные не обновлялись ${ageLabel} — сборщик, похоже, не работает. Проверьте workflow в GitHub Actions.`;
+    text.innerHTML = t('stale.error', { age: ageLabel });
   } else {
-    text.textContent = `Данные не обновлялись ${ageLabel} — возможна временная заминка сборщика.`;
+    text.innerHTML = t('stale.warn', { age: ageLabel });
   }
   banner.style.display = 'flex';
 }
@@ -1688,14 +2190,14 @@ function checkStaleness(lastTs) {
 // sentiment/velocity/suspicious-review activity - on the same appid, so
 // it's useful to see side by side even though the two pipelines run
 // fully independently (reviews every 12h, player count every minute).
-function renderReviews(data) {
+function renderReviews(data, recentRows) {
   const statsEl = document.getElementById('reviews-stats');
   const chartEl = document.getElementById('reviews-chart');
   const suspicionEl = document.getElementById('reviews-suspicion-summary');
 
   if (!data || !data.summary) {
     statsEl.innerHTML = '';
-    chartEl.innerHTML = '<div id="status">Данные по отзывам недоступны &mdash; пайплайн fetch-reviews ещё не запускался или не настроен.</div>';
+    chartEl.innerHTML = '<div id="status">' + t('reviews.unavailable') + '</div>';
     suspicionEl.innerHTML = '';
     return;
   }
@@ -1722,7 +2224,7 @@ function renderReviews(data) {
 
   const timeline = data.timeline || [];
   if (!timeline.length) {
-    chartEl.innerHTML = '<div id="status">Недостаточно данных для графика по дням.</div>';
+    chartEl.innerHTML = '<div id="status">' + t('reviews.notEnoughForChart') + '</div>';
     suspicionEl.innerHTML = '';
     return;
   }
@@ -1781,27 +2283,20 @@ function renderReviews(data) {
     color: 'var(--accent)',
     labelFor: i => ({
       value: `${timeline[i].positive}+ / ${timeline[i].negative}-`,
-      sub: timeline[i].date + (timeline[i].suspicious ? ` &middot; ${timeline[i].suspicious} подозрит.` : '')
+      sub: timeline[i].date + (timeline[i].suspicious ? t('reviews.spikeSuffix', { count: timeline[i].suspicious }) : '')
     })
   }], xForIndex, timeline.length);
 
   // Top suspicion reasons, for context on what's driving the count.
   const reasons = s.suspicion_reason_counts || {};
-  const reasonLabels = {
-    posted_during_review_burst: 'всплеск отзывов в короткий период',
-    edited_days_later: 'отредактирован спустя дни',
-    private_profile: 'закрытый профиль',
-    low_effort_text: 'короткий/шаблонный текст',
-    prolific_reviewer_few_games: 'много отзывов, мало игр в библиотеке',
-    positive_under_1h: 'позитив при <1ч в игре',
-    positive_under_30min: 'позитив при <30 мин в игре',
-    account_under_30d_old_at_review: 'аккаунту <30 дней',
-    high_votes_low_effort_text: 'много лайков при пустом тексте',
-  };
   const topReasons = Object.entries(reasons)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([key, count]) => `<div class="row"><span>${reasonLabels[key] || key}</span><span class="v">${count}</span></div>`)
+    .map(([key, count]) => {
+      const label = t('reason.' + key);
+      const display = label === 'reason.' + key ? key : label;
+      return `<div class="row"><span>${display}</span><span class="v">${count}</span></div>`;
+    })
     .join('');
 
   suspicionEl.innerHTML = topReasons ? `
@@ -1809,15 +2304,216 @@ function renderReviews(data) {
       <div class="col-title">Основные признаки подозрительности</div>
       ${topReasons}
     </div>` : '';
+
+  renderReviewsExtras(data, recentRows);
+}
+
+// Extra detail cards: Steam's own review velocity (independent of our
+// suspicion scoring - this comes straight from Steam's public histogram
+// API), language distribution, and playtime-at-review distribution. All
+// of this is already collected by the reviews pipeline but wasn't
+// surfaced anywhere before.
+function renderReviewsExtras(data, recentRows) {
+  const grid = document.getElementById('reviews-extra-grid');
+  const s = data.summary || {};
+  const cards = [];
+
+  // Correlation between review-bombing activity and player count: for
+  // each day in the reviews timeline that has an hourly online-count
+  // row for the same date, split days into "spike" (suspicious >= 3)
+  // vs "normal" and compare average online counts between the two
+  // groups. This is deliberately simple (not a real statistical
+  // correlation coefficient) - the goal is a quick, honest "was online
+  // count meaningfully different on flagged days" signal, not a rigorous
+  // stats result that would need far more data points than a couple
+  // weeks of history to be meaningful.
+  if (recentRows && recentRows.length && data.timeline && data.timeline.length) {
+    const avgByDate = {};
+    const countByDate = {};
+    recentRows.forEach(r => {
+      const date = r.hour.slice(0, 10);
+      avgByDate[date] = (avgByDate[date] || 0) + r.avg;
+      countByDate[date] = (countByDate[date] || 0) + 1;
+    });
+    const dailyAvg = {};
+    Object.keys(avgByDate).forEach(date => {
+      dailyAvg[date] = avgByDate[date] / countByDate[date];
+    });
+
+    const spikeVals = [];
+    const normalVals = [];
+    data.timeline.forEach(day => {
+      if (dailyAvg[day.date] == null) return; // no online data for this date
+      if (day.suspicious >= 3) {
+        spikeVals.push(dailyAvg[day.date]);
+      } else {
+        normalVals.push(dailyAvg[day.date]);
+      }
+    });
+
+    if (spikeVals.length && normalVals.length) {
+      const avgSpike = spikeVals.reduce((a, b) => a + b, 0) / spikeVals.length;
+      const avgNormal = normalVals.reduce((a, b) => a + b, 0) / normalVals.length;
+      const diffPct = avgNormal > 0 ? ((avgSpike - avgNormal) / avgNormal) * 100 : 0;
+      const cls = Math.abs(diffPct) < 5 ? 'trend-flat' : diffPct > 0 ? 'trend-up' : 'trend-down';
+      cards.push(`
+        <div class="reviews-extra-card" style="grid-column: 1 / -1;">
+          <div class="card-title">${t('reviews.correlationTitle')}</div>
+          <div class="velocity-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="velocity-item">
+              <div class="label">${t('reviews.spikeDaysCount', { count: spikeVals.length })}</div>
+              <div class="value">${Math.round(avgSpike)}</div>
+            </div>
+            <div class="velocity-item">
+              <div class="label">${t('reviews.normalDaysCount', { count: normalVals.length })}</div>
+              <div class="value">${Math.round(avgNormal)}</div>
+            </div>
+            <div class="velocity-item">
+              <div class="label">${t('reviews.difference')}</div>
+              <div class="value ${cls}">${diffPct > 0 ? '+' : ''}${diffPct.toFixed(0)}%</div>
+            </div>
+          </div>
+        </div>
+      `);
+    } else if (data.timeline.some(d => d.suspicious >= 3)) {
+      cards.push(`
+        <div class="reviews-extra-card" style="grid-column: 1 / -1;">
+          <div class="card-title">${t('reviews.correlationTitle')}</div>
+          <div style="color:var(--muted); font-size:12px;">${t('reviews.correlationNoOverlap')}</div>
+        </div>
+      `);
+    }
+  }
+
+  // Steam velocity: how review volume/sentiment is trending according to
+  // Steam's own numbers, which is a useful cross-check against our own
+  // suspicion-score-based signal above.
+  if (s.steam_official_total_reviews != null) {
+    const velocity = s.steam_velocity_change_pct_week_over_week;
+    const velocityCls = velocity == null ? 'trend-flat' : Math.abs(velocity) < 1 ? 'trend-flat' : velocity > 0 ? 'trend-up' : 'trend-down';
+    const velocitySign = velocity != null && velocity > 0 ? '+' : '';
+    cards.push(`
+      <div class="reviews-extra-card">
+        <div class="card-title">${t('reviews.steamOfficial')}</div>
+        <div class="velocity-grid">
+          <div class="velocity-item">
+            <div class="label">${t('reviews.officialTotal')}</div>
+            <div class="value">${s.steam_official_total_reviews}</div>
+          </div>
+          <div class="velocity-item">
+            <div class="label">${t('reviews.steamScore')}</div>
+            <div class="value">${s.steam_official_review_score_desc || '&mdash;'}</div>
+          </div>
+          <div class="velocity-item">
+            <div class="label">${t('reviews.velocity')}</div>
+            <div class="value ${velocityCls}">${velocity != null ? velocitySign + velocity.toFixed(1) + '%' : '&mdash;'}</div>
+          </div>
+          <div class="velocity-item">
+            <div class="label">${t('reviews.spikeDays')}</div>
+            <div class="value ${s.steam_spike_days_count > 0 ? 'trend-down' : ''}">${s.steam_spike_days_count != null ? s.steam_spike_days_count : '&mdash;'}</div>
+          </div>
+          <div class="velocity-item">
+            <div class="label">${t('reviews.positive30d')}</div>
+            <div class="value">${s.steam_recent_30d_positive_pct != null ? s.steam_recent_30d_positive_pct + '%' : '&mdash;'}</div>
+          </div>
+          <div class="velocity-item">
+            <div class="label">${t('reviews.reviewsPerDay7d')}</div>
+            <div class="value">${s.steam_avg_reviews_per_day_last_7d != null ? s.steam_avg_reviews_per_day_last_7d : '&mdash;'}</div>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+
+  // Language distribution: bots/coordinated campaigns often cluster in
+  // one or two languages, so an unusual concentration here is itself a
+  // signal worth seeing at a glance.
+  const langs = s.language_distribution || {};
+  const langEntries = Object.entries(langs).sort((a, b) => b[1] - a[1]);
+  if (langEntries.length) {
+    const langTotal = langEntries.reduce((sum, [, c]) => sum + c, 0);
+    const langName = lang => {
+      const label = t('lang.name.' + lang);
+      return label === 'lang.name.' + lang ? lang : label;
+    };
+    const maxLangCount = langEntries[0][1];
+    const rows = langEntries.slice(0, 8).map(([lang, count]) => `
+      <div class="bar-row">
+        <span class="bar-label">${langName(lang)}</span>
+        <span class="bar-track"><span class="bar-fill" style="width:${(count / maxLangCount * 100).toFixed(0)}%"></span></span>
+        <span class="bar-count">${count}</span>
+      </div>
+    `).join('');
+    const otherCount = langTotal - langEntries.slice(0, 8).reduce((s2, [, c]) => s2 + c, 0);
+    const otherRow = otherCount > 0 ? `
+      <div class="bar-row">
+        <span class="bar-label">${t('reviews.other')}</span>
+        <span class="bar-track"><span class="bar-fill" style="width:${(otherCount / maxLangCount * 100).toFixed(0)}%"></span></span>
+        <span class="bar-count">${otherCount}</span>
+      </div>
+    ` : '';
+    cards.push(`
+      <div class="reviews-extra-card">
+        <div class="card-title">${t('reviews.languages')}</div>
+        ${rows}${otherRow}
+      </div>
+    `);
+  }
+
+  // Playtime-at-review distribution: how long people had played before
+  // writing their review. A pile of reviews at <1h alongside a positive
+  // score is one of the classic review-bombing/fake-review patterns.
+  const buckets = s.playtime_bucket_distribution || {};
+  const bucketOrder = ['<1h', '1-5h', '5-20h', '20-100h', '100h+'];
+  const bucketEntries = bucketOrder.filter(b => buckets[b] != null).map(b => [b, buckets[b]]);
+  if (bucketEntries.length) {
+    const maxBucketCount = Math.max(...bucketEntries.map(([, c]) => c), 1);
+    const rows = bucketEntries.map(([bucket, count]) => `
+      <div class="bar-row">
+        <span class="bar-label">${bucket}</span>
+        <span class="bar-track"><span class="bar-fill" style="width:${(count / maxBucketCount * 100).toFixed(0)}%"></span></span>
+        <span class="bar-count">${count}</span>
+      </div>
+    `).join('');
+    cards.push(`
+      <div class="reviews-extra-card">
+        <div class="card-title">${t('reviews.playtimeAtReview')}</div>
+        ${rows}
+      </div>
+    `);
+  }
+
+  // Misc account/review-quality signals that don't fit elsewhere.
+  const miscItems = [
+    [t('reviews.devResponses'), s.dev_response_count],
+    [t('reviews.freeKeys'), s.free_key_count],
+    [t('reviews.notViaSteam'), s.not_steam_purchase_count],
+    [t('reviews.privateProfiles'), s.private_profile_count],
+    [t('reviews.editedLater'), s.edited_review_later_count],
+    [t('reviews.newAccounts7d'), s.new_accounts_positive_under_7d],
+  ].filter(([, v]) => v != null);
+  if (miscItems.length) {
+    const rows = miscItems.map(([label, val]) => `<div class="row"><span>${label}</span><span class="v">${val}</span></div>`).join('');
+    cards.push(`
+      <div class="reviews-extra-card">
+        <div class="card-title">${t('reviews.otherSignals')}</div>
+        ${rows}
+      </div>
+    `);
+  }
+
+  grid.innerHTML = cards.join('');
 }
 
 async function init() {
+  applyStaticTranslations();
+
   let recent = [];
   try {
     recent = await loadJSON('recent.json');
   } catch (e) {
     document.getElementById('overview-chart').innerHTML =
-      '<div id="status">Не удалось загрузить recent.json</div>';
+      '<div id="status">' + t('error.recentJson') + '</div>';
   }
 
   let points = [];
@@ -1825,7 +2521,7 @@ async function init() {
     points = await loadJSON('points.json');
   } catch (e) {
     document.getElementById('live-chart').innerHTML =
-      '<div id="status">Не удалось загрузить points.json</div>';
+      '<div id="status">' + t('error.pointsJson') + '</div>';
   }
 
   const lastKnownTs = points.length
@@ -1880,17 +2576,17 @@ async function init() {
       renderLive(points, historyStore);
     } else {
       document.getElementById('live-chart').innerHTML =
-        '<div id="status">Пока нет данных.</div>';
+        '<div id="status">' + t('live.noData') + '</div>';
     }
 
     if (historyStore.availableDays.length) {
       renderCompare(historyStore);
     } else {
       document.getElementById('compare-chart').innerHTML =
-        '<div id="status">Пока нет данных.</div>';
+        '<div id="status">' + t('compare.noData') + '</div>';
     }
 
-    renderReviews(reviewsData);
+    renderReviews(reviewsData, recent);
   }
 
   // Stats that don't depend on timezone mode (peaks/averages/trend) are
@@ -1911,14 +2607,16 @@ async function init() {
       const diff = avg24 - prevAvg;
       const pct = prevAvg > 0 ? (diff / prevAvg) * 100 : 0;
       if (Math.abs(pct) < 1) {
-        trendEl.textContent = '≈ без изменений';
+        trendEl.innerHTML = t('stats.noChange');
         trendEl.className = 'sub mono trend-flat';
       } else {
-        trendEl.textContent = (diff > 0 ? '▲ +' : '▼ ') + pct.toFixed(1) + '% к пред. суткам';
+        trendEl.innerHTML = diff > 0
+          ? t('stats.upVsPrev', { pct: pct.toFixed(1) })
+          : t('stats.downVsPrev', { pct: pct.toFixed(1) });
         trendEl.className = 'sub mono ' + (diff > 0 ? 'trend-up' : 'trend-down');
       }
     } else {
-      trendEl.textContent = 'недостаточно истории';
+      trendEl.textContent = t('stats.notEnoughHistory');
     }
 
     document.getElementById('stat-peak-all').textContent = Math.max(...recent.map(r => r.max));
@@ -1942,6 +2640,26 @@ async function init() {
     });
   });
   syncTzButtons();
+
+  // Language toggle: same pattern as the timezone toggle above - update
+  // static markup via applyStaticTranslations(), then re-render every
+  // chart/card so their dynamically-built labels (range buttons, tooltip
+  // text, etc.) pick up the new language too, all without re-fetching data.
+  const langButtons = document.querySelectorAll('#lang-toggle .tz-btn');
+  function syncLangButtons() {
+    const lang = getLang();
+    langButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === lang));
+  }
+  langButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      setLang(btn.dataset.mode);
+      syncLangButtons();
+      applyStaticTranslations();
+      checkStaleness(lastKnownTs);
+      renderAll();
+    });
+  });
+  syncLangButtons();
 
   renderAll();
 }
