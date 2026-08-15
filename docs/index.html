@@ -407,6 +407,7 @@
     overflow: hidden;
   }
   .bar-row .bar-fill {
+    display: block;
     height: 100%;
     background: var(--accent-dim);
     border-radius: 4px;
@@ -2206,19 +2207,19 @@ function renderReviews(data, recentRows) {
   const genDate = new Date(data.generated_at);
   statsEl.innerHTML = `
     <div class="stat">
-      <div class="label">Всего отзывов</div>
+      <div class="label">${t('reviews.totalReviews')}</div>
       <div class="value mono">${s.total_reviews}</div>
-      <div class="sub mono">обновлено ${formatDateTime(genDate)} ${tzSuffix()}</div>
+      <div class="sub mono">${t('reviews.updated', { time: formatDateTime(genDate), tz: tzSuffix() })}</div>
     </div>
     <div class="stat">
-      <div class="label">Позитивных</div>
+      <div class="label">${t('reviews.positive')}</div>
       <div class="value mono trend-up">${s.positive_pct}%</div>
-      <div class="sub mono">${s.positive_count} из ${s.total_reviews}</div>
+      <div class="sub mono">${t('reviews.ofTotal', { count: s.positive_count, total: s.total_reviews })}</div>
     </div>
     <div class="stat">
-      <div class="label">Подозрительных</div>
+      <div class="label">${t('reviews.suspicious')}</div>
       <div class="value mono ${s.suspicious_count > 0 ? 'trend-down' : 'trend-flat'}">${s.suspicious_count}</div>
-      <div class="sub mono">${s.suspicious_pct_of_positive}% от позитивных &middot; ${s.highly_suspicious_count} высокий риск</div>
+      <div class="sub mono">${t('reviews.suspiciousPctHighRisk', { pct: s.suspicious_pct_of_positive, count: s.highly_suspicious_count })}</div>
     </div>
   `;
 
@@ -2301,7 +2302,7 @@ function renderReviews(data, recentRows) {
 
   suspicionEl.innerHTML = topReasons ? `
     <div class="col" style="grid-column: 1 / -1;">
-      <div class="col-title">Основные признаки подозрительности</div>
+      <div class="col-title">${t('reviews.topReasons')}</div>
       ${topReasons}
     </div>` : '';
 
