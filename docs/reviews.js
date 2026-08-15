@@ -1,5 +1,347 @@
 /* Review Watch — no build step, no dependencies, plain SVG charts. */
 
+// --- i18n ---------------------------------------------------------------
+// Same dictionary-based approach as the main dashboard (docs/index.html):
+// t(key, vars) looks up a string for the current language, substitutes
+// {placeholders}, and falls back to Russian (then the raw key) if a
+// translation is missing. Language choice is shared with the main
+// dashboard via the same localStorage key, so switching on one page
+// carries over to the other.
+const I18N_STORAGE_KEY = 'soulscam-lang'; // 'ru' | 'en' - shared with index.html
+
+const I18N = {
+  ru: {
+    'page.title': 'REVIEW WATCH — Steam review forensics',
+    'page.description': 'Отслеживание накрутки и подозрительных отзывов Steam: анализ playtime, дубликатов текста и всплесков активности.',
+    'header.subtitle': 'steam review forensics',
+    'header.backLink': '&larr; назад к трекеру онлайна',
+    'header.generatedAt': 'обновлено: {date}',
+    'header.appid': 'appid {id}',
+    'header.appidPlaceholder': 'appid (по умолчанию latest.json)',
+    'header.openBtn': 'Открыть',
+    'header.appidFormTitle': 'Просмотреть снапшот для другого appid, если он есть в docs/reviews/',
+    'loading': 'Загружаю данные&hellip;',
+    'error.loadFailed': 'Ошибка загрузки данных: {message}. Если это первый запуск &mdash; дождитесь первого прогона GitHub Actions, который создаст docs/reviews/latest.json.',
+    'error.fetchFailed': 'Не удалось загрузить {path} (HTTP {status})',
+
+    'crosscheck.title': 'Сверка с официальными данными Steam',
+    'crosscheck.desc': 'Независимая проверка: то, что считает сам Steam по <b>всем</b> отзывам игры, а не только по собранной нами выборке. Если наша выборка сильно расходится с этим &mdash; значит либо сбор не полный, либо ситуация резко изменилась совсем недавно.',
+    'crosscheck.totalSteam': 'Всего отзывов (Steam)',
+    'crosscheck.coverage': 'Покрытие выборки',
+    'crosscheck.coverageSub': 'собрано {sample} из {total}',
+    'crosscheck.positive30d': '% позитива, последние 30д',
+    'crosscheck.positive30dSub': 'по данным Steam, {count} отзывов',
+    'crosscheck.velocity': 'Скорость отзывов, нед/нед',
+    'crosscheck.velocitySub': '~{count} отзывов/день сейчас',
+    'crosscheck.spikeDays': 'Дней-всплесков (Steam)',
+    'crosscheck.spikeDaysSub': 'по официальной гистограмме',
+
+    'histogram.title': 'Playtime lie-detector',
+    'histogram.desc': 'Распределение &laquo;сколько часов было наиграно на момент отзыва&raquo; отдельно для положительных и отрицательных отзывов. Если у зелёной (позитив) кривой аномально много отзывов слева от порога &mdash; это и есть люди, хвалящие игру, в которую почти не играли.',
+    'histogram.positive': 'Положительные',
+    'histogram.negative': 'Отрицательные',
+    'histogram.thresholdLabel': 'Порог подозрительности:',
+    'histogram.thresholdMin': '{n} мин',
+    'histogram.belowThreshold': '{count} позитивных отзывов ниже порога',
+    'histogram.tooltipPositive': '{count} позитивных, {from}-{to} мин',
+    'histogram.tooltipNegative': '{count} отрицательных, {from}-{to} мин',
+    'histogram.axisHours': '{n}ч',
+    'unit.min': '{n} мин',
+    'unit.hours': '{n} ч',
+
+    'history.title': 'История метрик по снапшотам',
+    'history.desc': 'Как менялись % позитивных отзывов и число подозрительных с каждым запуском сбора данных. Полезно, чтобы увидеть момент начала накрутки, а не только текущее состояние.',
+    'history.positivePct': '% позитивных',
+    'history.suspiciousScore': 'Подозрительные (score&ge;40)',
+    'history.tooltip': '{date}: {count} подозрительных, {pct}% позитив',
+
+    'timeline.title': 'Динамика по дням',
+    'timeline.desc': 'Всплески объёма &mdash; типичный признак ревью-бомбинга или скоординированной накрутки.',
+    'timeline.tooltip': '{date}: {count} подозрительных',
+
+    'reasons.title': 'Причины флагов',
+    'reasons.desc': 'Из чего складывается suspicion score по датасету.',
+    'reasons.none': 'Флагов не найдено',
+
+    'table.title': 'Все отзывы',
+    'table.desc': 'Полная таблица с фильтрами и сортировкой. Клик по строке &mdash; разворачивает текст и метаданные.',
+    'table.exportCsv': 'Экспорт CSV (текущий фильтр)',
+    'table.colDate': 'Дата',
+    'table.colType': 'Тип',
+    'table.colPlaytime': 'Playtime',
+    'table.colScore': 'Score',
+    'table.colFlags': 'Флаги',
+    'table.colText': 'Текст',
+    'table.resultCount': '<b>{count}</b> отзывов найдено (из {total} всего)',
+    'table.empty': 'Ничего не найдено под текущие фильтры',
+    'table.pagePrev': '&larr; назад',
+    'table.pageNext': 'вперёд &rarr;',
+    'table.pageOf': 'стр. {page} / {total}',
+    'table.votePositive': '&#9650; Позитив',
+    'table.voteNegative': '&#9660; Негатив',
+    'table.noFlags': '&mdash;',
+    'table.emptyText': '(пустой текст)',
+    'table.noReasons': 'без флагов',
+    'table.devReplyDate': ' ({date})',
+    'table.devReplyLabel': '&#128172; Ответ разработчика{date}',
+    'table.gamesOwned': 'игр в библиотеке: {n}',
+    'table.reviewsByAuthor': 'отзывов от автора: {n}',
+    'table.viaSteam': 'куплено в Steam: {v}',
+    'table.gotFree': 'получено бесплатно: {v}',
+    'table.yes': 'да',
+    'table.no': 'нет',
+    'table.votesUpFunny': 'votes up / funny: {up} / {funny}',
+    'table.language': 'язык: {lang}',
+    'table.openInSteam': '&#8599; открыть отзыв в Steam',
+    'table.playtimeForever': 'playtime forever: {v}',
+    'table.playtimeAtReview': 'playtime at review: {v}',
+    'table.playtime2w': 'playtime last 2 weeks: {v}',
+
+    'filters.type': 'Тип',
+    'filters.all': 'Все',
+    'filters.positive': 'Позитив',
+    'filters.negative': 'Негатив',
+    'filters.playtimeBucket': 'Playtime bucket',
+    'filters.any': 'Любой',
+    'filters.minScore': 'Мин. suspicion score',
+    'filters.onlyLabel': 'Только',
+    'filters.suspiciousOnly': '&#128681; Подозрительные',
+    'filters.freeOnly': 'Free key',
+    'filters.dupeOnly': 'Дубли текста',
+    'filters.editedOnly': 'Отредактировано позже',
+    'filters.devResponseOnly': '&#128172; Есть ответ разработчика',
+    'filters.searchLabel': 'Поиск по тексту',
+    'filters.searchPlaceholder': 'подстрока&hellip;',
+    'filters.devResponseDate': 'Дата ответа разработчика',
+    'filters.reset': 'сбросить фильтры',
+
+    'stats.totalReviews': 'Всего отзывов',
+    'stats.totalReviewsSub': '{pct}% положительных',
+    'stats.posNeg': 'Positive / Negative',
+    'stats.playtimePositive': 'Playtime, позитив',
+    'stats.playtimeNegative': 'Playtime, негатив',
+    'stats.medianSub': 'медиана {n}ч',
+    'stats.suspicious': 'Подозрительные',
+    'stats.suspiciousSub': '{pct}% от позитивных',
+    'stats.highlySuspicious': 'Сильно подозрительные',
+    'stats.highlySuspiciousSub': 'score &ge; 60',
+    'stats.devResponse': 'С ответом разработчика',
+    'stats.devResponseSub': '{pct}% от всех',
+    'stats.newAccounts': 'Новые аккаунты (позитив, <7д)',
+    'stats.newAccountsSub': 'из {n} обогащённых',
+    'stats.privateProfiles': 'Приватные профили',
+    'stats.editedLater': 'Отредактировано позже',
+    'stats.editedLaterSub': 'возможна смена позиции',
+
+    'footer.text': 'Данные собираются автоматически из публичного Steam appreviews API по расписанию GitHub Actions. Suspicion score &mdash; эвристика (playtime на момент отзыва, free-ключи, повторяющийся текст, всплески активности, паттерны аккаунта), а не доказательство накрутки: проверяйте отмеченные отзывы вручную.',
+    'footer.repoLink': 'Исходники и скрипты сбора данных на GitHub',
+
+    'reason.positive_zero_playtime': 'позитив, 0 часов наиграно',
+    'reason.positive_under_30min': 'позитив, <30 мин на момент отзыва',
+    'reason.positive_under_1h': 'позитив, <1ч на момент отзыва',
+    'reason.free_key_not_purchased': 'бесплатный ключ, не куплено в Steam',
+    'reason.prolific_reviewer_few_games': 'много отзывов, мало игр в библиотеке',
+    'reason.duplicate_text_cluster': 'повторяющийся/шаблонный текст',
+    'reason.posted_during_review_burst': 'опубликовано во время всплеска активности',
+    'reason.negative_zero_playtime': 'негатив, 0 часов наиграно',
+    'reason.edited_days_later': 'отзыв отредактирован спустя дни (возможна смена позиции)',
+    'reason.account_under_7d_old_at_review': 'аккаунту < 7 дней на момент отзыва',
+    'reason.account_under_30d_old_at_review': 'аккаунту < 30 дней на момент отзыва',
+    'reason.private_profile': 'приватный профиль',
+    'reason.owns_2_or_fewer_games_total': 'во всей библиотеке &le;2 игры',
+    'reason.low_effort_text': 'низкосодержательный текст',
+    'reason.high_votes_low_effort_text': 'много votes при пустом тексте',
+  },
+  en: {
+    'page.title': 'REVIEW WATCH — Steam review forensics',
+    'page.description': 'Tracking Steam review manipulation and suspicious reviews: playtime analysis, duplicate text, and activity spikes.',
+    'header.subtitle': 'steam review forensics',
+    'header.backLink': '&larr; back to online tracker',
+    'header.generatedAt': 'updated: {date}',
+    'header.appid': 'appid {id}',
+    'header.appidPlaceholder': 'appid (defaults to latest.json)',
+    'header.openBtn': 'Open',
+    'header.appidFormTitle': 'View a snapshot for a different appid, if one exists in docs/reviews/',
+    'loading': 'Loading data&hellip;',
+    'error.loadFailed': 'Failed to load data: {message}. If this is the first run &mdash; wait for the first GitHub Actions run, which will create docs/reviews/latest.json.',
+    'error.fetchFailed': 'Failed to load {path} (HTTP {status})',
+
+    'crosscheck.title': "Cross-check against Steam's official data",
+    'crosscheck.desc': "Independent check: what Steam itself counts across <b>all</b> of the game's reviews, not just our collected sample. If our sample diverges sharply from this &mdash; either the collection isn't complete, or the situation changed very recently.",
+    'crosscheck.totalSteam': 'Total reviews (Steam)',
+    'crosscheck.coverage': 'Sample coverage',
+    'crosscheck.coverageSub': 'collected {sample} of {total}',
+    'crosscheck.positive30d': '% positive, last 30d',
+    'crosscheck.positive30dSub': 'per Steam, {count} reviews',
+    'crosscheck.velocity': 'Review velocity, w/w',
+    'crosscheck.velocitySub': '~{count} reviews/day now',
+    'crosscheck.spikeDays': 'Spike days (Steam)',
+    'crosscheck.spikeDaysSub': 'per the official histogram',
+
+    'histogram.title': 'Playtime lie-detector',
+    'histogram.desc': 'Distribution of "hours played at time of review", separately for positive and negative reviews. If the green (positive) curve has an unusually high pile-up left of the threshold &mdash; those are people praising a game they barely played.',
+    'histogram.positive': 'Positive',
+    'histogram.negative': 'Negative',
+    'histogram.thresholdLabel': 'Suspicion threshold:',
+    'histogram.thresholdMin': '{n} min',
+    'histogram.belowThreshold': '{count} positive reviews below the threshold',
+    'histogram.tooltipPositive': '{count} positive, {from}-{to} min',
+    'histogram.tooltipNegative': '{count} negative, {from}-{to} min',
+    'histogram.axisHours': '{n}h',
+    'unit.min': '{n} min',
+    'unit.hours': '{n}h',
+
+    'history.title': 'Metrics history across snapshots',
+    'history.desc': 'How the % positive and suspicious count changed with each data-collection run. Useful for spotting when manipulation started, not just the current state.',
+    'history.positivePct': '% positive',
+    'history.suspiciousScore': 'Suspicious (score&ge;40)',
+    'history.tooltip': '{date}: {count} suspicious, {pct}% positive',
+
+    'timeline.title': 'Daily activity',
+    'timeline.desc': 'Volume spikes are a typical sign of review-bombing or a coordinated campaign.',
+    'timeline.tooltip': '{date}: {count} suspicious',
+
+    'reasons.title': 'Flag reasons',
+    'reasons.desc': "What the dataset's suspicion score is made up of.",
+    'reasons.none': 'No flags found',
+
+    'table.title': 'All reviews',
+    'table.desc': 'Full table with filters and sorting. Click a row to expand its text and metadata.',
+    'table.exportCsv': 'Export CSV (current filter)',
+    'table.colDate': 'Date',
+    'table.colType': 'Type',
+    'table.colPlaytime': 'Playtime',
+    'table.colScore': 'Score',
+    'table.colFlags': 'Flags',
+    'table.colText': 'Text',
+    'table.resultCount': '<b>{count}</b> reviews found (of {total} total)',
+    'table.empty': 'Nothing matches the current filters',
+    'table.pagePrev': '&larr; prev',
+    'table.pageNext': 'next &rarr;',
+    'table.pageOf': 'page {page} / {total}',
+    'table.votePositive': '&#9650; Positive',
+    'table.voteNegative': '&#9660; Negative',
+    'table.noFlags': '&mdash;',
+    'table.emptyText': '(empty text)',
+    'table.noReasons': 'no flags',
+    'table.devReplyDate': ' ({date})',
+    'table.devReplyLabel': '&#128172; Developer response{date}',
+    'table.gamesOwned': 'games owned: {n}',
+    'table.reviewsByAuthor': "reviews by author: {n}",
+    'table.viaSteam': 'purchased on Steam: {v}',
+    'table.gotFree': 'received for free: {v}',
+    'table.yes': 'yes',
+    'table.no': 'no',
+    'table.votesUpFunny': 'votes up / funny: {up} / {funny}',
+    'table.language': 'language: {lang}',
+    'table.openInSteam': '&#8599; open review on Steam',
+    'table.playtimeForever': 'playtime forever: {v}',
+    'table.playtimeAtReview': 'playtime at review: {v}',
+    'table.playtime2w': 'playtime last 2 weeks: {v}',
+
+    'filters.type': 'Type',
+    'filters.all': 'All',
+    'filters.positive': 'Positive',
+    'filters.negative': 'Negative',
+    'filters.playtimeBucket': 'Playtime bucket',
+    'filters.any': 'Any',
+    'filters.minScore': 'Min. suspicion score',
+    'filters.onlyLabel': 'Only',
+    'filters.suspiciousOnly': '&#128681; Suspicious',
+    'filters.freeOnly': 'Free key',
+    'filters.dupeOnly': 'Duplicate text',
+    'filters.editedOnly': 'Edited later',
+    'filters.devResponseOnly': '&#128172; Has dev response',
+    'filters.searchLabel': 'Search text',
+    'filters.searchPlaceholder': 'substring&hellip;',
+    'filters.devResponseDate': 'Developer response date',
+    'filters.reset': 'reset filters',
+
+    'stats.totalReviews': 'Total reviews',
+    'stats.totalReviewsSub': '{pct}% positive',
+    'stats.posNeg': 'Positive / Negative',
+    'stats.playtimePositive': 'Playtime, positive',
+    'stats.playtimeNegative': 'Playtime, negative',
+    'stats.medianSub': 'median {n}h',
+    'stats.suspicious': 'Suspicious',
+    'stats.suspiciousSub': '{pct}% of positive',
+    'stats.highlySuspicious': 'Highly suspicious',
+    'stats.highlySuspiciousSub': 'score &ge; 60',
+    'stats.devResponse': 'With dev response',
+    'stats.devResponseSub': '{pct}% of all',
+    'stats.newAccounts': 'New accounts (positive, <7d)',
+    'stats.newAccountsSub': 'of {n} enriched',
+    'stats.privateProfiles': 'Private profiles',
+    'stats.editedLater': 'Edited later',
+    'stats.editedLaterSub': 'position may have changed',
+
+    'footer.text': "Data is collected automatically from Steam's public appreviews API on a GitHub Actions schedule. Suspicion score is a heuristic (playtime at time of review, free keys, repeated text, activity spikes, account patterns), not proof of manipulation: check flagged reviews manually.",
+    'footer.repoLink': 'Source code and data-collection scripts on GitHub',
+
+    'reason.positive_zero_playtime': 'positive, 0 hours played',
+    'reason.positive_under_30min': 'positive, <30 min at time of review',
+    'reason.positive_under_1h': 'positive, <1h at time of review',
+    'reason.free_key_not_purchased': 'free key, not purchased on Steam',
+    'reason.prolific_reviewer_few_games': 'many reviews, few games owned',
+    'reason.duplicate_text_cluster': 'repeated/template text',
+    'reason.posted_during_review_burst': 'posted during an activity burst',
+    'reason.negative_zero_playtime': 'negative, 0 hours played',
+    'reason.edited_days_later': 'review edited days later (position may have changed)',
+    'reason.account_under_7d_old_at_review': 'account < 7 days old at time of review',
+    'reason.account_under_30d_old_at_review': 'account < 30 days old at time of review',
+    'reason.private_profile': 'private profile',
+    'reason.owns_2_or_fewer_games_total': '&le;2 games owned total',
+    'reason.low_effort_text': 'low-effort text',
+    'reason.high_votes_low_effort_text': 'many votes, empty text',
+  },
+};
+
+function getLang() {
+  try {
+    const stored = localStorage.getItem(I18N_STORAGE_KEY);
+    return stored === 'en' ? 'en' : 'ru';
+  } catch (e) {
+    return 'ru';
+  }
+}
+function setLang(lang) {
+  try { localStorage.setItem(I18N_STORAGE_KEY, lang); } catch (e) { /* ignore */ }
+}
+function t(key, vars) {
+  const dict = I18N[getLang()] || I18N.ru;
+  let str = dict[key];
+  if (str == null) str = I18N.ru[key];
+  if (str == null) return key;
+  if (vars) {
+    Object.keys(vars).forEach(k => {
+      str = str.split('{' + k + '}').join(vars[k]);
+    });
+  }
+  return str;
+}
+function reasonLabel(key) {
+  const label = t('reason.' + key);
+  return label === 'reason.' + key ? key : label;
+}
+function applyStaticTranslations() {
+  document.title = t('page.title');
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    el.innerHTML = t(el.getAttribute('data-i18n-html'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+  });
+  const desc = document.querySelector('meta[name="description"]');
+  if (desc) desc.setAttribute('content', t('page.description'));
+  document.documentElement.lang = getLang();
+}
+
 const state = {
   data: null,
   reviews: [],
@@ -26,29 +368,11 @@ const state = {
 
 const PLAYTIME_BUCKET_ORDER = ['<1h', '1-5h', '5-20h', '20-100h', '100h+'];
 
-const REASON_LABELS = {
-  positive_zero_playtime: 'позитив, 0 часов наиграно',
-  positive_under_30min: 'позитив, <30 мин на момент отзыва',
-  positive_under_1h: 'позитив, <1ч на момент отзыва',
-  free_key_not_purchased: 'бесплатный ключ, не куплено в Steam',
-  prolific_reviewer_few_games: 'много отзывов, мало игр в библиотеке',
-  duplicate_text_cluster: 'повторяющийся/шаблонный текст',
-  posted_during_review_burst: 'опубликовано во время всплеска активности',
-  negative_zero_playtime: 'негатив, 0 часов наиграно',
-  edited_days_later: 'отзыв отредактирован спустя дни (возможна смена позиции)',
-  account_under_7d_old_at_review: 'аккаунту < 7 дней на момент отзыва',
-  account_under_30d_old_at_review: 'аккаунту < 30 дней на момент отзыва',
-  private_profile: 'приватный профиль',
-  owns_2_or_fewer_games_total: 'во всей библиотеке ≤2 игры',
-  low_effort_text: 'низкосодержательный текст',
-  high_votes_low_effort_text: 'много votes при пустом тексте',
-};
-
 function fmtHours(minutes) {
   if (minutes === null || minutes === undefined) return '—';
   const h = minutes / 60;
-  if (h < 1) return `${Math.round(minutes)} мин`;
-  return `${h.toFixed(1)} ч`;
+  if (h < 1) return t('unit.min', { n: Math.round(minutes) });
+  return t('unit.hours', { n: h.toFixed(1) });
 }
 
 function fmtDate(ts) {
@@ -67,7 +391,7 @@ function escapeHtml(s) {
 async function loadData(appid) {
   const path = appid ? `reviews/${appid}.json` : 'reviews/latest.json';
   const res = await fetch(path, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Не удалось загрузить ${path} (HTTP ${res.status})`);
+  if (!res.ok) throw new Error(t('error.fetchFailed', { path, status: res.status }));
   return res.json();
 }
 
@@ -83,6 +407,28 @@ async function loadHistory() {
 }
 
 function init() {
+  applyStaticTranslations();
+
+  const langButtons = document.querySelectorAll('#lang-toggle .lang-btn');
+  function syncLangButtons() {
+    const lang = getLang();
+    langButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === lang));
+  }
+  langButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.mode === getLang()) return;
+      setLang(btn.dataset.mode);
+      // A full reload is simplest and safest here: this page renders many
+      // independent SVG charts and a large filtered/sorted/paginated table
+      // built directly from state, and re-running every render function in
+      // place risks missing one and leaving stale text behind. A reload
+      // re-fetches nothing new (browser cache handles the JSON) and takes
+      // a fraction of a second, so the extra round-trip isn't noticeable.
+      location.reload();
+    });
+  });
+  syncLangButtons();
+
   const params = new URLSearchParams(location.search);
   const appidParam = params.get('appid');
   if (appidParam) document.getElementById('appid-input').value = appidParam;
@@ -108,7 +454,7 @@ function init() {
       document.getElementById('loading').style.display = 'none';
       const el = document.getElementById('error');
       el.style.display = 'block';
-      el.textContent = `Ошибка загрузки данных: ${err.message}. Если это первый запуск — дождитесь первого прогона GitHub Actions, который создаст docs/reviews/latest.json.`;
+      el.innerHTML = t('error.loadFailed', { message: err.message });
     });
 
   document.getElementById('appid-form').addEventListener('submit', e => {
@@ -122,10 +468,10 @@ function init() {
 
 function renderHeader(data) {
   document.getElementById('appname-sub').textContent = data.appname
-    ? `${data.appname} — steam review forensics`
-    : 'steam review forensics';
-  document.getElementById('appid-line').textContent = `appid ${data.appid}`;
-  document.getElementById('generated-at').textContent = `обновлено: ${data.generated_at}`;
+    ? `${data.appname} — ${t('header.subtitle')}`
+    : t('header.subtitle');
+  document.getElementById('appid-line').textContent = t('header.appid', { id: data.appid });
+  document.getElementById('generated-at').textContent = t('header.generatedAt', { date: data.generated_at });
   const repoLink = document.getElementById('repo-link');
   // leave default href as-is; user should point this at their own repo
 }
@@ -134,48 +480,48 @@ function renderStats(summary) {
   const grid = document.getElementById('stats-grid');
   const items = [
     {
-      label: 'Всего отзывов', value: summary.total_reviews, cls: '',
-      sub: `${summary.positive_pct}% положительных`,
+      label: t('stats.totalReviews'), value: summary.total_reviews, cls: '',
+      sub: t('stats.totalReviewsSub', { pct: summary.positive_pct }),
     },
     {
-      label: 'Positive / Negative', value: `${summary.positive_count} / ${summary.negative_count}`, cls: 'green',
+      label: t('stats.posNeg'), value: `${summary.positive_count} / ${summary.negative_count}`, cls: 'green',
       sub: '',
     },
     {
-      label: 'Playtime, позитив', value: `${summary.avg_playtime_hours_positive}ч`, cls: 'green',
-      sub: `медиана ${summary.median_playtime_hours_positive}ч`,
+      label: t('stats.playtimePositive'), value: t('unit.hours', { n: summary.avg_playtime_hours_positive }), cls: 'green',
+      sub: t('stats.medianSub', { n: summary.median_playtime_hours_positive }),
     },
     {
-      label: 'Playtime, негатив', value: `${summary.avg_playtime_hours_negative}ч`, cls: 'red',
-      sub: `медиана ${summary.median_playtime_hours_negative}ч`,
+      label: t('stats.playtimeNegative'), value: t('unit.hours', { n: summary.avg_playtime_hours_negative }), cls: 'red',
+      sub: t('stats.medianSub', { n: summary.median_playtime_hours_negative }),
     },
     {
-      label: 'Подозрительные', value: summary.suspicious_count, cls: 'red',
-      sub: `${summary.suspicious_pct_of_positive}% от позитивных`,
+      label: t('stats.suspicious'), value: summary.suspicious_count, cls: 'red',
+      sub: t('stats.suspiciousSub', { pct: summary.suspicious_pct_of_positive }),
     },
     {
-      label: 'Сильно подозрительные', value: summary.highly_suspicious_count, cls: 'amber',
-      sub: 'score ≥ 60',
+      label: t('stats.highlySuspicious'), value: summary.highly_suspicious_count, cls: 'amber',
+      sub: t('stats.highlySuspiciousSub'),
     },
     {
-      label: 'С ответом разработчика', value: summary.dev_response_count || 0, cls: 'green',
-      sub: summary.total_reviews ? `${Math.round(100 * (summary.dev_response_count || 0) / summary.total_reviews)}% от всех` : '',
+      label: t('stats.devResponse'), value: summary.dev_response_count || 0, cls: 'green',
+      sub: summary.total_reviews ? t('stats.devResponseSub', { pct: Math.round(100 * (summary.dev_response_count || 0) / summary.total_reviews) }) : '',
     },
   ];
 
   if (summary.enrichment_coverage) {
     items.push(
       {
-        label: 'Новые аккаунты (позитив, <7д)', value: summary.new_accounts_positive_under_7d || 0, cls: 'red',
-        sub: `из ${summary.enrichment_coverage} обогащённых`,
+        label: t('stats.newAccounts'), value: summary.new_accounts_positive_under_7d || 0, cls: 'red',
+        sub: t('stats.newAccountsSub', { n: summary.enrichment_coverage }),
       },
       {
-        label: 'Приватные профили', value: summary.private_profile_count || 0, cls: 'amber',
+        label: t('stats.privateProfiles'), value: summary.private_profile_count || 0, cls: 'amber',
         sub: '',
       },
       {
-        label: 'Отредактировано позже', value: summary.edited_review_later_count || 0, cls: 'amber',
-        sub: 'возможна смена позиции',
+        label: t('stats.editedLater'), value: summary.edited_review_later_count || 0, cls: 'amber',
+        sub: t('stats.editedLaterSub'),
       },
     );
   }
@@ -199,25 +545,25 @@ function renderSteamCrossCheck(summary) {
 
   const items = [
     {
-      label: 'Всего отзывов (Steam)', value: summary.steam_official_total_reviews, cls: '',
+      label: t('crosscheck.totalSteam'), value: summary.steam_official_total_reviews, cls: '',
       sub: summary.steam_official_review_score_desc || '',
     },
     {
-      label: 'Покрытие выборки', value: `${summary.our_sample_coverage_pct ?? '—'}%`, cls: '',
-      sub: `собрано ${summary.total_reviews} из ${summary.steam_official_total_reviews}`,
+      label: t('crosscheck.coverage'), value: `${summary.our_sample_coverage_pct ?? '—'}%`, cls: '',
+      sub: t('crosscheck.coverageSub', { sample: summary.total_reviews, total: summary.steam_official_total_reviews }),
     },
     {
-      label: '% позитива, последние 30д', value: `${summary.steam_recent_30d_positive_pct ?? '—'}%`, cls: '',
-      sub: `по данным Steam, ${summary.steam_recent_30d_total_reviews ?? '—'} отзывов`,
+      label: t('crosscheck.positive30d'), value: `${summary.steam_recent_30d_positive_pct ?? '—'}%`, cls: '',
+      sub: t('crosscheck.positive30dSub', { count: summary.steam_recent_30d_total_reviews ?? '—' }),
     },
     {
-      label: 'Скорость отзывов, нед/нед', value: `${velocitySign}${velocity ?? '—'}%`, cls: velocityCls,
-      sub: `~${summary.steam_avg_reviews_per_day_last_7d ?? '—'} отзывов/день сейчас`,
+      label: t('crosscheck.velocity'), value: `${velocitySign}${velocity ?? '—'}%`, cls: velocityCls,
+      sub: t('crosscheck.velocitySub', { count: summary.steam_avg_reviews_per_day_last_7d ?? '—' }),
     },
     {
-      label: 'Дней-всплесков (Steam)', value: summary.steam_spike_days_count ?? 0,
+      label: t('crosscheck.spikeDays'), value: summary.steam_spike_days_count ?? 0,
       cls: summary.steam_spike_days_count > 0 ? 'red' : '',
-      sub: 'по официальной гистограмме',
+      sub: t('crosscheck.spikeDaysSub'),
     },
   ];
 
@@ -260,8 +606,8 @@ function renderHistogram(reviews, thresholdMin) {
     const hNeg = (neg[i] / maxVal) * plotH;
     const yPos = padT + plotH - hPos;
     const yNeg = padT + plotH - hNeg;
-    bars += `<rect x="${x}" y="${yPos}" width="${barW * 0.42}" height="${hPos}" fill="var(--green)" opacity="0.85"><title>${pos[i]} позитивных, ${i * binSizeMin}-${(i + 1) * binSizeMin} мин</title></rect>`;
-    bars += `<rect x="${x + barW * 0.46}" y="${yNeg}" width="${barW * 0.42}" height="${hNeg}" fill="var(--red)" opacity="0.85"><title>${neg[i]} отрицательных, ${i * binSizeMin}-${(i + 1) * binSizeMin} мин</title></rect>`;
+    bars += `<rect x="${x}" y="${yPos}" width="${barW * 0.42}" height="${hPos}" fill="var(--green)" opacity="0.85"><title>${t('histogram.tooltipPositive', { count: pos[i], from: i * binSizeMin, to: (i + 1) * binSizeMin })}</title></rect>`;
+    bars += `<rect x="${x + barW * 0.46}" y="${yNeg}" width="${barW * 0.42}" height="${hNeg}" fill="var(--red)" opacity="0.85"><title>${t('histogram.tooltipNegative', { count: neg[i], from: i * binSizeMin, to: (i + 1) * binSizeMin })}</title></rect>`;
   }
 
   // axis labels every ~2 hours
@@ -269,7 +615,7 @@ function renderHistogram(reviews, thresholdMin) {
   for (let i = 0; i <= nBins; i += Math.round(120 / binSizeMin)) {
     const x = padL + i * barW;
     const hrs = Math.round((i * binSizeMin) / 60);
-    labels += `<text x="${x}" y="${H - 6}" fill="var(--text-dimmer)" font-family="var(--mono)" font-size="10">${hrs}ч</text>`;
+    labels += `<text x="${x}" y="${H - 6}" fill="var(--text-dimmer)" font-family="var(--mono)" font-size="10">${t('histogram.axisHours', { n: hrs })}</text>`;
   }
 
   const threshX = padL + (thresholdMin / binSizeMin) * barW;
@@ -310,7 +656,7 @@ function renderTimeline(timeline) {
     const x = padL + i * stepX;
     const y = padT + plotH - ((pt.positive + pt.negative) / maxVal) * plotH;
     const r = Math.min(2 + pt.suspicious * 0.6, 8);
-    return `<circle cx="${x}" cy="${y}" r="${r}" fill="var(--red)" opacity="0.55"><title>${pt.date}: ${pt.suspicious} подозрительных</title></circle>`;
+    return `<circle cx="${x}" cy="${y}" r="${r}" fill="var(--red)" opacity="0.55"><title>${t('timeline.tooltip', { date: pt.date, count: pt.suspicious })}</title></circle>`;
   }).join('');
 
   const gridLines = [0.5, 1].map(f => {
@@ -357,7 +703,7 @@ function renderHistory(history) {
   const dots = history.map((pt, i) => {
     const x = padL + i * stepX;
     const y = padT + plotH - ((pt.suspicious_count || 0) / maxSuspicious) * plotH;
-    return `<circle cx="${x}" cy="${y}" r="2.5" fill="var(--red)"><title>${pt.date}: ${pt.suspicious_count} подозрительных, ${pt.positive_pct}% позитив</title></circle>`;
+    return `<circle cx="${x}" cy="${y}" r="2.5" fill="var(--red)"><title>${t('history.tooltip', { date: pt.date, count: pt.suspicious_count, pct: pt.positive_pct })}</title></circle>`;
   }).join('');
 
   const gridLines = [0.25, 0.5, 0.75, 1].map(f => {
@@ -382,7 +728,7 @@ function renderHistory(history) {
 function renderReasons(reasonCounts) {
   const svg = document.getElementById('reasons');
   const entries = Object.entries(reasonCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
-  if (!entries.length) { svg.innerHTML = '<text x="10" y="20" fill="var(--text-dim)" font-family="var(--mono)" font-size="12">Флагов не найдено</text>'; return; }
+  if (!entries.length) { svg.innerHTML = `<text x="10" y="20" fill="var(--text-dim)" font-family="var(--mono)" font-size="12">${t('reasons.none')}</text>`; return; }
   const W = 560, H = 220, padL = 10, padR = 60, rowH = H / entries.length;
   const maxVal = Math.max(...entries.map(e => e[1]));
 
@@ -391,7 +737,7 @@ function renderReasons(reasonCounts) {
     const y = i * rowH + rowH * 0.2;
     const barH = rowH * 0.5;
     const barW = ((count / maxVal) * (W - padL - padR - 140));
-    const label = REASON_LABELS[key] || key;
+    const label = reasonLabel(key);
     bars += `
       <text x="0" y="${y + barH * 0.75}" fill="var(--text-dim)" font-family="var(--mono)" font-size="10.5">${escapeHtml(label)}</text>
       <rect x="140" y="${y}" width="${Math.max(barW, 2)}" height="${barH}" fill="var(--red)" opacity="0.75"/>
@@ -457,7 +803,7 @@ function applyFiltersAndRender() {
 
 function updateThresholdCount() {
   const count = state.reviews.filter(r => r.voted_up && (r.playtime_at_review || 0) < state.threshold).length;
-  document.getElementById('threshold-count').textContent = `${count} позитивных отзывов ниже порога`;
+  document.getElementById('threshold-count').textContent = t('histogram.belowThreshold', { count });
 }
 
 /* ---------------- Table rendering ---------------- */
@@ -470,10 +816,10 @@ function renderTable() {
   const start = (state.page - 1) * state.pageSize;
   const pageItems = state.filtered.slice(start, start + state.pageSize);
 
-  document.getElementById('result-count').innerHTML = `<b>${total}</b> отзывов найдено (из ${state.reviews.length} всего)`;
+  document.getElementById('result-count').innerHTML = t('table.resultCount', { count: total, total: state.reviews.length });
 
   if (!pageItems.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty">Ничего не найдено под текущие фильтры</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">${t('table.empty')}</td></tr>`;
   } else {
     tbody.innerHTML = pageItems.map(r => rowHtml(r)).join('');
   }
@@ -502,7 +848,7 @@ function rowHtml(r) {
   return `
     <tr class="${flagged ? 'flagged' : ''}" data-rid="${r.recommendationid}">
       <td class="td-date">${fmtDate(r.timestamp_created)}</td>
-      <td><span class="td-vote ${r.voted_up ? 'up' : 'down'}">${r.voted_up ? '▲ Позитив' : '▼ Негатив'}</span></td>
+      <td><span class="td-vote ${r.voted_up ? 'up' : 'down'}">${r.voted_up ? t('table.votePositive') : t('table.voteNegative')}</span></td>
       <td class="td-playtime">${fmtHours(r.playtime_at_review)}<span class="bucket">${r.playtime_bucket || ''}</span></td>
       <td class="td-score">
         <span class="score-bar"><i style="width:${r.suspicion_score || 0}%"></i></span>${r.suspicion_score || 0}
@@ -515,33 +861,33 @@ function rowHtml(r) {
 
 function detailHtml(r) {
   const reasons = (r.suspicion_reasons || []).map(k => {
-    const label = REASON_LABELS[k.split('_size_')[0]] || k;
+    const label = reasonLabel(k.split('_size_')[0]);
     return `<span class="tag" style="color:var(--red);border-color:var(--red-dim);">${escapeHtml(label)}</span>`;
   }).join(' ');
 
   const devResponseHtml = r.developer_response ? `
         <div class="detail-dev-response">
-          <div class="detail-dev-response-label">💬 Ответ разработчика${r.timestamp_dev_responded ? ` (${fmtDate(r.timestamp_dev_responded)})` : ''}</div>
+          <div class="detail-dev-response-label">${t('table.devReplyLabel', { date: r.timestamp_dev_responded ? t('table.devReplyDate', { date: fmtDate(r.timestamp_dev_responded) }) : '' })}</div>
           <div class="detail-dev-response-text">${escapeHtml(r.developer_response)}</div>
         </div>` : '';
 
   return `
     <tr class="detail-row"><td colspan="6">
       <div class="detail-grid">
-        <div class="detail-text">${escapeHtml(r.review || '(пустой текст)')}${devResponseHtml}</div>
+        <div class="detail-text">${escapeHtml(r.review || t('table.emptyText'))}${devResponseHtml}</div>
         <div class="detail-meta">
           <div>steamid: ${r.steamid ? `<a href="https://steamcommunity.com/profiles/${r.steamid}" target="_blank" rel="noopener">${r.steamid}</a>` : '—'}</div>
-          <div>${r.steamid && state.data.appid ? `<a href="https://steamcommunity.com/profiles/${r.steamid}/recommended/${state.data.appid}" target="_blank" rel="noopener">↗ открыть отзыв в Steam</a>` : ''}</div>
-          <div>playtime forever: ${fmtHours(r.playtime_forever)}</div>
-          <div>playtime at review: ${fmtHours(r.playtime_at_review)}</div>
-          <div>playtime last 2 weeks: ${fmtHours(r.playtime_last_two_weeks)}</div>
-          <div>игр в библиотеке: ${r.num_games_owned ?? '—'}</div>
-          <div>отзывов от автора: ${r.num_reviews ?? '—'}</div>
-          <div>куплено в Steam: ${r.steam_purchase ? 'да' : 'нет'}</div>
-          <div>получено бесплатно: ${r.received_for_free ? 'да' : 'нет'}</div>
-          <div>votes up / funny: ${r.votes_up ?? 0} / ${r.votes_funny ?? 0}</div>
-          <div>язык: ${r.language || '—'}</div>
-          <div class="detail-reasons">${reasons || 'без флагов'}</div>
+          <div>${r.steamid && state.data.appid ? `<a href="https://steamcommunity.com/profiles/${r.steamid}/recommended/${state.data.appid}" target="_blank" rel="noopener">${t('table.openInSteam')}</a>` : ''}</div>
+          <div>${t('table.playtimeForever', { v: fmtHours(r.playtime_forever) })}</div>
+          <div>${t('table.playtimeAtReview', { v: fmtHours(r.playtime_at_review) })}</div>
+          <div>${t('table.playtime2w', { v: fmtHours(r.playtime_last_two_weeks) })}</div>
+          <div>${t('table.gamesOwned', { n: r.num_games_owned ?? '—' })}</div>
+          <div>${t('table.reviewsByAuthor', { n: r.num_reviews ?? '—' })}</div>
+          <div>${t('table.viaSteam', { v: r.steam_purchase ? t('table.yes') : t('table.no') })}</div>
+          <div>${t('table.gotFree', { v: r.received_for_free ? t('table.yes') : t('table.no') })}</div>
+          <div>${t('table.votesUpFunny', { up: r.votes_up ?? 0, funny: r.votes_funny ?? 0 })}</div>
+          <div>${t('table.language', { lang: r.language || '—' })}</div>
+          <div class="detail-reasons">${reasons || t('table.noReasons')}</div>
         </div>
       </div>
     </td></tr>
@@ -568,9 +914,9 @@ function bindRowClicks() {
 function renderPagination(totalPages) {
   const el = document.getElementById('pagination');
   el.innerHTML = `
-    <button id="pg-prev" ${state.page <= 1 ? 'disabled' : ''}>← назад</button>
-    <span>стр. ${state.page} / ${totalPages}</span>
-    <button id="pg-next" ${state.page >= totalPages ? 'disabled' : ''}>вперёд →</button>
+    <button id="pg-prev" ${state.page <= 1 ? 'disabled' : ''}>${t('table.pagePrev')}</button>
+    <span>${t('table.pageOf', { page: state.page, total: totalPages })}</span>
+    <button id="pg-next" ${state.page >= totalPages ? 'disabled' : ''}>${t('table.pageNext')}</button>
   `;
   document.getElementById('pg-prev').addEventListener('click', () => { state.page--; renderTable(); });
   document.getElementById('pg-next').addEventListener('click', () => { state.page++; renderTable(); });
@@ -701,7 +1047,7 @@ function bindControls() {
 
   document.getElementById('threshold-slider').addEventListener('input', e => {
     state.threshold = parseInt(e.target.value, 10);
-    document.getElementById('threshold-val').textContent = `${state.threshold} мин`;
+    document.getElementById('threshold-val').textContent = t('histogram.thresholdMin', { n: state.threshold });
     renderHistogram(state.reviews, state.threshold);
     updateThresholdCount();
   });
