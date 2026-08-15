@@ -1,18 +1,20 @@
 :root {
-  --bg: #0D1210;
-  --bg-panel: #121A17;
-  --bg-panel-hover: #16211D;
-  --border: #22302A;
-  --text: #EAEFE9;
-  --text-dim: #6B7C74;
-  --text-dimmer: #445048;
-  --green: #3ED598;
-  --green-dim: #2A9E71;
-  --red: #FF5D5D;
-  --red-dim: #C24545;
-  --amber: #E8B95C;
-  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --sans: 'Inter', -apple-system, sans-serif;
+  /* Same palette as the main dashboard (docs/index.html) so both pages
+     feel like one product instead of two different themes. */
+  --bg: #0b0d10;
+  --bg-panel: #12151a;
+  --bg-panel-hover: #171b21;
+  --border: #22262e;
+  --text: #d7dce2;
+  --text-dim: #6b7480;
+  --text-dimmer: #4a505a;
+  --green: #5ee6b0;
+  --green-dim: #2c5c4c;
+  --red: #e6707a;
+  --red-dim: #7a3a40;
+  --amber: #e6b05e;
+  --mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -22,14 +24,9 @@ html { scroll-behavior: smooth; }
 body {
   margin: 0;
   background: var(--bg);
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 48px 48px;
-  background-attachment: fixed;
   color: var(--text);
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -66,7 +63,7 @@ header.top {
 }
 
 .back-link {
-  color: var(--text-dimmer, #888);
+  color: var(--text-dimmer, #4a505a);
   font-size: 13px;
   text-decoration: none;
   white-space: nowrap;
@@ -80,17 +77,17 @@ header.top {
   gap: 4px;
 }
 .lang-btn {
-  background: var(--bg, #191c22);
-  border: 1px solid var(--border, #22302A);
-  color: var(--text-dim, #6B7C74);
+  background: var(--bg, #0b0d10);
+  border: 1px solid var(--border, #22262e);
+  color: var(--text-dim, #6b7480);
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
 }
-.lang-btn:hover { color: var(--text, #EAEFE9); border-color: var(--text-dim, #6B7C74); }
-.lang-btn.active { color: var(--green, #3ED598); border-color: var(--green, #3ED598); background: rgba(62,213,152,0.1); }
+.lang-btn:hover { color: var(--text, #d7dce2); border-color: var(--text-dim, #6b7480); }
+.lang-btn.active { color: var(--green, #5ee6b0); border-color: var(--green, #5ee6b0); background: rgba(94,230,176,0.1); }
 
 .brand .dot {
   width: 9px;
@@ -111,17 +108,14 @@ header.top {
 }
 
 .brand h1 {
-  font-family: var(--mono);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
   margin: 0;
-  text-transform: uppercase;
 }
 
 .brand .sub {
-  font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-dim);
 }
 
@@ -143,6 +137,7 @@ header.top {
 .appid-form input {
   background: var(--bg-panel);
   border: 1px solid var(--border);
+  border-radius: 4px;
   color: var(--text);
   font-family: var(--mono);
   font-size: 12px;
@@ -152,13 +147,14 @@ header.top {
 .appid-form button {
   background: transparent;
   border: 1px solid var(--green-dim);
+  border-radius: 4px;
   color: var(--green);
   font-family: var(--mono);
   font-size: 12px;
   padding: 6px 10px;
   cursor: pointer;
 }
-.appid-form button:hover { background: rgba(62,213,152,0.08); }
+.appid-form button:hover { background: rgba(94,230,176,0.08); }
 
 /* ---------- eyebrow / section labels ---------- */
 
@@ -188,6 +184,8 @@ header.top {
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
   margin-bottom: 36px;
 }
 
@@ -198,18 +196,17 @@ header.top {
 }
 
 .stat .label {
-  font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
 }
 
 .stat .value {
   font-family: var(--mono);
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 }
 .stat .value.green { color: var(--green); }
@@ -217,10 +214,9 @@ header.top {
 .stat .value.amber { color: var(--amber); }
 
 .stat .sub {
-  font-family: var(--mono);
   font-size: 11px;
   color: var(--text-dimmer);
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 @media (max-width: 1000px) {
@@ -235,20 +231,19 @@ header.top {
 .panel {
   background: var(--bg-panel);
   border: 1px solid var(--border);
+  border-radius: 6px;
   padding: 20px;
   margin-bottom: 24px;
 }
 
 .panel h2 {
-  font-family: var(--mono);
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 14px;
+  font-weight: 600;
   margin: 0 0 4px;
   color: var(--text);
 }
 .panel .desc {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-dim);
   margin: 0 0 16px;
   max-width: 640px;
@@ -316,6 +311,7 @@ header.top {
 .field select, .field input[type=text], .field input[type=number], .field input[type=date] {
   background: var(--bg);
   border: 1px solid var(--border);
+  border-radius: 4px;
   color: var(--text);
   font-family: var(--mono);
   font-size: 12.5px;
@@ -338,6 +334,7 @@ header.top {
   font-size: 11.5px;
   padding: 6px 11px;
   border: 1px solid var(--border);
+  border-radius: 4px;
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
@@ -346,12 +343,12 @@ header.top {
 .chip.active {
   border-color: var(--green-dim);
   color: var(--green);
-  background: rgba(62,213,152,0.07);
+  background: rgba(94,230,176,0.07);
 }
 .chip.danger.active {
   border-color: var(--red-dim);
   color: var(--red);
-  background: rgba(255,93,93,0.07);
+  background: rgba(230,112,122,0.07);
 }
 
 .reset-link {
@@ -410,7 +407,7 @@ table.reviews tbody tr {
 }
 table.reviews tbody tr:hover { background: var(--bg-panel-hover); }
 table.reviews tbody tr.flagged { box-shadow: inset 3px 0 0 var(--red); }
-table.reviews tbody tr.flagged:hover { background: rgba(255,93,93,0.05); }
+table.reviews tbody tr.flagged:hover { background: rgba(230,112,122,0.05); }
 
 table.reviews td {
   padding: 9px 12px;
@@ -465,6 +462,7 @@ table.reviews td {
   font-family: var(--mono);
   font-size: 9.5px;
   padding: 2px 6px;
+  border-radius: 3px;
   border: 1px solid var(--border);
   color: var(--text-dim);
   margin: 1px 3px 1px 0;
@@ -476,7 +474,7 @@ table.reviews td {
 
 tr.detail-row td {
   cursor: default;
-  background: #0F1512;
+  background: var(--bg);
   padding: 18px 20px;
   border-bottom: 1px solid var(--border);
 }
@@ -505,7 +503,7 @@ tr.detail-row td {
   margin-top: 16px;
   padding: 10px 12px;
   border-left: 2px solid var(--green-dim);
-  background: rgba(62, 213, 152, 0.06);
+  background: rgba(94, 230, 176, 0.06);
   border-radius: 4px;
 }
 .detail-dev-response-label {
@@ -539,6 +537,7 @@ tr.detail-row td {
 .pagination button {
   background: transparent;
   border: 1px solid var(--border);
+  border-radius: 4px;
   color: var(--text);
   padding: 6px 12px;
   cursor: pointer;
@@ -578,6 +577,7 @@ footer a { color: var(--text-dim); }
   font-size: 11.5px;
   background: transparent;
   border: 1px solid var(--border);
+  border-radius: 4px;
   color: var(--text-dim);
   padding: 6px 11px;
   cursor: pointer;
