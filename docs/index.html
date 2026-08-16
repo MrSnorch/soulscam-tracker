@@ -607,6 +607,12 @@
     <div class="reviews-extra-grid" id="reviews-extra-grid"></div>
   </div>
 
+  <div class="panel" id="forum-panel" style="display:none;">
+    <h2 data-i18n="forum.title">Активность форума</h2>
+    <p class="desc" data-i18n-html="forum.desc">Аккаунты, замеченные на форуме обсуждений &mdash; сверены с официальным Steam API: играют ли в игру, оставляли ли отзыв. Экспериментальный источник: собирается скрейпингом HTML-страниц форума, а не через официальный API, поэтому может быть неполным или временно недоступным.</p>
+    <div class="stats" id="forum-stats"></div>
+  </div>
+
 </main>
 
 <footer data-i18n-html="footer.text">Обновляется автоматически из docs/hourly/ &middot; данные: Steam Web API</footer>
@@ -769,6 +775,17 @@ const I18N = {
     'range.15m': '15м', 'range.30m': '30м', 'range.1h': '1ч', 'range.3h': '3ч',
     'range.6h': '6ч', 'range.12h': '12ч', 'range.48h': '48ч', 'range.14d': '14д',
     'range.1d': '1д', 'range.3d': '3д',
+
+    'forum.title': 'Активность форума',
+    'forum.desc': 'Аккаунты, замеченные на форуме обсуждений &mdash; сверены с официальным Steam API: играют ли в игру, оставляли ли отзыв. Экспериментальный источник: собирается скрейпингом HTML-страниц форума, а не через официальный API, поэтому может быть неполным или временно недоступным.',
+    'forum.totalAccounts': 'Всего аккаунтов на форуме',
+    'forum.totalAccountsSub': 'проверено {checked}',
+    'forum.neverPlayed': 'Активны на форуме, но не играют',
+    'forum.neverPlayedSub': 'не владеют игрой и не оставляли отзыв',
+    'forum.playedNoReview': 'Играют, но не оставили отзыв',
+    'forum.reviewedSuspicious': 'Оставили отзыв и подозрительны',
+    'forum.reviewedSuspiciousSub': 'suspicion score &ge; 40',
+    'forum.notConfigured': 'Данные по форуму недоступны &mdash; пайплайн fetch-forum ещё не запускался или не настроен.',
   },
 
   en: {
@@ -906,6 +923,17 @@ const I18N = {
     'range.15m': '15m', 'range.30m': '30m', 'range.1h': '1h', 'range.3h': '3h',
     'range.6h': '6h', 'range.12h': '12h', 'range.48h': '48h', 'range.14d': '14d',
     'range.1d': '1d', 'range.3d': '3d',
+
+    'forum.title': 'Forum activity',
+    'forum.desc': 'Accounts spotted on the discussion forum &mdash; cross-checked against the official Steam API: do they own/play the game, did they leave a review. Experimental source: collected by scraping forum HTML pages rather than an official API, so it may be incomplete or temporarily unavailable.',
+    'forum.totalAccounts': 'Total forum accounts',
+    'forum.totalAccountsSub': '{checked} checked',
+    'forum.neverPlayed': 'Active on forum, never played',
+    'forum.neverPlayedSub': "don't own the game and never left a review",
+    'forum.playedNoReview': 'Play the game, never reviewed',
+    'forum.reviewedSuspicious': 'Reviewed and suspicious',
+    'forum.reviewedSuspiciousSub': 'suspicion score &ge; 40',
+    'forum.notConfigured': "Forum data unavailable &mdash; the fetch-forum pipeline hasn't run yet or isn't configured.",
 
     'error.recentJson': 'Failed to load recent.json',
     'error.pointsJson': 'Failed to load points.json',
@@ -2506,6 +2534,49 @@ function renderReviewsExtras(data, recentRows) {
   grid.innerHTML = cards.join('');
 }
 
+// Forum activity panel: driven by docs/reviews/forum-activity.json, an
+// experimental, separately-scheduled pipeline (scripts/reviews/scrape_forum.py
+// + enrich_forum_profiles.py) that scrapes steamids off the Steam forum's
+// HTML pages and cross-checks each against the official Steam API (do they
+// own/play the game) and our own review dataset (did they leave a review).
+// Unlike everything else on this dashboard, the underlying data source here
+// is HTML scraping, not an official API - it's shown as a distinct,
+// clearly-labeled panel rather than folded into the main reviews stats, and
+// simply hides itself if the pipeline hasn't produced anything yet.
+function renderForumActivity(data) {
+  const panel = document.getElementById('forum-panel');
+  const statsEl = document.getElementById('forum-stats');
+
+  if (!data || !data.summary) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = '';
+  const s = data.summary;
+  statsEl.innerHTML = `
+    <div class="stat">
+      <div class="label">${t('forum.totalAccounts')}</div>
+      <div class="value mono">${data.total_forum_accounts}</div>
+      <div class="sub mono">${t('forum.totalAccountsSub', { checked: data.total_checked })}</div>
+    </div>
+    <div class="stat">
+      <div class="label">${t('forum.neverPlayed')}</div>
+      <div class="value mono ${s.forum_active_but_never_owned_or_reviewed > 0 ? 'trend-down' : 'trend-flat'}">${s.forum_active_but_never_owned_or_reviewed}</div>
+      <div class="sub mono">${t('forum.neverPlayedSub')}</div>
+    </div>
+    <div class="stat">
+      <div class="label">${t('forum.playedNoReview')}</div>
+      <div class="value mono">${s.owns_game_but_never_reviewed}</div>
+    </div>
+    <div class="stat">
+      <div class="label">${t('forum.reviewedSuspicious')}</div>
+      <div class="value mono ${s.reviewed_and_suspicious > 0 ? 'trend-down' : 'trend-flat'}">${s.reviewed_and_suspicious}</div>
+      <div class="sub mono">${t('forum.reviewedSuspiciousSub')}</div>
+    </div>
+  `;
+}
+
 async function init() {
   applyStaticTranslations();
 
@@ -2555,6 +2626,17 @@ async function init() {
     // run yet - the panel below handles reviewsData being null.
   }
 
+  // Same reasoning as reviewsData above: separate, independent pipeline
+  // (and an experimental HTML-scraping one at that - see
+  // renderForumActivity's comment), so a missing file just means the
+  // panel stays hidden rather than affecting anything else.
+  let forumData = null;
+  try {
+    forumData = await loadJSON('reviews/forum-activity.json');
+  } catch (e) {
+    // Forum pipeline not configured or hasn't produced output yet.
+  }
+
   function renderAll() {
     if (points.length) {
       const lastPoint = points[points.length - 1];
@@ -2588,6 +2670,7 @@ async function init() {
     }
 
     renderReviews(reviewsData, recent);
+    renderForumActivity(forumData);
   }
 
   // Stats that don't depend on timezone mode (peaks/averages/trend) are
