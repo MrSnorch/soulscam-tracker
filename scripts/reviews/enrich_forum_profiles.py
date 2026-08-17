@@ -6,6 +6,14 @@ against:
     game, how many hours, is the profile public
   - our own review dataset (docs/reviews/latest.json): did this account
     leave a review, and if so was it flagged suspicious
+  - optionally, each account's Steam friends list (one level deep): same
+    ownership/review cross-check, run on whoever's on their friends list
+
+The friends-list pass exists because a "review farm" (or any coordinated
+group) often shows up as clusters of accounts that are friends with each
+other - checking a forum poster's friends for the same
+owns-game/left-a-review pattern surfaces those clusters even when the
+friends themselves never posted on the forum.
 
 This answers the actual question behind forum scraping: "of the people
 talking about this game, how many are real players vs how many show up
@@ -21,7 +29,8 @@ Usage:
         --forum-profiles docs/reviews/forum-profiles.json \
         --reviews docs/reviews/latest.json \
         --out docs/reviews/forum-activity.json \
-        --api-key $STEAM_WEB_API_KEY
+        --api-key $STEAM_WEB_API_KEY \
+        --check-friends
 """
 
 import argparse
@@ -31,9 +40,11 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 
 SUMMARIES_URL = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/"
 OWNED_GAMES_URL = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+FRIEND_LIST_URL = "https://api.steampowered.com/ISteamUser/GetFriendList/v1/"
 USER_AGENT = "Mozilla/5.0 (compatible; steam-review-watch/1.0)"
 
 
@@ -92,6 +103,42 @@ def fetch_owned_games_for_appid(steamid: str, appid: int, api_key: str) -> dict 
     }
 
 
+def fetch_friend_list(steamid: str, api_key: str) -> list[str]:
+    """GetFriendList only returns anything if the account's friends list is
+    public (most accounts default to private for this) - a private/empty
+    result just means "no visible friends", not an error, so this returns
+    an empty list rather than None in that case."""
+    data = http_get_json(FRIEND_LIST_URL, {"key": api_key, "steamid": steamid, "relationship": "friend"})
+    friends = data.get("friendslist", {}).get("friends", [])
+    return [f["steamid"] for f in friends if f.get("steamid")]
+
+
+def check_account(sid: str, appid: int, api_key: str, summary: dict,
+                   reviewed_steamids: dict, sleep_s: float, extra_fields: dict) -> dict:
+    """Runs the owns-game/left-a-review check for one steamid and returns
+    the account record. extra_fields lets callers attach context (forum
+    source info for direct forum accounts, or which account's friends list
+    a discovered friend came from) without duplicating this function."""
+    visibility = summary.get("communityvisibilitystate")  # 3 = public
+    owned_info = None
+    if visibility == 3:
+        owned_info = fetch_owned_games_for_appid(sid, appid, api_key)
+        time.sleep(sleep_s)
+
+    review = reviewed_steamids.get(sid)
+    record = {
+        "steamid": sid,
+        "profile_public": visibility == 3,
+        "owns_tracked_game": owned_info["owns_tracked_game"] if owned_info else None,
+        "playtime_forever_minutes": owned_info["playtime_forever_minutes"] if owned_info else None,
+        "total_games_owned": owned_info["total_games_owned"] if owned_info else None,
+        "left_a_review": review is not None,
+        "review_suspicion_score": review.get("suspicion_score") if review else None,
+    }
+    record.update(extra_fields)
+    return record
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--appid", type=int, required=True)
@@ -101,7 +148,16 @@ def main():
     ap.add_argument("--api-key", default=None)
     ap.add_argument("--sleep", type=float, default=0.6)
     ap.add_argument("--max-accounts", type=int, default=300,
-                     help="cap on how many forum accounts to check per run, to keep run time bounded")
+                     help="cap on how many NEW forum accounts to check per run, to keep run time bounded")
+    ap.add_argument("--check-friends", action="store_true",
+                     help="also fetch each checked forum account's friends list (if public) and "
+                          "run the same owns-game/left-a-review check on each friend, one level deep")
+    ap.add_argument("--max-friends-per-account", type=int, default=50,
+                     help="cap on how many friends to pull per account, since some accounts have hundreds")
+    ap.add_argument("--max-friend-accounts", type=int, default=500,
+                     help="cap on total NEW friend accounts checked per run (separate budget from "
+                          "--max-accounts, since friends checking is the more expensive, more "
+                          "speculative pass)")
     args = ap.parse_args()
 
     api_key = args.api_key
@@ -125,76 +181,119 @@ def main():
     # forum activity accumulates over time but a given steamid's
     # ownership/review status doesn't change on every 12h cycle, so
     # there's no need to re-spend an API call on someone already checked.
-    existing = {}
+    existing_accounts = {}
+    existing_friends = {}
     try:
         with open(args.out) as f:
-            existing = {e["steamid"]: e for e in json.load(f).get("accounts", [])}
+            prior = json.load(f)
+        existing_accounts = {e["steamid"]: e for e in prior.get("accounts", [])}
+        existing_friends = {e["steamid"]: e for e in prior.get("friend_accounts", [])}
     except (OSError, json.JSONDecodeError, KeyError):
         pass
 
-    to_check = [sid for sid in forum_steamids if sid not in existing][:args.max_accounts]
-    print(f"Forum steamids: {len(forum_steamids)}, already checked: {len(existing)}, "
+    to_check = [sid for sid in forum_steamids if sid not in existing_accounts][:args.max_accounts]
+    print(f"Forum steamids: {len(forum_steamids)}, already checked: {len(existing_accounts)}, "
           f"checking {len(to_check)} new this run.")
 
     summaries = fetch_player_summaries(to_check, api_key, args.sleep) if to_check else {}
 
-    accounts = dict(existing)
+    accounts = dict(existing_accounts)
     for i, sid in enumerate(to_check, 1):
-        summary = summaries.get(sid, {})
-        visibility = summary.get("communityvisibilitystate")  # 3 = public
-        owned_info = None
-        if visibility == 3:
-            owned_info = fetch_owned_games_for_appid(sid, args.appid, api_key)
-            time.sleep(args.sleep)
-
-        review = reviewed_steamids.get(sid)
-        accounts[sid] = {
-            "steamid": sid,
+        extra = {
             "forum_source": forum_data["profiles"].get(sid, {}).get("source"),
             "first_seen_on_forum": forum_data["profiles"].get(sid, {}).get("first_seen"),
-            "profile_public": visibility == 3,
-            "owns_tracked_game": owned_info["owns_tracked_game"] if owned_info else None,
-            "playtime_forever_minutes": owned_info["playtime_forever_minutes"] if owned_info else None,
-            "total_games_owned": owned_info["total_games_owned"] if owned_info else None,
-            "left_a_review": review is not None,
-            "review_suspicion_score": review.get("suspicion_score") if review else None,
         }
+        accounts[sid] = check_account(sid, args.appid, api_key, summaries.get(sid, {}),
+                                       reviewed_steamids, args.sleep, extra)
         if i % 20 == 0 or i == len(to_check):
             print(f"  [{i}/{len(to_check)}] checked", flush=True)
 
-    forum_only_no_review_no_play = sum(
-        1 for a in accounts.values()
-        if a["profile_public"] and a["owns_tracked_game"] is False and not a["left_a_review"]
-    )
-    played_but_no_review = sum(
-        1 for a in accounts.values()
-        if a["owns_tracked_game"] and not a["left_a_review"]
-    )
-    reviewed_and_suspicious = sum(
-        1 for a in accounts.values()
-        if a["left_a_review"] and (a.get("review_suspicion_score") or 0) >= 40
-    )
+    # --- friends pass (optional, one level deep) --------------------------
+    friend_accounts = dict(existing_friends)
+    if args.check_friends:
+        # Only pull friend lists for accounts we have fresh/complete data
+        # for (this run's to_check, not the whole history) - re-fetching a
+        # friends list for every account on every run would multiply the
+        # API budget for no new information, since friends lists aren't
+        # checked incrementally per-friend the way accounts are.
+        already_known = set(accounts) | set(friend_accounts)
+        friend_candidates: dict[str, str] = {}  # friend_steamid -> which account's list they came from
+        print(f"Fetching friends lists for {len(to_check)} account(s)...")
+        for i, sid in enumerate(to_check, 1):
+            if accounts.get(sid, {}).get("profile_public") is not True:
+                continue  # private friends lists aren't fetchable anyway for most private profiles
+            friends = fetch_friend_list(sid, api_key)
+            time.sleep(args.sleep)
+            for fsid in friends[:args.max_friends_per_account]:
+                if fsid not in already_known and fsid not in friend_candidates:
+                    friend_candidates[fsid] = sid
+            if i % 20 == 0 or i == len(to_check):
+                print(f"  [{i}/{len(to_check)}] friends lists fetched, "
+                      f"{len(friend_candidates)} new candidate(s) so far", flush=True)
+
+        friends_to_check = list(friend_candidates.keys())[:args.max_friend_accounts]
+        print(f"Friend candidates found: {len(friend_candidates)}, checking {len(friends_to_check)} this run.")
+
+        friend_summaries = fetch_player_summaries(friends_to_check, api_key, args.sleep) if friends_to_check else {}
+        for i, fsid in enumerate(friends_to_check, 1):
+            extra = {"friend_of": friend_candidates[fsid]}
+            friend_accounts[fsid] = check_account(fsid, args.appid, api_key, friend_summaries.get(fsid, {}),
+                                                    reviewed_steamids, args.sleep, extra)
+            if i % 20 == 0 or i == len(friends_to_check):
+                print(f"  [{i}/{len(friends_to_check)}] friend accounts checked", flush=True)
+
+    def summarize(pool: dict) -> dict:
+        return {
+            "never_owned_or_reviewed": sum(
+                1 for a in pool.values()
+                if a["profile_public"] and a["owns_tracked_game"] is False and not a["left_a_review"]
+            ),
+            "owns_game_never_reviewed": sum(
+                1 for a in pool.values()
+                if a["owns_tracked_game"] and not a["left_a_review"]
+            ),
+            "reviewed_and_suspicious": sum(
+                1 for a in pool.values()
+                if a["left_a_review"] and (a.get("review_suspicion_score") or 0) >= 40
+            ),
+        }
+
+    forum_summary = summarize(accounts)
+    friend_summary = summarize(friend_accounts) if friend_accounts else None
 
     out = {
         "appid": args.appid,
-        "generated_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_forum_accounts": len(forum_steamids),
         "total_checked": len(accounts),
         "summary": {
-            "forum_active_but_never_owned_or_reviewed": forum_only_no_review_no_play,
-            "owns_game_but_never_reviewed": played_but_no_review,
-            "reviewed_and_suspicious": reviewed_and_suspicious,
+            "forum_active_but_never_owned_or_reviewed": forum_summary["never_owned_or_reviewed"],
+            "owns_game_but_never_reviewed": forum_summary["owns_game_never_reviewed"],
+            "reviewed_and_suspicious": forum_summary["reviewed_and_suspicious"],
         },
         "accounts": list(accounts.values()),
     }
+    if friend_accounts:
+        out["total_friend_accounts_checked"] = len(friend_accounts)
+        out["friend_summary"] = {
+            "never_owned_or_reviewed": friend_summary["never_owned_or_reviewed"],
+            "owns_game_but_never_reviewed": friend_summary["owns_game_never_reviewed"],
+            "reviewed_and_suspicious": friend_summary["reviewed_and_suspicious"],
+        }
+        out["friend_accounts"] = list(friend_accounts.values())
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
 
-    print(f"Wrote {args.out}: {len(accounts)} accounts checked total.")
-    print(f"  Forum-active, never owned/reviewed: {forum_only_no_review_no_play}")
-    print(f"  Owns game, never left a review: {played_but_no_review}")
-    print(f"  Reviewed AND suspicious: {reviewed_and_suspicious}")
+    print(f"Wrote {args.out}: {len(accounts)} forum accounts checked total.")
+    print(f"  Forum-active, never owned/reviewed: {forum_summary['never_owned_or_reviewed']}")
+    print(f"  Owns game, never left a review: {forum_summary['owns_game_never_reviewed']}")
+    print(f"  Reviewed AND suspicious: {forum_summary['reviewed_and_suspicious']}")
+    if friend_summary:
+        print(f"  Friends checked: {len(friend_accounts)}")
+        print(f"  Friends: never owned/reviewed: {friend_summary['never_owned_or_reviewed']}")
+        print(f"  Friends: owns game, never reviewed: {friend_summary['owns_game_never_reviewed']}")
+        print(f"  Friends: reviewed AND suspicious: {friend_summary['reviewed_and_suspicious']}")
 
 
 if __name__ == "__main__":
