@@ -87,7 +87,10 @@ jobs:
             --out docs/reviews/forum-activity.json \
             --api-key "$STEAM_WEB_API_KEY" \
             --sleep 0.6 \
-            --max-accounts 300
+            --max-accounts 300 \
+            --check-friends \
+            --max-friends-per-account 50 \
+            --max-friend-accounts 500
 
       - name: Commit and push updated data
         if: always()
