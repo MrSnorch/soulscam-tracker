@@ -611,6 +611,8 @@
     <h2 data-i18n="forum.title">Активность форума</h2>
     <p class="desc" data-i18n-html="forum.desc">Аккаунты, замеченные на форуме обсуждений &mdash; сверены с официальным Steam API: играют ли в игру, оставляли ли отзыв. Экспериментальный источник: собирается скрейпингом HTML-страниц форума, а не через официальный API, поэтому может быть неполным или временно недоступным.</p>
     <div class="stats" id="forum-stats"></div>
+    <p class="desc" data-i18n="forum.friendsTitle" style="margin-top:20px;">Друзья форумных аккаунтов (один уровень вглубь)</p>
+    <div class="stats" id="forum-friends-stats" style="display:none;"></div>
   </div>
 
 </main>
@@ -786,6 +788,9 @@ const I18N = {
     'forum.reviewedSuspicious': 'Оставили отзыв и подозрительны',
     'forum.reviewedSuspiciousSub': 'suspicion score &ge; 40',
     'forum.notConfigured': 'Данные по форуму недоступны &mdash; пайплайн fetch-forum ещё не запускался или не настроен.',
+    'forum.friendsTitle': 'Друзья форумных аккаунтов (один уровень вглубь)',
+    'forum.friendsChecked': 'Проверено друзей',
+    'forum.friendsCheckedSub': 'из открытых списков друзей',
   },
 
   en: {
@@ -934,6 +939,9 @@ const I18N = {
     'forum.reviewedSuspicious': 'Reviewed and suspicious',
     'forum.reviewedSuspiciousSub': 'suspicion score &ge; 40',
     'forum.notConfigured': "Forum data unavailable &mdash; the fetch-forum pipeline hasn't run yet or isn't configured.",
+    'forum.friendsTitle': "Forum accounts' friends (one level deep)",
+    'forum.friendsChecked': 'Friends checked',
+    'forum.friendsCheckedSub': 'from public friends lists',
 
     'error.recentJson': 'Failed to load recent.json',
     'error.pointsJson': 'Failed to load points.json',
@@ -2575,6 +2583,33 @@ function renderForumActivity(data) {
       <div class="sub mono">${t('forum.reviewedSuspiciousSub')}</div>
     </div>
   `;
+
+  const friendsEl = document.getElementById('forum-friends-stats');
+  if (data.friend_summary && data.total_friend_accounts_checked) {
+    const fs = data.friend_summary;
+    friendsEl.style.display = '';
+    friendsEl.innerHTML = `
+      <div class="stat">
+        <div class="label">${t('forum.friendsChecked')}</div>
+        <div class="value mono">${data.total_friend_accounts_checked}</div>
+        <div class="sub mono">${t('forum.friendsCheckedSub')}</div>
+      </div>
+      <div class="stat">
+        <div class="label">${t('forum.neverPlayed')}</div>
+        <div class="value mono ${fs.never_owned_or_reviewed > 0 ? 'trend-down' : 'trend-flat'}">${fs.never_owned_or_reviewed}</div>
+      </div>
+      <div class="stat">
+        <div class="label">${t('forum.playedNoReview')}</div>
+        <div class="value mono">${fs.owns_game_but_never_reviewed}</div>
+      </div>
+      <div class="stat">
+        <div class="label">${t('forum.reviewedSuspicious')}</div>
+        <div class="value mono ${fs.reviewed_and_suspicious > 0 ? 'trend-down' : 'trend-flat'}">${fs.reviewed_and_suspicious}</div>
+      </div>
+    `;
+  } else {
+    friendsEl.style.display = 'none';
+  }
 }
 
 async function init() {
