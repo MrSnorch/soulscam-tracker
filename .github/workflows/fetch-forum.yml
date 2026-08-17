@@ -31,6 +31,9 @@ concurrency:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 340   # ~30min headroom over the scraper's own 5h (300min) internal cap,
+                            # to leave room for the enrich step + commit/push, while staying
+                            # under GitHub's 360-minute (6h) hard job limit
     env:
       PYTHONUNBUFFERED: "1"
     steps:
@@ -62,7 +65,6 @@ jobs:
           python scripts/reviews/scrape_forum.py \
             --appid "${{ steps.cfg.outputs.appid }}" \
             --out docs/reviews/forum-profiles.json \
-            --max-threads 40 \
             --sleep 1.0
 
       - name: Cross-check accounts against Steam API + review data
