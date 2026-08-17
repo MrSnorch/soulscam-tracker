@@ -129,11 +129,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--appid", type=int, required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--max-threads", type=int, default=40,
-                     help="cap on how many threads to visit per run, so a CI job can't run unbounded")
-    ap.add_argument("--max-list-pages", type=int, default=5)
     ap.add_argument("--sleep", type=float, default=1.0)
+    ap.add_argument("--max-runtime-sec", type=int, default=18000,
+                     help="wall-clock safety cap (default 5h) so a CI job can't run "
+                          "forever if Steam serves an unexpected infinite-pagination "
+                          "loop or similar - not a per-thread/per-page cap, since the "
+                          "goal here is to walk every thread/page like the local tool "
+                          "does, just with a backstop against genuinely running away")
     args = ap.parse_args()
+    start_time = time.monotonic()
+
+    def time_left() -> bool:
+        return (time.monotonic() - start_time) < args.max_runtime_sec
 
     data = load_existing(args.out)
     data["app_id"] = args.appid
@@ -143,8 +150,15 @@ def main():
     thread_links: list[str] = []
     list_url = forum_url
     list_pages = 0
+    seen_list_urls: set[str] = set()
 
-    while list_url and list_pages < args.max_list_pages:
+    while list_url and time_left():
+        if list_url in seen_list_urls:
+            # defensive: a pagination bug could otherwise loop forever
+            # even within the time budget
+            print(f"  list page {list_url} already visited, stopping pagination")
+            break
+        seen_list_urls.add(list_url)
         list_pages += 1
         print(f"List page #{list_pages}: {list_url}")
         html = http_get(list_url)
@@ -159,14 +173,26 @@ def main():
         if list_url:
             time.sleep(args.sleep * 2)
 
-    thread_links = thread_links[:args.max_threads]
+    if not time_left():
+        print(f"WARN: hit --max-runtime-sec ({args.max_runtime_sec}s) while paging through "
+              f"the thread list; stopping with {len(thread_links)} threads found so far.")
+
     added_total = 0
     threads_visited = 0
 
     for link in thread_links:
+        if not time_left():
+            print(f"WARN: hit --max-runtime-sec ({args.max_runtime_sec}s) after visiting "
+                  f"{threads_visited}/{len(thread_links)} threads; stopping early. "
+                  f"Remaining threads will be picked up on the next scheduled run.")
+            break
         turl = link
         tpage = 1
-        while turl:
+        seen_thread_urls: set[str] = set()
+        while turl and time_left():
+            if turl in seen_thread_urls:
+                break
+            seen_thread_urls.add(turl)
             html = http_get(turl)
             if html is None:
                 break
