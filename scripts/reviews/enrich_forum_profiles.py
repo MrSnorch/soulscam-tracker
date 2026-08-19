@@ -6,14 +6,26 @@ against:
     game, how many hours, is the profile public
   - our own review dataset (docs/reviews/latest.json): did this account
     leave a review, and if so was it flagged suspicious
-  - optionally, each account's Steam friends list (one level deep): same
-    ownership/review cross-check, run on whoever's on their friends list
+  - optionally, a breadth-first walk of each account's Steam friends list:
+    same ownership/review cross-check run on friends, and if a friend
+    ALSO owns/plays the tracked game, their friends get queued and walked
+    too - the walk only continues through players of the game, so a
+    friend with no connection to it is a dead end rather than a branch
+    point.
 
-The friends-list pass exists because a "review farm" (or any coordinated
+The friends walk exists because a "review farm" (or any coordinated
 group) often shows up as clusters of accounts that are friends with each
-other - checking a forum poster's friends for the same
-owns-game/left-a-review pattern surfaces those clusters even when the
-friends themselves never posted on the forum.
+other - checking a forum poster's friends (and friends-of-friends who
+also play the game, and so on) for the same owns-game/left-a-review
+pattern surfaces those clusters even when most of them never posted on
+the forum themselves.
+
+This is a real graph walk, not a fixed one-hop check, so it's bounded by
+a hard total account budget (--max-friend-accounts) rather than depth -
+depth alone doesn't prevent a blowup (a popular game with heavily
+interconnected players could have every account reachable within 2-3
+hops), so the budget is what actually keeps a run's time and API usage
+predictable.
 
 This answers the actual question behind forum scraping: "of the people
 talking about this game, how many are real players vs how many show up
@@ -150,14 +162,17 @@ def main():
     ap.add_argument("--max-accounts", type=int, default=300,
                      help="cap on how many NEW forum accounts to check per run, to keep run time bounded")
     ap.add_argument("--check-friends", action="store_true",
-                     help="also fetch each checked forum account's friends list (if public) and "
-                          "run the same owns-game/left-a-review check on each friend, one level deep")
+                     help="also walk each checked forum account's friends list (if public), "
+                          "breadth-first, continuing through any friend who also owns/plays "
+                          "the tracked game (see module docstring)")
     ap.add_argument("--max-friends-per-account", type=int, default=50,
                      help="cap on how many friends to pull per account, since some accounts have hundreds")
     ap.add_argument("--max-friend-accounts", type=int, default=500,
-                     help="cap on total NEW friend accounts checked per run (separate budget from "
-                          "--max-accounts, since friends checking is the more expensive, more "
-                          "speculative pass)")
+                     help="hard total budget on NEW friend-graph accounts checked per run - this is "
+                          "the real safety valve for the walk (depth alone can't bound it, see docstring)")
+    ap.add_argument("--max-friend-depth", type=int, default=6,
+                     help="extra safety cap on hops from a forum account, on top of the account "
+                          "budget above - mainly a backstop in case the budget is set very high")
     args = ap.parse_args()
 
     api_key = args.api_key
@@ -183,11 +198,13 @@ def main():
     # there's no need to re-spend an API call on someone already checked.
     existing_accounts = {}
     existing_friends = {}
+    saved_queue: list[list] = []  # [steamid, depth, friend_of] triples, JSON-serialized
     try:
         with open(args.out) as f:
             prior = json.load(f)
         existing_accounts = {e["steamid"]: e for e in prior.get("accounts", [])}
         existing_friends = {e["steamid"]: e for e in prior.get("friend_accounts", [])}
+        saved_queue = prior.get("friend_walk_queue", [])
     except (OSError, json.JSONDecodeError, KeyError):
         pass
 
@@ -208,39 +225,102 @@ def main():
         if i % 20 == 0 or i == len(to_check):
             print(f"  [{i}/{len(to_check)}] checked", flush=True)
 
-    # --- friends pass (optional, one level deep) --------------------------
+    # --- friends pass: breadth-first walk, continuing through players --------
     friend_accounts = dict(existing_friends)
+    remaining_queue: list[list] = []  # persisted so a budget-limited walk resumes, not restarts
     if args.check_friends:
-        # Only pull friend lists for accounts we have fresh/complete data
-        # for (this run's to_check, not the whole history) - re-fetching a
-        # friends list for every account on every run would multiply the
-        # API budget for no new information, since friends lists aren't
-        # checked incrementally per-friend the way accounts are.
         already_known = set(accounts) | set(friend_accounts)
-        friend_candidates: dict[str, str] = {}  # friend_steamid -> which account's list they came from
-        print(f"Fetching friends lists for {len(to_check)} account(s)...")
-        for i, sid in enumerate(to_check, 1):
-            if accounts.get(sid, {}).get("profile_public") is not True:
-                continue  # private friends lists aren't fetchable anyway for most private profiles
+
+        # Seed the queue with:
+        #   1. this run's freshly-checked forum accounts with a public
+        #      profile (friends lists are unfetchable for most private
+        #      profiles anyway)
+        #   2. whatever was still queued and unwalked from a prior run that
+        #      hit the account budget mid-walk - without this, a long
+        #      friend chain would get stuck re-discovering the same first
+        #      --max-friend-accounts nodes forever instead of progressing
+        #      deeper on each scheduled run.
+        queue: list[tuple[str, int, str]] = [
+            (sid, 1, sid) for sid in to_check
+            if accounts.get(sid, {}).get("profile_public") is True
+        ]
+        # Restored entries are nodes whose OWN friends list still needs to
+        # be fetched - they were already checked (owns-game/review status
+        # resolved) on a prior run, that's *why* they made it into the
+        # queue in the first place. So `already_known` (which just means
+        # "already has a resolved account record") is the wrong filter
+        # here; only dedupe against nodes already sitting in this run's
+        # queue.
+        queued_sids = {sid for sid, _, _ in queue}
+        for entry in saved_queue:
+            try:
+                sid, depth, source = entry[0], entry[1], entry[2]
+            except (IndexError, TypeError):
+                continue
+            if sid not in queued_sids:
+                queue.append((sid, depth, source))
+                queued_sids.add(sid)
+
+        visited_for_friends: set[str] = set()  # accounts whose friend list we've already pulled
+        walked = 0
+
+        print(f"Starting friends walk from {len(queue)} queued account(s) "
+              f"({len(saved_queue)} carried over from a prior run), "
+              f"budget {args.max_friend_accounts} NEW accounts this run, depth cap {args.max_friend_depth}...")
+
+        while queue and walked < args.max_friend_accounts:
+            sid, depth, source = queue.pop(0)
+            if sid in visited_for_friends or depth > args.max_friend_depth:
+                continue
+            visited_for_friends.add(sid)
+
             friends = fetch_friend_list(sid, api_key)
             time.sleep(args.sleep)
-            for fsid in friends[:args.max_friends_per_account]:
-                if fsid not in already_known and fsid not in friend_candidates:
-                    friend_candidates[fsid] = sid
-            if i % 20 == 0 or i == len(to_check):
-                print(f"  [{i}/{len(to_check)}] friends lists fetched, "
-                      f"{len(friend_candidates)} new candidate(s) so far", flush=True)
+            new_friend_ids = [
+                fsid for fsid in friends[:args.max_friends_per_account]
+                if fsid not in already_known
+            ]
+            if not new_friend_ids:
+                continue
 
-        friends_to_check = list(friend_candidates.keys())[:args.max_friend_accounts]
-        print(f"Friend candidates found: {len(friend_candidates)}, checking {len(friends_to_check)} this run.")
+            # Check this batch of newly-discovered friends right away (rather
+            # than collecting the whole graph before checking anyone) so a
+            # run that hits its time/account budget mid-walk still has fully
+            # resolved records for everyone it did reach, instead of a pile
+            # of unchecked candidate ids.
+            remaining_budget = args.max_friend_accounts - walked
+            batch = new_friend_ids[:remaining_budget]
+            batch_summaries = fetch_player_summaries(batch, api_key, args.sleep) if batch else {}
 
-        friend_summaries = fetch_player_summaries(friends_to_check, api_key, args.sleep) if friends_to_check else {}
-        for i, fsid in enumerate(friends_to_check, 1):
-            extra = {"friend_of": friend_candidates[fsid]}
-            friend_accounts[fsid] = check_account(fsid, args.appid, api_key, friend_summaries.get(fsid, {}),
-                                                    reviewed_steamids, args.sleep, extra)
-            if i % 20 == 0 or i == len(friends_to_check):
-                print(f"  [{i}/{len(friends_to_check)}] friend accounts checked", flush=True)
+            for fsid in batch:
+                already_known.add(fsid)
+                record = check_account(fsid, args.appid, api_key, batch_summaries.get(fsid, {}),
+                                        reviewed_steamids, args.sleep, {"friend_of": source})
+                friend_accounts[fsid] = record
+                walked += 1
+                # Only players of the tracked game get their own friends
+                # list queued - this is the actual bound on the walk: a
+                # friend with no connection to the game is a dead end, not
+                # a branch point, so unrelated social graphs don't get
+                # pulled in just because one person happens to know a lot
+                # of people.
+                if record.get("owns_tracked_game") and record.get("profile_public"):
+                    queue.append((fsid, depth + 1, fsid))
+
+                if walked >= args.max_friend_accounts:
+                    break
+
+            if walked % 20 < len(batch) or walked >= args.max_friend_accounts:
+                print(f"  walked {walked} friend account(s) so far, "
+                      f"{len(queue)} queued, depth reached up to {depth}", flush=True)
+
+        if walked >= args.max_friend_accounts:
+            print(f"WARN: hit --max-friend-accounts ({args.max_friend_accounts} new this run); "
+                  f"{len(queue)} account(s) still queued will be picked up on a future run "
+                  f"once more of the existing graph is cached.")
+        remaining_queue = [[sid, depth, source] for sid, depth, source in queue]
+        print(f"Friends walk done: {walked} new account(s) checked this run "
+              f"({len(friend_accounts)} total in friend graph, {len(remaining_queue)} still queued).")
 
     def summarize(pool: dict) -> dict:
         return {
@@ -281,6 +361,8 @@ def main():
             "reviewed_and_suspicious": friend_summary["reviewed_and_suspicious"],
         }
         out["friend_accounts"] = list(friend_accounts.values())
+    if remaining_queue:
+        out["friend_walk_queue"] = remaining_queue
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
