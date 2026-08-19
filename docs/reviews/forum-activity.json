@@ -1,11 +1,11 @@
 {
   "appid": 4369490,
-  "generated_at": "2026-08-18T13:03:41.684331+00:00",
-  "total_forum_accounts": 283,
-  "total_checked": 283,
+  "generated_at": "2026-08-19T00:39:17.418288+00:00",
+  "total_forum_accounts": 285,
+  "total_checked": 285,
   "summary": {
     "forum_active_but_never_owned_or_reviewed": 80,
-    "owns_game_but_never_reviewed": 19,
+    "owns_game_but_never_reviewed": 20,
     "reviewed_and_suspicious": 0
   },
   "accounts": [
@@ -3121,11 +3121,33 @@
       "review_suspicion_score": null,
       "forum_source": "https://steamcommunity.com/app/4369490/discussions/0/418424310691110653/",
       "first_seen_on_forum": "2026-08-18T01:38:23.431418+00:00"
+    },
+    {
+      "steamid": "76561198075279283",
+      "profile_public": true,
+      "owns_tracked_game": true,
+      "playtime_forever_minutes": 337,
+      "total_games_owned": 318,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "forum_source": "https://steamcommunity.com/app/4369490/discussions/0/418424310691206670/",
+      "first_seen_on_forum": "2026-08-19T00:33:02.744434+00:00"
+    },
+    {
+      "steamid": "76561198041483505",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "forum_source": "https://steamcommunity.com/app/4369490/discussions/0/418424310691110653/",
+      "first_seen_on_forum": "2026-08-19T00:33:03.981908+00:00"
     }
   ],
-  "total_friend_accounts_checked": 5,
+  "total_friend_accounts_checked": 27,
   "friend_summary": {
-    "never_owned_or_reviewed": 1,
+    "never_owned_or_reviewed": 6,
     "owns_game_but_never_reviewed": 0,
     "reviewed_and_suspicious": 0
   },
@@ -3179,6 +3201,226 @@
       "left_a_review": false,
       "review_suspicion_score": null,
       "friend_of": "76561198029587965"
+    },
+    {
+      "steamid": "76561197987528351",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561197995710920",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198002520163",
+      "profile_public": true,
+      "owns_tracked_game": false,
+      "playtime_forever_minutes": 0,
+      "total_games_owned": 45,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198028062743",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198050717847",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198062396771",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198084076874",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198090538057",
+      "profile_public": false,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198115197493",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198118394482",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198207205576",
+      "profile_public": true,
+      "owns_tracked_game": false,
+      "playtime_forever_minutes": 0,
+      "total_games_owned": 17,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198212578845",
+      "profile_public": true,
+      "owns_tracked_game": false,
+      "playtime_forever_minutes": 0,
+      "total_games_owned": 27,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198256433824",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198339215730",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198422916400",
+      "profile_public": true,
+      "owns_tracked_game": false,
+      "playtime_forever_minutes": 0,
+      "total_games_owned": 850,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198437404734",
+      "profile_public": false,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198677160372",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561198832375551",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561199028332386",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561199087733475",
+      "profile_public": true,
+      "owns_tracked_game": false,
+      "playtime_forever_minutes": 0,
+      "total_games_owned": 296,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561199211151118",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
+    },
+    {
+      "steamid": "76561199374101742",
+      "profile_public": true,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "friend_of": "76561198075279283"
     }
   ]
 }

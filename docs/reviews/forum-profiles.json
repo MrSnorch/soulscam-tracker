@@ -1,6 +1,6 @@
 {
   "app_id": 4369490,
-  "last_updated": "2026-08-18T13:03:41.584328+00:00",
+  "last_updated": "2026-08-19T00:38:41.914810+00:00",
   "profiles": {
     "76561198011870975": {
       "url": "https://steamcommunity.com/profiles/76561198011870975",
@@ -1982,7 +1982,21 @@
       "note": "",
       "first_seen": "2026-08-18T01:38:23.431418+00:00",
       "source": "https://steamcommunity.com/app/4369490/discussions/0/418424310691110653/"
+    },
+    "76561198075279283": {
+      "url": "https://steamcommunity.com/profiles/76561198075279283",
+      "checked": false,
+      "note": "",
+      "first_seen": "2026-08-19T00:33:02.744434+00:00",
+      "source": "https://steamcommunity.com/app/4369490/discussions/0/418424310691206670/"
+    },
+    "76561198041483505": {
+      "url": "https://steamcommunity.com/profiles/76561198041483505",
+      "checked": false,
+      "note": "",
+      "first_seen": "2026-08-19T00:33:03.981908+00:00",
+      "source": "https://steamcommunity.com/app/4369490/discussions/0/418424310691110653/"
     }
   },
-  "total_profiles": 283
+  "total_profiles": 285
 }
