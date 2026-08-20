@@ -93,6 +93,7 @@ const I18N = {
     'table.votesUpFunny': 'votes up / funny: {up} / {funny}',
     'table.language': 'язык: {lang}',
     'table.openInSteam': '&#8599; открыть отзыв в Steam',
+    'table.nickname': 'ник: {name}',
     'table.playtimeForever': 'playtime forever: {v}',
     'table.playtimeAtReview': 'playtime at review: {v}',
     'table.playtime2w': 'playtime last 2 weeks: {v}',
@@ -112,6 +113,8 @@ const I18N = {
     'filters.devResponseOnly': '&#128172; Есть ответ разработчика',
     'filters.searchLabel': 'Поиск по тексту',
     'filters.searchPlaceholder': 'подстрока&hellip;',
+    'filters.searchNickLabel': 'Поиск по нику',
+    'filters.searchNickPlaceholder': 'ник или steamid&hellip;',
     'filters.devResponseDate': 'Дата ответа разработчика',
     'filters.reset': 'сбросить фильтры',
 
@@ -235,6 +238,7 @@ const I18N = {
     'table.votesUpFunny': 'votes up / funny: {up} / {funny}',
     'table.language': 'language: {lang}',
     'table.openInSteam': '&#8599; open review on Steam',
+    'table.nickname': 'nickname: {name}',
     'table.playtimeForever': 'playtime forever: {v}',
     'table.playtimeAtReview': 'playtime at review: {v}',
     'table.playtime2w': 'playtime last 2 weeks: {v}',
@@ -254,6 +258,8 @@ const I18N = {
     'filters.devResponseOnly': '&#128172; Has dev response',
     'filters.searchLabel': 'Search text',
     'filters.searchPlaceholder': 'substring&hellip;',
+    'filters.searchNickLabel': 'Search by nickname',
+    'filters.searchNickPlaceholder': 'nickname or steamid&hellip;',
     'filters.devResponseDate': 'Developer response date',
     'filters.reset': 'reset filters',
 
@@ -363,6 +369,7 @@ const state = {
     devResponseFrom: '',
     devResponseTo: '',
     search: '',
+    searchNick: '',
   },
 };
 
@@ -773,6 +780,12 @@ function passesFilters(r) {
     const s = f.search.toLowerCase();
     if (!(r.review || '').toLowerCase().includes(s)) return false;
   }
+  if (f.searchNick) {
+    const s = f.searchNick.toLowerCase();
+    const nick = (r.personaname || '').toLowerCase();
+    const sid = (r.steamid || '').toLowerCase();
+    if (!nick.includes(s) && !sid.includes(s)) return false;
+  }
   return true;
 }
 
@@ -876,6 +889,7 @@ function detailHtml(r) {
       <div class="detail-grid">
         <div class="detail-text">${escapeHtml(r.review || t('table.emptyText'))}${devResponseHtml}</div>
         <div class="detail-meta">
+          ${r.personaname ? `<div>${t('table.nickname', { name: escapeHtml(r.personaname) })}</div>` : ''}
           <div>steamid: ${r.steamid ? `<a href="https://steamcommunity.com/profiles/${r.steamid}" target="_blank" rel="noopener">${r.steamid}</a>` : '—'}</div>
           <div>${r.steamid && state.data.appid ? `<a href="https://steamcommunity.com/profiles/${r.steamid}/recommended/${state.data.appid}" target="_blank" rel="noopener">${t('table.openInSteam')}</a>` : ''}</div>
           <div>${t('table.playtimeForever', { v: fmtHours(r.playtime_forever) })}</div>
@@ -1024,15 +1038,25 @@ function bindControls() {
     }, 200);
   });
 
+  let searchNickTimer;
+  document.getElementById('filter-search-nick').addEventListener('input', e => {
+    clearTimeout(searchNickTimer);
+    searchNickTimer = setTimeout(() => {
+      state.filters.searchNick = e.target.value.trim();
+      applyFiltersAndRender();
+    }, 200);
+  });
+
   document.getElementById('filter-reset').addEventListener('click', () => {
     state.filters = {
       vote: new Set(['all', 'up', 'down']),
       bucket: '', minScore: 0, suspiciousOnly: false, freeOnly: false, dupeOnly: false, editedOnly: false,
-      devResponseOnly: false, devResponseFrom: '', devResponseTo: '', search: '',
+      devResponseOnly: false, devResponseFrom: '', devResponseTo: '', search: '', searchNick: '',
     };
     document.getElementById('filter-bucket').value = '';
     document.getElementById('filter-minscore').value = 0;
     document.getElementById('filter-search').value = '';
+    document.getElementById('filter-search-nick').value = '';
     document.getElementById('filter-devresponse-from').value = '';
     document.getElementById('filter-devresponse-to').value = '';
     document.getElementById('field-devresponse-date').style.display = 'none';
@@ -1058,7 +1082,7 @@ function bindControls() {
 function exportCsv() {
   const cols = ['recommendationid', 'timestamp_created', 'voted_up', 'playtime_at_review',
     'playtime_forever', 'suspicion_score', 'suspicion_reasons', 'received_for_free',
-    'steam_purchase', 'num_reviews', 'num_games_owned', 'language', 'steamid', 'review'];
+    'steam_purchase', 'num_reviews', 'num_games_owned', 'language', 'steamid', 'personaname', 'review'];
   const rows = [cols.join(',')];
   for (const r of state.filtered) {
     const row = cols.map(c => {
