@@ -171,6 +171,7 @@ def main():
         if summ:
             r["account_created_ts"] = summ.get("timecreated")
             r["account_visibility"] = summ.get("communityvisibilitystate")  # 1=private, 3=public
+            r["personaname"] = summ.get("personaname")  # current display name, for search on the reviews page
             r["account_age_days_at_review"] = (
                 round((r["timestamp_created"] - summ["timecreated"]) / 86400, 1)
                 if summ.get("timecreated") and r.get("timestamp_created") else None
