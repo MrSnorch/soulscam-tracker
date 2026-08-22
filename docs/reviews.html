@@ -124,6 +124,36 @@
       <div class="pagination" id="comments-pagination"></div>
     </section>
 
+    <section class="panel" id="devresponse-panel" style="display:none;">
+      <div class="panel-head-row">
+        <div>
+          <h2 data-i18n="devPanel.title">Ответы разработчика</h2>
+          <p class="desc" data-i18n-html="devPanel.desc">Все отзывы, на которые ответил разработчик в Steam, отдельным списком — с текстом отзыва и датой ответа.</p>
+        </div>
+      </div>
+      <div class="filters">
+        <div class="field">
+          <label data-i18n="devPanel.searchLabel">Поиск по тексту</label>
+          <input type="text" id="devresponse-search" data-i18n-placeholder="devPanel.searchPlaceholder" placeholder="подстрока&hellip;">
+        </div>
+        <div class="field">
+          <label data-i18n="devPanel.searchNickLabel">Поиск по автору отзыва</label>
+          <input type="text" id="devresponse-search-nick" data-i18n-placeholder="devPanel.searchNickPlaceholder" placeholder="ник&hellip;">
+        </div>
+        <div class="field">
+          <label data-i18n="filters.devResponseDate">Дата ответа разработчика</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input type="date" id="devresponse-date-from">
+            <span style="color:var(--text-dimmer);">—</span>
+            <input type="date" id="devresponse-date-to">
+          </div>
+        </div>
+      </div>
+      <div class="result-count" id="devresponse-result-count"></div>
+      <div id="devresponse-list" class="comments-list"></div>
+      <div class="pagination" id="devresponse-pagination"></div>
+    </section>
+
     <section class="panel">
       <div class="panel-head-row">
         <div>
