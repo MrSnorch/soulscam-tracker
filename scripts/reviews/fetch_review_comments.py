@@ -129,25 +129,34 @@ def fetch_review_page_html(steamid: str, recommendationid: str, max_retries: int
     return None
 
 
-# One comment block, non-greedy up to the next block or end of list.
+# One comment block. Real Steam markup interleaves data-panel/style
+# attributes between class= and id= in varying order (confirmed via a
+# captured HAR: class comes with a trailing style="" before id, not
+# adjacent to it as originally assumed) - match id="comment_NNN" and
+# class="commentthread_comment..." independent of attribute order and
+# spacing, rather than requiring one directly after the other.
 COMMENT_BLOCK_RE = re.compile(
-    r'<div class="commentthread_comment[^"]*"\s+id="comment_(?P<cid>\d+)"',
+    r'<div[^>]*\bclass="commentthread_comment\b[^"]*"[^>]*\bid="comment_(?P<cid>\d+)"'
+    r'|<div[^>]*\bid="comment_(?P<cid2>\d+)"[^>]*\bclass="commentthread_comment\b[^"]*"'
 )
+# Author link/name sits on an <a class="... commentthread_author_link ...">
+# with data-miniprofile - real markup has other attributes (data-panel)
+# between the tag open and href, so match on the author_link class marker
+# rather than assuming href is the first attribute.
 AUTHOR_LINK_RE = re.compile(
-    r'<a[^>]*\shref="(?P<url>[^"]+)"[^>]*\sdata-miniprofile="(?P<miniprofile>\d+)"'
-    r'|<a[^>]*\sdata-miniprofile="(?P<miniprofile2>\d+)"[^>]*\shref="(?P<url2>[^"]+)"',
+    r'<a[^>]*\bclass="[^"]*commentthread_author_link[^"]*"[^>]*\shref="(?P<url>[^"]+)"[^>]*\sdata-miniprofile="(?P<miniprofile>\d+)"'
+    r'|<a[^>]*\bclass="[^"]*commentthread_author_link[^"]*"[^>]*\sdata-miniprofile="(?P<miniprofile2>\d+)"[^>]*\shref="(?P<url2>[^"]+)"',
 )
 PERSONA_RE = re.compile(r'<bdi>(?P<name>.*?)</bdi>', re.DOTALL)
 TIMESTAMP_RE = re.compile(r'data-timestamp="(?P<ts>\d+)"')
-# Comment body text sits in a nested <div class="commentthread_comment_text">;
-# grab everything up to the matching close by stopping at the next sibling
-# div with a *_timestamp or *_actions class, which is more reliable than
-# balancing generic </div> tags across nested markup.
+# Comment body text sits in a nested <div class="commentthread_comment_text"
+# id="comment_content_NNN">; grab everything up to the next sibling
+# div.comment_footer_ctn (real markup) or the older commentthread_comment_actions
+# div, whichever comes first.
 TEXT_RE = re.compile(
     r'<div class="commentthread_comment_text"[^>]*id="comment_content_\d+">'
-    r'(?:\s*<bdi>.*?</bdi>)?'
     r'(?P<text>.*?)'
-    r'(?:<div class="commentthread_comment_actions"|<span class="commentthread_comment_timestamp"|$)',
+    r'(?:<div class="comment_footer_ctn"|<div class="commentthread_comment_actions"|$)',
     re.DOTALL,
 )
 TAG_RE = re.compile(r"<[^>]+>")
@@ -185,7 +194,7 @@ def parse_comments_html(comments_html: str, recommendationid: str, review_steami
             author_url = author_m.group("url") or author_m.group("url2")
 
         out.append({
-            "comment_id": m.group("cid"),
+            "comment_id": m.group("cid") or m.group("cid2"),
             "recommendationid": recommendationid,
             "review_steamid": review_steamid,
             "author_steamid": None,  # data-miniprofile is a 32-bit account id, not the 64-bit steamid; keep profile_url instead
