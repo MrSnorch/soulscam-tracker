@@ -61,6 +61,7 @@ def main():
     ap.add_argument("--snapshot", default=None)
     ap.add_argument("--steam-summary", default=None)
     ap.add_argument("--comments", default=None)
+    ap.add_argument("--refunds", default=None)
     args = ap.parse_args()
 
     fetch = load(args.fetch)
@@ -69,6 +70,7 @@ def main():
     snapshot = load(args.snapshot)
     steam_summary = load(args.steam_summary)
     comments = load(args.comments)
+    refunds = load(args.refunds)
 
     lines = []
     lines.append("## 📊 Review Watch — отчёт о запуске\n")
@@ -190,6 +192,27 @@ def main():
         lines.append(f"❌ Ошибка отслеживания комментариев: `{comments.get('error', 'unknown')}`\n")
     else:
         lines.append("⚠️ Отчёт об отслеживании комментариев не найден\n")
+
+    # --- refund status: scraped from public per-review HTML pages (no
+    # auth needed, unlike comments - but it IS one HTTP request per
+    # review, so only a batch of new reviews gets checked each run; see
+    # fetch_refund_status.py's docstring) ---
+    lines.append("### 7️⃣ Статус возврата средств (Product refunded)")
+    if refunds and refunds.get("ok"):
+        lines.append(
+            f"Проверено за этот запуск: **{refunds.get('checked_this_run', 0)}**  \n"
+            f"💸 С отметкой \"Product refunded\" (всего накоплено): **{refunds.get('total_refunded', 0)}** "
+            f"из **{refunds.get('total_checked', 0)}** проверенных отзывов  \n"
+            f"Осталось непроверенных отзывов: **{refunds.get('remaining_unchecked', 0)}**"
+        )
+        if refunds.get("failed_this_run"):
+            lines.append(f"  \n⚠️ Не удалось проверить: **{refunds.get('failed_this_run', 0)}** "
+                          f"(попробуются в следующем запуске)")
+        lines.append("")
+    elif refunds and not refunds.get("ok"):
+        lines.append(f"❌ Ошибка проверки статуса возврата: `{refunds.get('error', 'unknown')}`\n")
+    else:
+        lines.append("⚠️ Отчёт о проверке статуса возврата не найден\n")
 
     overall_ok = all(
         r is None or r.get("ok", False)
