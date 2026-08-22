@@ -56,7 +56,15 @@ jobs:
             echo "docs/reviews/latest.json missing (fetch-reviews.yml hasn't run yet), skipping"
             exit 0
           fi
-          pip install playwright
+          # Tor as a free fallback for the datacenter-IP-stripping issue,
+          # tried after free public proxy lists and before giving up to a
+          # direct connection - see USE_TOR / get_effective_proxy() in the
+          # script. PySocks lets urllib speak the socks5h:// scheme Tor
+          # needs. Not guaranteed to help (Tor exit IPs are publicly
+          # listed and Akamai may flag them too), but free and worth
+          # trying automatically.
+          sudo apt-get update -qq && sudo apt-get install -y tor
+          pip install playwright PySocks
           python -m playwright install --with-deps chromium
           python scripts/reviews/fetch_review_comments.py \
             --reviews-in docs/reviews/latest.json \
