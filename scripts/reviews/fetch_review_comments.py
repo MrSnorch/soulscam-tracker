@@ -190,7 +190,8 @@ def parse_comments_html(comments_html: str, recommendationid: str, review_steami
 
 def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: float,
                                session_id: str, count: int = 100,
-                               debug_dump_path: str | None = None) -> tuple[list[dict], int | None]:
+                               debug_dump_path: str | None = None,
+                               debug_print: bool = False) -> tuple[list[dict], int | None]:
     """Returns (comments, total_count). total_count is Steam's reported
     total so callers can tell if pagination is needed (rare for reviews -
     comment threads under reviews are typically short)."""
@@ -201,7 +202,19 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
 
     while True:
         url = COMMENT_URL.format(steamid=steamid, recid=recommendationid)
-        payload = http_post(url, {"start": start, "count": count, "sessionid": session_id})
+        payload = http_post(url, {
+            "start": start,
+            "count": count,
+            "sessionid": session_id,
+            "feature2": -1,
+        })
+
+        if debug_print and start == 0:
+            # Print the raw first response to stdout (not just the debug
+            # dump file) so it's visible directly in the CI step log
+            # without needing to download the separate artifact.
+            print(f"  [debug] raw payload for {recommendationid}: "
+                  f"{json.dumps(payload, ensure_ascii=False)[:500]}")
 
         if debug_dump_path and start == 0:
             # One-shot raw dump of the very first request/response this run,
@@ -224,6 +237,13 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
         total_count = payload.get("total_count", total_count)
         comments_html = payload.get("comments_html") or ""
         batch = parse_comments_html(comments_html, recommendationid, steamid)
+        if debug_print and start == 0 and comments_html and not batch:
+            # Steam returned HTML but our regex extracted nothing from it -
+            # this points at a markup/parser mismatch rather than "no
+            # comments exist", worth distinguishing in the log.
+            print(f"  [debug] comments_html non-empty ({len(comments_html)} chars) but parser "
+                  f"extracted 0 comments - markup may have changed. First 300 chars: "
+                  f"{comments_html[:300]!r}")
         new_batch = [c for c in batch if c["comment_id"] not in seen_ids]
         if not new_batch:
             break
@@ -295,7 +315,8 @@ def main():
             steamid = r["steamid"]
             dump_path = args.debug_dump_first if i == 1 else None
             comments, total_count = fetch_comments_for_review(steamid, recid, args.sleep, session_id,
-                                                                debug_dump_path=dump_path)
+                                                                debug_dump_path=dump_path,
+                                                                debug_print=(i == 1))
             if comments:
                 data["by_recommendationid"][recid] = {
                     "recommendationid": recid,
