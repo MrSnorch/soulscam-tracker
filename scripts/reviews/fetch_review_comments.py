@@ -92,6 +92,23 @@ def get_session_id(max_retries: int = 3) -> str:
     return ""
 
 
+def warm_up_review_page(steamid: str, recommendationid: str) -> str:
+    """GET the actual review page before POSTing to the comment-render
+    endpoint. Steam's anonymous comment endpoint returns the misleading
+    "This profile is private." error for *every* request - regardless of
+    the review author's actual visibility - when the request doesn't carry
+    a Referer/cookie context matching a real visit to that review page
+    first. Returns the URL to use as Referer for the follow-up POST."""
+    review_url = f"https://steamcommunity.com/profiles/{steamid}/recommended/{recommendationid}/"
+    req = urllib.request.Request(review_url, headers=HEADERS)
+    try:
+        with _opener.open(req, timeout=20) as resp:
+            resp.read()
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+        print(f"  [warn] warm-up GET failed for {review_url}: {e}", file=sys.stderr)
+    return review_url
+
+
 # One comment block, non-greedy up to the next block or end of list.
 COMMENT_BLOCK_RE = re.compile(
     r'<div class="commentthread_comment[^"]*"\s+id="comment_(?P<cid>\d+)"',
@@ -116,13 +133,15 @@ TEXT_RE = re.compile(
 TAG_RE = re.compile(r"<[^>]+>")
 
 
-def http_post(url: str, data: dict, max_retries: int = 4) -> dict | None:
+def http_post(url: str, data: dict, referer: str, max_retries: int = 4) -> dict | None:
     """POST form-encoded data using the shared cookiejar opener, return
-    parsed JSON or None on failure."""
+    parsed JSON or None on failure. `referer` should be the actual review
+    page URL - see warm_up_review_page()."""
     body = urllib.parse.urlencode(data).encode("utf-8")
+    headers = {**HEADERS, "Referer": referer}
     backoff = 2.0
     for attempt in range(1, max_retries + 1):
-        req = urllib.request.Request(url, data=body, headers=HEADERS, method="POST")
+        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
             with _opener.open(req, timeout=20) as resp:
                 raw = resp.read()
@@ -199,6 +218,7 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
     start = 0
     total_count = None
     seen_ids: set[str] = set()
+    referer = warm_up_review_page(steamid, recommendationid)
 
     while True:
         url = COMMENT_URL.format(steamid=steamid, recid=recommendationid)
@@ -207,7 +227,7 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
             "count": count,
             "sessionid": session_id,
             "feature2": -1,
-        })
+        }, referer=referer)
 
         if debug_print and start == 0:
             # Print the raw first response to stdout (not just the debug
