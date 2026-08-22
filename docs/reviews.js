@@ -86,6 +86,16 @@ const I18N = {
     'comments.voteDown': 'негативным',
     'comments.anonAuthor': '(аноним)',
 
+    'devPanel.title': 'Ответы разработчика',
+    'devPanel.desc': 'Все отзывы, на которые ответил разработчик в Steam, отдельным списком &mdash; с текстом отзыва и датой ответа.',
+    'devPanel.searchLabel': 'Поиск по тексту',
+    'devPanel.searchPlaceholder': 'подстрока&hellip;',
+    'devPanel.searchNickLabel': 'Поиск по автору отзыва',
+    'devPanel.searchNickPlaceholder': 'ник&hellip;',
+    'devPanel.resultCount': '<b>{count}</b> ответов найдено (из {total} всего)',
+    'devPanel.empty': 'Ответов не найдено под текущие фильтры',
+    'devPanel.underReview': 'ответ на {vote} отзыв',
+
     'table.title': 'Все отзывы',
     'table.desc': 'Полная таблица с фильтрами и сортировкой. Клик по строке &mdash; разворачивает текст и метаданные.',
     'table.exportCsv': 'Экспорт CSV (текущий фильтр)',
@@ -259,6 +269,16 @@ const I18N = {
     'comments.voteUp': 'positive',
     'comments.voteDown': 'negative',
     'comments.anonAuthor': '(anonymous)',
+
+    'devPanel.title': 'Developer responses',
+    'devPanel.desc': 'All reviews the developer replied to on Steam, listed separately &mdash; with the review text and reply date.',
+    'devPanel.searchLabel': 'Search text',
+    'devPanel.searchPlaceholder': 'substring&hellip;',
+    'devPanel.searchNickLabel': 'Search by review author',
+    'devPanel.searchNickPlaceholder': 'nickname&hellip;',
+    'devPanel.resultCount': '<b>{count}</b> responses found (out of {total} total)',
+    'devPanel.empty': 'No responses found for the current filters',
+    'devPanel.underReview': 'reply to a {vote} review',
 
     'table.title': 'All reviews',
     'table.desc': 'Full table with filters and sorting. Click a row to expand its text and metadata.',
@@ -446,6 +466,23 @@ const commentsState = {
   },
 };
 
+// Reviews with a developer response, shown in their own panel (built
+// straight from state.reviews - no separate fetch needed, since
+// developer_response/timestamp_dev_responded already come down with
+// every review in latest.json).
+const devResponseState = {
+  all: [],
+  filtered: [],
+  page: 1,
+  pageSize: 25,
+  filters: {
+    search: '',
+    searchNick: '',
+    dateFrom: '',
+    dateTo: '',
+  },
+};
+
 // Turns a 'YYYY-MM-DD' <input type=date> value + which edge it represents
 // into a Unix-seconds boundary, for comparing against either a raw
 // unix-seconds field (timestamp_created) or an ISO-string field
@@ -576,6 +613,7 @@ function init() {
       bindControls();
       renderSteamCrossCheck(data.summary);
       initCommentsPanel(appidParam);
+      initDevResponsePanel();
       loadHistory().then(hist => {
         if (hist) {
           document.getElementById('history-panel').style.display = 'block';
@@ -1154,6 +1192,125 @@ function bindCommentsControls() {
   document.getElementById('comments-refresh').addEventListener('click', () => {
     location.reload();
   });
+}
+
+/* ---------------- Developer response panel ---------------- */
+
+function applyDevResponseFiltersAndRender() {
+  const f = devResponseState.filters;
+  const searchLower = f.search.trim().toLowerCase();
+  const nickLower = f.searchNick.trim().toLowerCase();
+  const fromUnix = dateInputToUnix(f.dateFrom, 'from');
+  const toUnix = dateInputToUnix(f.dateTo, 'to');
+
+  devResponseState.filtered = devResponseState.all.filter(r => {
+    if (searchLower &&
+        !(r.review || '').toLowerCase().includes(searchLower) &&
+        !(r.developer_response || '').toLowerCase().includes(searchLower)) return false;
+    if (nickLower && !(r.personaname || '').toLowerCase().includes(nickLower)) return false;
+    if (fromUnix !== null || toUnix !== null) {
+      if (!r.timestamp_dev_responded) return false;
+      if (fromUnix !== null && r.timestamp_dev_responded < fromUnix) return false;
+      if (toUnix !== null && r.timestamp_dev_responded > toUnix) return false;
+    }
+    return true;
+  });
+  devResponseState.page = 1;
+  renderDevResponses();
+}
+
+function renderDevResponses() {
+  const listEl = document.getElementById('devresponse-list');
+  const countEl = document.getElementById('devresponse-result-count');
+  const pagEl = document.getElementById('devresponse-pagination');
+
+  const total = devResponseState.all.length;
+  const filtered = devResponseState.filtered;
+  countEl.innerHTML = t('devPanel.resultCount', { count: filtered.length, total });
+
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="empty">${t('devPanel.empty')}</div>`;
+    pagEl.innerHTML = '';
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / devResponseState.pageSize));
+  devResponseState.page = Math.min(devResponseState.page, totalPages);
+  const startIdx = (devResponseState.page - 1) * devResponseState.pageSize;
+  const pageItems = filtered.slice(startIdx, startIdx + devResponseState.pageSize);
+
+  listEl.innerHTML = pageItems.map(r => {
+    const voteWord = r.voted_up ? t('comments.voteUp') : t('comments.voteDown');
+    const voteCls = r.voted_up ? 'vote-up' : 'vote-down';
+    const author = r.personaname ? escapeHtml(r.personaname) : t('comments.anonAuthor');
+    const reviewExcerpt = r.review ? escapeHtml(r.review.slice(0, 300)) : '';
+    const respondedTime = r.timestamp_dev_responded ? fmtCommentDate(r.timestamp_dev_responded) : '—';
+
+    return `
+      <div class="comment-card">
+        <div class="comment-head">
+          <span class="comment-author">${author}</span>
+          <span class="comment-time">${respondedTime}</span>
+        </div>
+        <div class="comment-text">${escapeHtml(r.developer_response || '')}</div>
+        <div class="comment-context">
+          ${t('devPanel.underReview', { vote: `<b class="${voteCls}">${voteWord}</b>` })}
+          ${reviewExcerpt ? `<br>${t('comments.reviewExcerpt', { text: reviewExcerpt })}` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (totalPages > 1) {
+    pagEl.innerHTML = `
+      <button ${devResponseState.page <= 1 ? 'disabled' : ''} id="devresponse-page-prev">${t('comments.pagePrev')}</button>
+      <span>${t('comments.pageOf', { page: devResponseState.page, total: totalPages })}</span>
+      <button ${devResponseState.page >= totalPages ? 'disabled' : ''} id="devresponse-page-next">${t('comments.pageNext')}</button>
+    `;
+    const prevBtn = document.getElementById('devresponse-page-prev');
+    const nextBtn = document.getElementById('devresponse-page-next');
+    if (prevBtn) prevBtn.addEventListener('click', () => { devResponseState.page--; renderDevResponses(); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { devResponseState.page++; renderDevResponses(); });
+  } else {
+    pagEl.innerHTML = '';
+  }
+}
+
+function bindDevResponseControls() {
+  document.getElementById('devresponse-search').addEventListener('input', e => {
+    devResponseState.filters.search = e.target.value;
+    applyDevResponseFiltersAndRender();
+  });
+  document.getElementById('devresponse-search-nick').addEventListener('input', e => {
+    devResponseState.filters.searchNick = e.target.value;
+    applyDevResponseFiltersAndRender();
+  });
+  document.getElementById('devresponse-date-from').addEventListener('change', e => {
+    devResponseState.filters.dateFrom = e.target.value;
+    applyDevResponseFiltersAndRender();
+  });
+  document.getElementById('devresponse-date-to').addEventListener('change', e => {
+    devResponseState.filters.dateTo = e.target.value;
+    applyDevResponseFiltersAndRender();
+  });
+}
+
+function initDevResponsePanel() {
+  const withResponse = state.reviews.filter(r => r.developer_response);
+  const panel = document.getElementById('devresponse-panel');
+  if (!withResponse.length) {
+    // Keep hidden entirely rather than showing an empty-state message -
+    // unlike the comments panel, dev responses aren't expected to exist
+    // for most games, so an empty panel here would just be noise.
+    return;
+  }
+  // newest response first
+  withResponse.sort((a, b) => (b.timestamp_dev_responded || 0) - (a.timestamp_dev_responded || 0));
+  devResponseState.all = withResponse;
+  devResponseState.filtered = withResponse;
+  panel.style.display = 'block';
+  renderDevResponses();
+  bindDevResponseControls();
 }
 
 function initCommentsPanel(appidParam) {
