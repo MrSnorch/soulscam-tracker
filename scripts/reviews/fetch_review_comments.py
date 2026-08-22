@@ -231,12 +231,27 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
 
     if debug_dump_path:
         try:
+            # Grab the region around the comments block (or "Comments" text
+            # if the block marker itself isn't present) instead of just the
+            # first 2000 chars - the comment thread sits well past the page
+            # <head>, so a flat head-of-file snippet never actually shows
+            # it. Fall back to head-of-file only if neither marker is found.
+            snippet = None
+            if html:
+                anchor = html.find("commentthread_comments")
+                if anchor == -1:
+                    anchor = html.find("Comments")
+                if anchor != -1:
+                    start = max(0, anchor - 500)
+                    snippet = html[start:start + 4000]
+                else:
+                    snippet = html[:2000]
             with open(debug_dump_path, "w", encoding="utf-8") as f:
                 json.dump({
                     "steamid": steamid,
                     "recommendationid": recommendationid,
                     "html_len": len(html) if html else 0,
-                    "html_snippet": (html[:2000] if html else None),
+                    "html_snippet": snippet,
                 }, f, ensure_ascii=False, indent=2)
         except OSError:
             pass
