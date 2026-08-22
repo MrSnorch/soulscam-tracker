@@ -202,6 +202,33 @@ def _fetch_free_proxy_candidates(limit: int = 40) -> list[str]:
     return candidates[:limit]
 
 
+def _build_opener_for_proxy(proxy_url: str):
+    """Build a urllib opener for proxy_url. Plain urllib.request.ProxyHandler
+    only understands http/https proxy schemes - it silently mishandles
+    socks5h:// (Tor), so SOCKS proxies need PySocks' socket-level patch
+    instead. Raises RuntimeError if a socks5h:// proxy is requested but
+    PySocks isn't installed, so the caller can treat that as "this proxy
+    path unavailable" rather than silently going direct."""
+    if proxy_url.startswith("socks5h://") or proxy_url.startswith("socks5://"):
+        try:
+            import socks as pysocks
+        except ImportError:
+            raise RuntimeError(
+                "socks5 proxy requested but PySocks isn't installed "
+                "(pip install PySocks)"
+            )
+        host_port = proxy_url.split("://", 1)[1]
+        host, port = host_port.rsplit(":", 1)
+        # socks5h means "resolve hostnames via the proxy" - rdns=True.
+        pysocks.set_default_proxy(pysocks.SOCKS5, host, int(port), rdns=True)
+        import socket as _socket_mod
+        _socket_mod.socket = pysocks.socksocket
+        return urllib.request.build_opener()
+    return urllib.request.build_opener(
+        urllib.request.ProxyHandler({"https": proxy_url, "http": proxy_url})
+    )
+
+
 def _proxy_returns_full_page(proxy_url: str, timeout: int = 6) -> bool:
     """Test one proxy against a review known to have comments. Returns
     True only if the response actually contains the comment thread
@@ -220,9 +247,7 @@ def _proxy_returns_full_page(proxy_url: str, timeout: int = 6) -> bool:
     prev_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(timeout)
     try:
-        opener = urllib.request.build_opener(
-            urllib.request.ProxyHandler({"https": proxy_url, "http": proxy_url})
-        )
+        opener = _build_opener_for_proxy(proxy_url)
         req = urllib.request.Request(test_url, headers=HEADERS)
         with opener.open(req, timeout=timeout) as resp:
             raw = resp.read()
@@ -235,6 +260,12 @@ def _proxy_returns_full_page(proxy_url: str, timeout: int = 6) -> bool:
         return False
     finally:
         socket.setdefaulttimeout(prev_timeout)
+        # Undo PySocks' global socket patch so it doesn't leak into
+        # unrelated direct connections (e.g. the next candidate proxy,
+        # or a later direct fallback) made later in the process.
+        import socket as _socket_mod
+        import importlib
+        importlib.reload(_socket_mod)
 
 
 def _find_working_free_proxy(max_candidates_to_try: int = 25, overall_deadline_s: float = 90.0) -> str | None:
@@ -294,12 +325,94 @@ def _find_working_free_proxy(max_candidates_to_try: int = 25, overall_deadline_s
 
 def get_effective_proxy() -> str | None:
     """Returns the proxy URL to use: explicit PROXY_URL takes priority,
-    otherwise auto-discovers a free one (if AUTO_PROXY is enabled),
-    otherwise None (direct connection)."""
+    then auto-discovered free public proxies (if AUTO_PROXY is enabled),
+    then a local Tor SOCKS5 proxy (if USE_TOR is enabled and Tor is
+    available), otherwise None (direct connection)."""
     if PROXY_URL:
         return PROXY_URL
     if AUTO_PROXY:
-        return _find_working_free_proxy()
+        found = _find_working_free_proxy()
+        if found:
+            return found
+    if USE_TOR:
+        return _get_tor_proxy_if_working()
+    return None
+
+
+# Set USE_TOR=0 to disable trying Tor as a fallback. On by default since
+# it's free and doesn't depend on third-party proxy list uptime - but
+# Tor exit nodes are a well-known, publicly listed IP range, and CDNs
+# like Akamai are just as likely to datacenter-flag or rate-limit them
+# as ordinary cloud IPs. Worth trying, not guaranteed to help.
+USE_TOR = os.environ.get("USE_TOR", "1").strip() not in ("0", "false", "False", "")
+
+TOR_SOCKS_PROXY = "socks5h://127.0.0.1:9050"
+_tor_cache: dict[str, str | None] = {}
+
+
+def _start_tor_daemon(bootstrap_timeout_s: float = 45.0) -> bool:
+    """Start a local `tor` process (installed via apt in the workflow)
+    and wait for it to report a full circuit bootstrap. Returns False
+    (not an error) if the `tor` binary isn't installed, so callers can
+    skip this path cleanly rather than crashing."""
+    import shutil
+    import subprocess
+
+    if shutil.which("tor") is None:
+        print("  [tor] `tor` binary not found (not installed) - skipping Tor fallback.", flush=True)
+        return False
+
+    print("  [tor] starting local Tor daemon and waiting for bootstrap...", flush=True)
+    try:
+        proc = subprocess.Popen(
+            ["tor", "--RunAsDaemon", "0", "--SocksPort", "9050", "--Log", "notice stdout"],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        )
+    except OSError as e:
+        print(f"  [tor] failed to launch tor: {e}", flush=True)
+        return False
+
+    _tor_cache["process"] = proc
+    start = time.monotonic()
+    while time.monotonic() - start < bootstrap_timeout_s:
+        line = proc.stdout.readline() if proc.stdout else ""
+        if not line:
+            if proc.poll() is not None:
+                print("  [tor] tor process exited before completing bootstrap.", flush=True)
+                return False
+            continue
+        line = line.strip()
+        if "Bootstrapped 100%" in line:
+            print(f"  [tor] bootstrapped in {time.monotonic() - start:.0f}s.", flush=True)
+            return True
+        if "Bootstrapped" in line:
+            print(f"  [tor] {line}", flush=True)
+    print(f"  [tor] did not finish bootstrapping within {bootstrap_timeout_s:.0f}s, giving up.", flush=True)
+    return False
+
+
+def _get_tor_proxy_if_working() -> str | None:
+    """Start Tor (once, cached for the process lifetime) and validate it
+    against the same known-good review used for free-proxy testing.
+    Even if Tor bootstraps fine, the exit node it picked might still get
+    the stripped datacenter-flavored page - only return the proxy URL if
+    a real test confirms the comment thread comes through."""
+    if "result" in _tor_cache:
+        return _tor_cache["result"]
+
+    if not _start_tor_daemon():
+        _tor_cache["result"] = None
+        return None
+
+    print("  [tor] testing exit node against known-good review...", flush=True)
+    if _proxy_returns_full_page(TOR_SOCKS_PROXY, timeout=20):
+        print("  [tor] exit node returns full page with comments - using Tor.", flush=True)
+        _tor_cache["result"] = TOR_SOCKS_PROXY
+        return TOR_SOCKS_PROXY
+
+    print("  [tor] exit node did NOT return the comment thread (likely also "
+          "flagged as non-residential by Akamai) - falling back to direct connection.", flush=True)
+    _tor_cache["result"] = None
     return None
 
 
@@ -336,10 +449,21 @@ def _fetch_via_urllib(review_url: str, max_retries: int) -> str | None:
     opener = _opener
     proxy = get_effective_proxy()
     if proxy:
-        opener = urllib.request.build_opener(
-            urllib.request.HTTPCookieProcessor(_cookie_jar),
-            urllib.request.ProxyHandler({"https": proxy, "http": proxy}),
-        )
+        if proxy.startswith("socks5"):
+            # PySocks patches the socket module globally rather than
+            # per-opener, so the cookiejar handler still works fine on
+            # top of it - just build via the shared helper for the
+            # socks5 case instead of a plain ProxyHandler (which doesn't
+            # understand socks5:// schemes at all).
+            _build_opener_for_proxy(proxy)  # applies the global socket patch
+            opener = urllib.request.build_opener(
+                urllib.request.HTTPCookieProcessor(_cookie_jar),
+            )
+        else:
+            opener = urllib.request.build_opener(
+                urllib.request.HTTPCookieProcessor(_cookie_jar),
+                urllib.request.ProxyHandler({"https": proxy, "http": proxy}),
+            )
     backoff = 2.0
     for attempt in range(1, max_retries + 1):
         req = urllib.request.Request(review_url, headers=HEADERS)
