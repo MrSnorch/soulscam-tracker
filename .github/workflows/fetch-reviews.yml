@@ -116,6 +116,8 @@ jobs:
             echo "docs/reviews/latest.json missing, skipping"
             exit 0
           fi
+          pip install playwright
+          python -m playwright install --with-deps chromium
           python scripts/reviews/fetch_review_comments.py \
             --reviews-in docs/reviews/latest.json \
             --out docs/reviews/comments.json \
