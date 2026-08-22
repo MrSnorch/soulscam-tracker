@@ -85,6 +85,8 @@ const I18N = {
     'comments.voteUp': 'позитивным',
     'comments.voteDown': 'негативным',
     'comments.anonAuthor': '(аноним)',
+    'panel.toggle': 'свернуть',
+    'panel.toggleExpand': 'развернуть',
 
     'devPanel.title': 'Ответы разработчика',
     'devPanel.desc': 'Все отзывы, на которые ответил разработчик в Steam, отдельным списком &mdash; с текстом отзыва и датой ответа.',
@@ -269,6 +271,8 @@ const I18N = {
     'comments.voteUp': 'positive',
     'comments.voteDown': 'negative',
     'comments.anonAuthor': '(anonymous)',
+    'panel.toggle': 'collapse',
+    'panel.toggleExpand': 'expand',
 
     'devPanel.title': 'Developer responses',
     'devPanel.desc': 'All reviews the developer replied to on Steam, listed separately &mdash; with the review text and reply date.',
@@ -426,6 +430,38 @@ function applyStaticTranslations() {
   document.documentElement.lang = getLang();
 }
 
+// Every panel with a .collapse-toggle button in its header can be
+// collapsed/expanded independently; state persists per-panel across
+// reloads via localStorage so a user's layout preference sticks. The
+// dev-response and comments panels are conditionally hidden entirely
+// (no reviews with that data), so this only wires up toggles that
+// actually exist in the DOM on this run.
+const COLLAPSE_STORAGE_PREFIX = 'reviewsPanelCollapsed:';
+
+function setPanelCollapsed(toggleBtn, bodyEl, collapsed) {
+  bodyEl.classList.toggle('collapsed', collapsed);
+  toggleBtn.classList.toggle('collapsed', collapsed);
+  toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+  const label = toggleBtn.querySelector('[data-i18n]');
+  if (label) label.textContent = t(collapsed ? 'panel.toggleExpand' : 'panel.toggle');
+}
+
+function initCollapsiblePanels() {
+  document.querySelectorAll('.collapse-toggle').forEach(btn => {
+    const targetId = btn.dataset.target;
+    const bodyEl = document.getElementById(targetId);
+    if (!bodyEl) return;
+    const storageKey = COLLAPSE_STORAGE_PREFIX + targetId;
+    const storedCollapsed = localStorage.getItem(storageKey) === '1';
+    setPanelCollapsed(btn, bodyEl, storedCollapsed);
+    btn.addEventListener('click', () => {
+      const nowCollapsed = !bodyEl.classList.contains('collapsed');
+      setPanelCollapsed(btn, bodyEl, nowCollapsed);
+      localStorage.setItem(storageKey, nowCollapsed ? '1' : '0');
+    });
+  });
+}
+
 const state = {
   data: null,
   reviews: [],
@@ -577,6 +613,7 @@ async function loadHistory() {
 
 function init() {
   applyStaticTranslations();
+  initCollapsiblePanels();
 
   const langButtons = document.querySelectorAll('#lang-toggle .lang-btn');
   function syncLangButtons() {
