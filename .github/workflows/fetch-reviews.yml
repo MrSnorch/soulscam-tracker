@@ -1,21 +1,30 @@
-name: Fetch Steam reviews
+name: Fetch Steam review comments
+
+# Deliberately a SEPARATE workflow from fetch-reviews.yml (same reasoning
+# as fetch-forum.yml): this scrapes an undocumented HTML/JSON endpoint,
+# not the official appreviews API, so it's slower and more likely to
+# break or get rate-limited than the main review pipeline. Splitting it
+# out means:
+#   - it doesn't force a full review re-fetch just to refresh comments
+#   - a comment-scrape failure never blocks/delays the main reviews data
+#   - it can run on its own, less-frequent schedule
+#
+# This reads the *existing* docs/reviews/latest.json already committed by
+# fetch-reviews.yml - it does not re-fetch reviews itself. If that file
+# doesn't exist yet (first-ever run), it skips cleanly.
 
 on:
   schedule:
-    # every 12 hours; adjust as needed (UTC)
-    - cron: '0 */12 * * *'
-  workflow_dispatch:
-    inputs:
-      appid:
-        description: 'Steam appid to fetch (overrides repo variable STEAM_APPID)'
-        required: false
-        default: ''
+    # once every 6 hours, offset from fetch-reviews.yml's :00 slots so the
+    # two don't both hit Steam at the exact same moment
+    - cron: '20 */6 * * *'
+  workflow_dispatch: {}
 
 permissions:
   contents: write
 
 concurrency:
-  group: fetch-reviews
+  group: fetch-comments
   cancel-in-progress: false
 
 jobs:
@@ -23,6 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHONUNBUFFERED: "1"
+      # If a real (paid/reliable) proxy is ever configured as a repo
+      # secret, it takes priority. Otherwise fetch_review_comments.py
+      # auto-scans free public proxy lists on GitHub for one that gets
+      # the full page through (see AUTO_PROXY in the script) - no secret
+      # needed for that path, it's on by default.
+      PROXY_URL: ${{ secrets.PROXY_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,86 +49,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Resolve appid / appname
-        id: cfg
-        run: |
-          APPID="${{ github.event.inputs.appid }}"
-          if [ -z "$APPID" ]; then
-            APPID="${{ vars.STEAM_APPID }}"
-          fi
-          if [ -z "$APPID" ]; then
-            echo "No appid provided. Set repo variable STEAM_APPID (Settings > Secrets and variables > Actions > Variables) or pass one via workflow_dispatch." >&2
-            exit 1
-          fi
-          echo "appid=$APPID" >> "$GITHUB_OUTPUT"
-          echo "appname=${{ vars.STEAM_APPNAME }}" >> "$GITHUB_OUTPUT"
-
-      - name: Fetch reviews
+      - name: Fetch real comment text under reviews
         run: |
           mkdir -p tmp
-          python scripts/reviews/fetch_reviews.py \
-            --appid "${{ steps.cfg.outputs.appid }}" \
-            --out tmp/raw_reviews.json \
-            --sleep 1.2 \
-            --report-out tmp/report_fetch.json
-
-      - name: Fetch Steam's own official summary (cross-check + velocity)
-        if: always()
-        run: |
-          mkdir -p tmp
-          python scripts/reviews/fetch_steam_summary.py \
-            --appid "${{ steps.cfg.outputs.appid }}" \
-            --out tmp/steam_summary.json \
-            --report-out tmp/report_steam.json
-
-      - name: Enrich with account data (optional, requires STEAM_WEB_API_KEY secret)
-        if: always()
-        env:
-          STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
-        run: |
-          if [ ! -f tmp/raw_reviews.json ]; then
-            echo "tmp/raw_reviews.json missing (fetch step failed before writing it), skipping"
-            exit 0
-          fi
-          python scripts/reviews/enrich_accounts.py \
-            --in tmp/raw_reviews.json \
-            --out tmp/enriched_reviews.json \
-            --sleep 0.6 \
-            --report-out tmp/report_enrich.json
-
-      - name: Analyze reviews
-        if: always()
-        run: |
-          if [ ! -f tmp/enriched_reviews.json ]; then
-            echo "tmp/enriched_reviews.json missing, skipping"
-            exit 0
-          fi
-          python scripts/reviews/analyze.py \
-            --in tmp/enriched_reviews.json \
-            --out tmp/analyzed_reviews.json \
-            --report-out tmp/report_analyze.json
-
-      - name: Build snapshot for site
-        if: always()
-        run: |
-          if [ ! -f tmp/analyzed_reviews.json ]; then
-            echo "tmp/analyzed_reviews.json missing, skipping"
-            exit 0
-          fi
-          python scripts/reviews/build_snapshot.py \
-            --in tmp/analyzed_reviews.json \
-            --appid "${{ steps.cfg.outputs.appid }}" \
-            --appname "${{ steps.cfg.outputs.appname }}" \
-            --latest-out docs/reviews/latest.json \
-            --snapshot-dir docs/reviews/snapshots \
-            --steam-summary tmp/steam_summary.json \
-            --report-out tmp/report_snapshot.json
-
-      - name: Fetch review comment threads
-        if: always()
-        run: |
           if [ ! -f docs/reviews/latest.json ]; then
-            echo "docs/reviews/latest.json missing, skipping"
+            echo "docs/reviews/latest.json missing (fetch-reviews.yml hasn't run yet), skipping"
             exit 0
           fi
           pip install playwright
@@ -135,32 +75,30 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Commit and push updated data
+      - name: Commit and push updated comment data
         if: always()
         run: |
+          if [ ! -f docs/reviews/comments.json ] && [ ! -f docs/reviews/recent-comments.json ]; then
+            echo "No comment data files produced, nothing to commit."
+            exit 0
+          fi
           if git check-ignore -q docs/reviews; then
             echo "::error::docs/reviews is being ignored by .gitignore! Fix .gitignore and rerun."
             exit 1
           fi
           git config user.name "review-watch-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add -f docs/reviews
+          git add -f docs/reviews/comments.json docs/reviews/recent-comments.json
 
           if git diff --cached --quiet; then
-            echo "No data changes to commit."
+            echo "No comment data changes to commit."
             exit 0
           fi
 
-          git commit -m "chore: update review data ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+          git commit -m "chore: update review comments ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
 
-          # Commit first, then rebase - `git pull --rebase` needs a clean
-          # index/working tree to replay commits onto, so it must run
-          # after committing, not before (running it right after `git
-          # add` fails with "cannot pull with rebase: Your index contains
-          # uncommitted changes"). poll.yml commits every minute on its
-          # own schedule against the same branch, so retry push a few
-          # times with a fresh rebase each time rather than failing on
-          # the first race.
+          # Same retry-with-rebase dance as fetch-reviews.yml, since both
+          # workflows (plus poll.yml) can push to the same branch.
           for attempt in 1 2 3 4 5; do
             if git push --quiet; then
               echo "Pushed on attempt $attempt."
@@ -170,17 +108,12 @@ jobs:
             git pull --rebase --quiet
             sleep 2
           done
-          echo "::error::Failed to push review data after 5 attempts."
+          echo "::error::Failed to push comment data after 5 attempts."
           exit 1
 
       - name: Write job summary
         if: always()
         run: |
-          python scripts/reviews/write_summary.py \
-            --fetch tmp/report_fetch.json \
-            --enrich tmp/report_enrich.json \
-            --analyze tmp/report_analyze.json \
-            --snapshot tmp/report_snapshot.json \
-            --steam-summary tmp/report_steam.json \
-            --comments tmp/report_comments.json \
+          python scripts/reviews/write_comments_summary.py \
+            --report tmp/report_comments.json \
             >> "$GITHUB_STEP_SUMMARY"
