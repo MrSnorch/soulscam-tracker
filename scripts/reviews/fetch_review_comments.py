@@ -75,6 +75,7 @@ def main():
     data = load_existing(args.out)
     by_recid = data["by_recommendationid"]
 
+    appid = latest.get("appid")
     now_iso = datetime.now(timezone.utc).isoformat()
 
     new_events = 0
@@ -102,10 +103,16 @@ def main():
             "review_author_personaname": r.get("personaname"),
             "review_voted_up": r.get("voted_up"),
             "review_excerpt": (r.get("review") or "")[:200],
+            # Steam's review-permalink URL is keyed by appid, not by
+            # recommendationid - .../recommended/{recommendationid} 404s
+            # or redirects to the wrong place. .../recommended/{appid}
+            # opens that author's review of this specific game (which is
+            # the one review a comment thread could exist under, since a
+            # Steam account can only review a given game once).
             "review_url": (
                 f"https://steamcommunity.com/profiles/{r.get('steamid')}"
-                f"/recommended/{recid}"
-            ) if r.get("steamid") else None,
+                f"/recommended/{appid}"
+            ) if r.get("steamid") and appid else None,
             "comment_count": count,
             "last_seen_at": now_iso,
         }
