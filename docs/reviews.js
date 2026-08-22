@@ -152,6 +152,7 @@ const I18N = {
     'filters.dupeOnly': 'Дубли текста',
     'filters.editedOnly': 'Отредактировано позже',
     'filters.devResponseOnly': '&#128172; Есть ответ разработчика',
+    'filters.refundedOnly': '&#128184; Возврат средств',
     'filters.searchLabel': 'Поиск по тексту',
     'filters.searchPlaceholder': 'подстрока&hellip;',
     'filters.searchNickLabel': 'Поиск по нику',
@@ -338,6 +339,7 @@ const I18N = {
     'filters.dupeOnly': 'Duplicate text',
     'filters.editedOnly': 'Edited later',
     'filters.devResponseOnly': '&#128172; Has dev response',
+    'filters.refundedOnly': '&#128184; Refunded',
     'filters.searchLabel': 'Search text',
     'filters.searchPlaceholder': 'substring&hellip;',
     'filters.searchNickLabel': 'Search by nickname',
@@ -484,6 +486,7 @@ const state = {
     devResponseTo: '',
     dateFrom: '',
     dateTo: '',
+    refundedOnly: false,
     search: '',
     searchNick: '',
   },
@@ -600,6 +603,24 @@ async function loadRecentComments(appid) {
   }
 }
 
+async function loadRefunds(appid) {
+  // refunds.json holds the "Product refunded" flag scraped per-review
+  // from the public review page (see fetch_refund_status.py) - keyed by
+  // recommendationid, not a flat list, since it's a lookup table merged
+  // onto each review rather than its own feed. Only reviews checked so
+  // far will have an entry; anything missing just means "not checked
+  // yet", not "not refunded".
+  const path = appid ? `reviews/${appid}-refunds.json` : 'reviews/refunds.json';
+  try {
+    const res = await fetch(path, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.by_recommendationid || null;
+  } catch {
+    return null;
+  }
+}
+
 async function loadHistory() {
   try {
     const res = await fetch('reviews/snapshots/history.json', { cache: 'no-store' });
@@ -651,6 +672,24 @@ function init() {
       renderSteamCrossCheck(data.summary);
       initCommentsPanel(appidParam);
       initDevResponsePanel();
+      loadRefunds(appidParam).then(refundsByRecid => {
+        if (!refundsByRecid) return;
+        // Merge the refunded flag onto whatever reviews we already have an
+        // entry for; missing entries just mean "not checked yet" and stay
+        // undefined rather than being coerced to false, so the table/filter
+        // can distinguish "confirmed not refunded" from "unknown".
+        let anyMatched = false;
+        state.reviews.forEach(r => {
+          const entry = refundsByRecid[r.recommendationid];
+          if (entry) {
+            r.refunded = !!entry.refunded;
+            anyMatched = true;
+          }
+        });
+        if (anyMatched) {
+          applyFiltersAndRender();
+        }
+      });
       loadHistory().then(hist => {
         if (hist) {
           document.getElementById('history-panel').style.display = 'block';
@@ -971,6 +1010,7 @@ function passesFilters(r) {
   if (f.dupeOnly && (!r.duplicate_cluster_size || r.duplicate_cluster_size < 2)) return false;
   if (f.editedOnly && !(r.suspicion_reasons || []).includes('edited_days_later')) return false;
   if (f.devResponseOnly && !r.developer_response) return false;
+  if (f.refundedOnly && !r.refunded) return false;
   if (f.devResponseFrom || f.devResponseTo) {
     if (!r.developer_response || !r.timestamp_dev_responded) return false;
     const day = fmtDate(r.timestamp_dev_responded); // 'YYYY-MM-DD' string, sortable
@@ -1066,6 +1106,7 @@ function rowHtml(r) {
   if ((r.suspicion_reasons || []).includes('prolific_reviewer_few_games')) tags.push('<span class="tag">FARM?</span>');
   if ((r.suspicion_reasons || []).includes('edited_days_later')) tags.push('<span class="tag">EDITED</span>');
   if (r.developer_response) tags.push('<span class="tag" style="color:var(--green);border-color:var(--green-dim);">💬 DEV REPLY</span>');
+  if (r.refunded) tags.push('<span class="tag" style="color:var(--orange, #e8823a);border-color:var(--orange-dim, #a5622a);">💸 REFUNDED</span>');
 
   return `
     <tr class="${flagged ? 'flagged' : ''}" data-rid="${r.recommendationid}">
@@ -1495,6 +1536,13 @@ function bindControls() {
     applyFiltersAndRender();
   });
 
+  const refundedBtn = document.getElementById('filter-refunded-only');
+  refundedBtn.addEventListener('click', () => {
+    state.filters.refundedOnly = !state.filters.refundedOnly;
+    refundedBtn.classList.toggle('active', state.filters.refundedOnly);
+    applyFiltersAndRender();
+  });
+
   document.getElementById('filter-date-from').addEventListener('change', e => {
     state.filters.dateFrom = e.target.value;
     document.getElementById('filter-date-preset').value = ''; // manual edit overrides any preset
@@ -1535,6 +1583,7 @@ function bindControls() {
       vote: new Set(['all', 'up', 'down']),
       bucket: '', minScore: 0, suspiciousOnly: false, freeOnly: false, dupeOnly: false, editedOnly: false,
       devResponseOnly: false, devResponseFrom: '', devResponseTo: '', dateFrom: '', dateTo: '',
+      refundedOnly: false,
       search: '', searchNick: '',
     };
     document.getElementById('filter-bucket').value = '';
@@ -1553,6 +1602,7 @@ function bindControls() {
     document.getElementById('filter-dupe-only').classList.remove('active');
     document.getElementById('filter-edited-only').classList.remove('active');
     document.getElementById('filter-devresponse-only').classList.remove('active');
+    document.getElementById('filter-refunded-only').classList.remove('active');
     applyFiltersAndRender();
   });
 
@@ -1569,7 +1619,7 @@ function bindControls() {
 function exportCsv() {
   const cols = ['recommendationid', 'timestamp_created', 'voted_up', 'playtime_at_review',
     'playtime_forever', 'suspicion_score', 'suspicion_reasons', 'received_for_free',
-    'steam_purchase', 'num_reviews', 'num_games_owned', 'language', 'steamid', 'personaname', 'review'];
+    'steam_purchase', 'refunded', 'num_reviews', 'num_games_owned', 'language', 'steamid', 'personaname', 'review'];
   const rows = [cols.join(',')];
   for (const r of state.filtered) {
     const row = cols.map(c => {
