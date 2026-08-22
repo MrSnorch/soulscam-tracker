@@ -592,6 +592,37 @@ footer a { color: var(--text-dim); }
   flex-wrap: wrap;
 }
 
+/* ---------- collapsible panels ---------- */
+
+.collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.collapse-toggle:hover { border-color: var(--green-dim); color: var(--green); }
+.collapse-toggle .chevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+  transform: rotate(0deg);
+}
+.collapse-toggle.collapsed .chevron { transform: rotate(-90deg); }
+
+.collapsible-body {
+  overflow: hidden;
+}
+.collapsible-body.collapsed {
+  display: none;
+}
+
 /* ---------- comments list ---------- */
 
 .comments-list {
