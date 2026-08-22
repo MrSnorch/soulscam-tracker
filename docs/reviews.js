@@ -63,19 +63,22 @@ const I18N = {
     'reasons.desc': 'Из чего складывается suspicion score по датасету.',
     'reasons.none': 'Флагов не найдено',
 
-    'comments.title': 'Последние комментарии под отзывами',
-    'comments.desc': 'Реальные тексты комментариев Steam, оставленных под отзывами игроков (не сами отзывы, а обсуждение под ними). Обновляется вместе с остальными данными.',
+    'comments.title': 'Новые комментарии под отзывами',
+    'comments.desc': 'Steam не отдаёт текст комментариев анонимно (нужен залогиненный аккаунт), поэтому здесь отслеживается только факт появления новых комментариев (счётчик вырос) &mdash; с прямой ссылкой на страницу отзыва.',
     'comments.refresh': 'обновить список',
-    'comments.searchLabel': 'Поиск по тексту',
+    'comments.searchLabel': 'Поиск по тексту отзыва',
     'comments.searchPlaceholder': 'подстрока&hellip;',
-    'comments.searchNickLabel': 'Поиск по автору комментария',
+    'comments.searchNickLabel': 'Поиск по автору отзыва',
     'comments.searchNickPlaceholder': 'ник&hellip;',
-    'comments.resultCount': '<b>{count}</b> комментариев найдено (из {total} всего)',
-    'comments.empty': 'Комментариев не найдено под текущие фильтры',
+    'comments.resultCount': '<b>{count}</b> событий найдено (из {total} всего)',
+    'comments.empty': 'Событий не найдено под текущие фильтры',
     'comments.noData': 'Данные о комментариях ещё не собраны &mdash; появятся после следующего запуска сбора.',
-    'comments.underReview': 'комментарий под {vote} отзывом {author}',
+    'comments.underReview': 'под {vote} отзывом {author}',
     'comments.reviewExcerpt': 'из отзыва: &laquo;{text}&raquo;',
     'comments.openProfile': '&#8599; профиль автора',
+    'comments.openReview': '&#8599; открыть отзыв и комментарии в Steam',
+    'comments.newCount': '&#128172; +{count} новых комментариев',
+    'comments.countLine': 'Комментариев под отзывом: {count} (было {prev})',
     'comments.pagePrev': '&larr; назад',
     'comments.pageNext': 'вперёд &rarr;',
     'comments.pageOf': 'стр. {page} / {total}',
@@ -124,6 +127,12 @@ const I18N = {
     'filters.negative': 'Негатив',
     'filters.playtimeBucket': 'Playtime bucket',
     'filters.any': 'Любой',
+    'filters.dateRange': 'Дата отзыва',
+    'filters.datePreset': 'Быстрый выбор',
+    'filters.preset24h': 'Последние 24ч',
+    'filters.preset7d': 'Последние 7д',
+    'filters.preset30d': 'Последние 30д',
+    'filters.preset90d': 'Последние 90д',
     'filters.minScore': 'Мин. suspicion score',
     'filters.onlyLabel': 'Только',
     'filters.suspiciousOnly': '&#128681; Подозрительные',
@@ -228,19 +237,22 @@ const I18N = {
     'reasons.desc': "What the dataset's suspicion score is made up of.",
     'reasons.none': 'No flags found',
 
-    'comments.title': 'Latest comments on reviews',
-    'comments.desc': 'Actual Steam comment text posted under player reviews (not the reviews themselves, but the discussion beneath them). Updates alongside the rest of the data.',
+    'comments.title': 'New comments on reviews',
+    'comments.desc': "Steam won't serve comment text anonymously (a logged-in account is required), so this only tracks new comments appearing (the counter going up) &mdash; with a direct link to the review page.",
     'comments.refresh': 'refresh list',
-    'comments.searchLabel': 'Search text',
+    'comments.searchLabel': 'Search review text',
     'comments.searchPlaceholder': 'substring&hellip;',
-    'comments.searchNickLabel': 'Search by comment author',
+    'comments.searchNickLabel': 'Search by review author',
     'comments.searchNickPlaceholder': 'nickname&hellip;',
-    'comments.resultCount': '<b>{count}</b> comments found (out of {total} total)',
-    'comments.empty': 'No comments found for the current filters',
+    'comments.resultCount': '<b>{count}</b> events found (out of {total} total)',
+    'comments.empty': 'No events found for the current filters',
     'comments.noData': "Comment data hasn't been collected yet &mdash; it will appear after the next collection run.",
-    'comments.underReview': 'comment on a {vote} review by {author}',
+    'comments.underReview': 'on a {vote} review by {author}',
     'comments.reviewExcerpt': 'from the review: &laquo;{text}&raquo;',
     'comments.openProfile': '&#8599; author profile',
+    'comments.openReview': '&#8599; open review and comments on Steam',
+    'comments.newCount': '&#128172; +{count} new comments',
+    'comments.countLine': 'Comments on this review: {count} (was {prev})',
     'comments.pagePrev': '&larr; prev',
     'comments.pageNext': 'next &rarr;',
     'comments.pageOf': 'page {page} / {total}',
@@ -289,6 +301,12 @@ const I18N = {
     'filters.negative': 'Negative',
     'filters.playtimeBucket': 'Playtime bucket',
     'filters.any': 'Any',
+    'filters.dateRange': 'Review date',
+    'filters.datePreset': 'Quick range',
+    'filters.preset24h': 'Last 24h',
+    'filters.preset7d': 'Last 7d',
+    'filters.preset30d': 'Last 30d',
+    'filters.preset90d': 'Last 90d',
     'filters.minScore': 'Min. suspicion score',
     'filters.onlyLabel': 'Only',
     'filters.suspiciousOnly': '&#128681; Suspicious',
@@ -408,6 +426,8 @@ const state = {
     devResponseOnly: false,
     devResponseFrom: '',
     devResponseTo: '',
+    dateFrom: '',
+    dateTo: '',
     search: '',
     searchNick: '',
   },
@@ -421,8 +441,45 @@ const commentsState = {
   filters: {
     search: '',
     searchNick: '',
+    dateFrom: '',
+    dateTo: '',
   },
 };
+
+// Turns a 'YYYY-MM-DD' <input type=date> value + which edge it represents
+// into a Unix-seconds boundary, for comparing against either a raw
+// unix-seconds field (timestamp_created) or an ISO-string field
+// (last_increase_at, converted to unix-seconds at the call site first).
+// 'from' means start of that day, 'to' means end of that day (23:59:59)
+// so the day itself is inclusive rather than excluded by anything with a
+// nonzero time-of-day.
+function dateInputToUnix(value, edge) {
+  if (!value) return null;
+  const d = new Date(value + (edge === 'to' ? 'T23:59:59Z' : 'T00:00:00Z'));
+  return Math.floor(d.getTime() / 1000);
+}
+
+// Applies a preset ('24h'/'7d'/'30d'/'90d') by writing ISO date strings
+// into the two date <input> fields with the given id prefix, then returns
+// them so callers can also push straight into filter state without
+// waiting for a redundant 'change' event.
+function applyDatePreset(prefix, preset) {
+  const fromEl = document.getElementById(`${prefix}-date-from`);
+  const toEl = document.getElementById(`${prefix}-date-to`);
+  if (!preset) {
+    fromEl.value = '';
+    toEl.value = '';
+    return { from: '', to: '' };
+  }
+  const days = { '24h': 1, '7d': 7, '30d': 30, '90d': 90 }[preset] || 0;
+  const now = new Date();
+  const from = new Date(now.getTime() - days * 86400000);
+  const toStr = now.toISOString().slice(0, 10);
+  const fromStr = from.toISOString().slice(0, 10);
+  fromEl.value = fromStr;
+  toEl.value = toStr;
+  return { from: fromStr, to: toStr };
+}
 
 const PLAYTIME_BUCKET_ORDER = ['<1h', '1-5h', '5-20h', '20-100h', '100h+'];
 
@@ -845,6 +902,14 @@ function passesFilters(r) {
     if (f.devResponseFrom && day < f.devResponseFrom) return false;
     if (f.devResponseTo && day > f.devResponseTo) return false;
   }
+  if (f.dateFrom || f.dateTo) {
+    const created = r.timestamp_created;
+    if (created === undefined || created === null) return false;
+    const fromUnix = dateInputToUnix(f.dateFrom, 'from');
+    const toUnix = dateInputToUnix(f.dateTo, 'to');
+    if (fromUnix !== null && created < fromUnix) return false;
+    if (toUnix !== null && created > toUnix) return false;
+  }
   if (f.search) {
     const s = f.search.toLowerCase();
     if (!(r.review || '').toLowerCase().includes(s)) return false;
@@ -990,9 +1055,18 @@ function applyCommentsFiltersAndRender() {
   const searchLower = f.search.trim().toLowerCase();
   const nickLower = f.searchNick.trim().toLowerCase();
 
+  const fromUnix = dateInputToUnix(f.dateFrom, 'from');
+  const toUnix = dateInputToUnix(f.dateTo, 'to');
+
   commentsState.filtered = commentsState.all.filter(c => {
-    if (searchLower && !(c.text || '').toLowerCase().includes(searchLower)) return false;
-    if (nickLower && !(c.author_name || '').toLowerCase().includes(nickLower)) return false;
+    if (nickLower && !(c.review_author_personaname || '').toLowerCase().includes(nickLower)) return false;
+    if (searchLower && !(c.review_excerpt || '').toLowerCase().includes(searchLower)) return false;
+    if (fromUnix !== null || toUnix !== null) {
+      const eventUnix = c.last_increase_at ? Math.floor(new Date(c.last_increase_at).getTime() / 1000) : null;
+      if (eventUnix === null) return false;
+      if (fromUnix !== null && eventUnix < fromUnix) return false;
+      if (toUnix !== null && eventUnix > toUnix) return false;
+    }
     return true;
   });
   commentsState.page = 1;
@@ -1020,25 +1094,26 @@ function renderComments() {
   const pageItems = filtered.slice(startIdx, startIdx + commentsState.pageSize);
 
   listEl.innerHTML = pageItems.map(c => {
-    const author = c.author_name ? escapeHtml(c.author_name) : t('comments.anonAuthor');
-    const authorHtml = c.author_profile_url
-      ? `<a class="comment-author" href="${escapeHtml(c.author_profile_url)}" target="_blank" rel="noopener">${author}</a>`
-      : `<span class="comment-author">${author}</span>`;
     const voteWord = c.review_voted_up ? t('comments.voteUp') : t('comments.voteDown');
     const voteCls = c.review_voted_up ? 'vote-up' : 'vote-down';
     const reviewAuthor = c.review_author_personaname ? escapeHtml(c.review_author_personaname) : t('comments.anonAuthor');
     const excerpt = c.review_excerpt ? escapeHtml(c.review_excerpt) : '';
+    const eventTime = c.last_increase_at ? fmtCommentDate(Math.floor(new Date(c.last_increase_at).getTime() / 1000)) : '—';
+    const linkHtml = c.review_url
+      ? `<a class="comment-author" href="${escapeHtml(c.review_url)}" target="_blank" rel="noopener">${t('comments.openReview')}</a>`
+      : '';
 
     return `
       <div class="comment-card">
         <div class="comment-head">
-          ${authorHtml}
-          <span class="comment-time">${fmtCommentDate(c.timestamp)}</span>
+          <span class="comment-author">${t('comments.newCount', { count: c.new_comments_detected || 0 })}</span>
+          <span class="comment-time">${eventTime}</span>
         </div>
-        <div class="comment-text">${escapeHtml(c.text || '')}</div>
+        <div class="comment-text">${t('comments.countLine', { count: c.comment_count || 0, prev: c.previous_comment_count || 0 })}</div>
         <div class="comment-context">
           ${t('comments.underReview', { vote: `<b class="${voteCls}">${voteWord}</b>`, author: `<b>${reviewAuthor}</b>` })}
           ${excerpt ? `<br>${t('comments.reviewExcerpt', { text: excerpt })}` : ''}
+          ${linkHtml ? `<br>${linkHtml}` : ''}
         </div>
       </div>
     `;
@@ -1066,6 +1141,14 @@ function bindCommentsControls() {
   });
   document.getElementById('comments-search-nick').addEventListener('input', e => {
     commentsState.filters.searchNick = e.target.value;
+    applyCommentsFiltersAndRender();
+  });
+  document.getElementById('comments-date-from').addEventListener('change', e => {
+    commentsState.filters.dateFrom = e.target.value;
+    applyCommentsFiltersAndRender();
+  });
+  document.getElementById('comments-date-to').addEventListener('change', e => {
+    commentsState.filters.dateTo = e.target.value;
     applyCommentsFiltersAndRender();
   });
   document.getElementById('comments-refresh').addEventListener('click', () => {
@@ -1214,6 +1297,23 @@ function bindControls() {
     applyFiltersAndRender();
   });
 
+  document.getElementById('filter-date-from').addEventListener('change', e => {
+    state.filters.dateFrom = e.target.value;
+    document.getElementById('filter-date-preset').value = ''; // manual edit overrides any preset
+    applyFiltersAndRender();
+  });
+  document.getElementById('filter-date-to').addEventListener('change', e => {
+    state.filters.dateTo = e.target.value;
+    document.getElementById('filter-date-preset').value = '';
+    applyFiltersAndRender();
+  });
+  document.getElementById('filter-date-preset').addEventListener('change', e => {
+    const { from, to } = applyDatePreset('filter', e.target.value);
+    state.filters.dateFrom = from;
+    state.filters.dateTo = to;
+    applyFiltersAndRender();
+  });
+
   let searchTimer;
   document.getElementById('filter-search').addEventListener('input', e => {
     clearTimeout(searchTimer);
@@ -1236,7 +1336,8 @@ function bindControls() {
     state.filters = {
       vote: new Set(['all', 'up', 'down']),
       bucket: '', minScore: 0, suspiciousOnly: false, freeOnly: false, dupeOnly: false, editedOnly: false,
-      devResponseOnly: false, devResponseFrom: '', devResponseTo: '', search: '', searchNick: '',
+      devResponseOnly: false, devResponseFrom: '', devResponseTo: '', dateFrom: '', dateTo: '',
+      search: '', searchNick: '',
     };
     document.getElementById('filter-bucket').value = '';
     document.getElementById('filter-minscore').value = 0;
@@ -1245,6 +1346,9 @@ function bindControls() {
     document.getElementById('filter-devresponse-from').value = '';
     document.getElementById('filter-devresponse-to').value = '';
     document.getElementById('field-devresponse-date').style.display = 'none';
+    document.getElementById('filter-date-from').value = '';
+    document.getElementById('filter-date-to').value = '';
+    document.getElementById('filter-date-preset').value = '';
     document.querySelectorAll('#filter-vote .chip').forEach(c => c.classList.add('active'));
     document.getElementById('filter-suspicious-only').classList.remove('active');
     document.getElementById('filter-free-only').classList.remove('active');
