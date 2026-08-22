@@ -121,7 +121,17 @@ jobs:
             --out docs/reviews/comments.json \
             --recent-out docs/reviews/recent-comments.json \
             --sleep 1.0 \
+            --debug-dump-first tmp/comments_debug_first.json \
             --report-out tmp/report_comments.json
+
+      - name: Upload comment-fetch debug dump
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comments-debug-dump
+          path: tmp/comments_debug_first.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Commit and push updated data
         if: always()
