@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-22T11:13:35Z",
+  "generated_at": "2026-08-22T11:47:10Z",
   "appid": "4369490",
   "top_suspicious": [
     {
@@ -16,6 +16,22 @@
       "playtime_at_review_minutes": 15,
       "timestamp_created": 1784669674,
       "review_excerpt": "Game honestly is genuinely cool reviews are from a niche community offended they pivoted to not being an NFT game anymore... lol enough said there. And its an indie MMO so server issues make sense on "
+    },
+    {
+      "recommendationid": "230985563",
+      "steamid": "76561198038870645",
+      "profile_url": "https://steamcommunity.com/profiles/76561198038870645",
+      "suspicion_score": 48,
+      "suspicion_reasons": [
+        "prolific_reviewer_few_games",
+        "posted_during_review_burst",
+        "edited_days_later",
+        "low_effort_text"
+      ],
+      "voted_up": true,
+      "playtime_at_review_minutes": 30268,
+      "timestamp_created": 1784648245,
+      "review_excerpt": "Ok overall."
     },
     {
       "recommendationid": "231020618",
