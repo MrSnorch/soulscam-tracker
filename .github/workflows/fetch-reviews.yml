@@ -129,6 +129,29 @@ jobs:
             --recent-out docs/reviews/recent-comments.json \
             --report-out tmp/report_comments.json
 
+      - name: Check refund status on new reviews
+        # The "Product refunded" tag IS visible anonymously (confirmed
+        # against a real review page), unlike comment text - it's rendered
+        # server-side into the public review page HTML for anyone. But
+        # it's NOT in the appreviews JSON API at all (checked against the
+        # official docs), so this scrapes the per-review HTML page
+        # directly - one request per review, since Steam has no bulk
+        # endpoint for this. Only reviews not yet in docs/reviews/refunds.json
+        # get checked each run (see --limit), so a normal run only pays for
+        # reviews new since last time, not the whole history.
+        if: always()
+        run: |
+          if [ ! -f docs/reviews/latest.json ]; then
+            echo "docs/reviews/latest.json missing, skipping"
+            exit 0
+          fi
+          python scripts/reviews/fetch_refund_status.py \
+            --reviews-in docs/reviews/latest.json \
+            --out docs/reviews/refunds.json \
+            --limit 150 \
+            --sleep 1.5 \
+            --report-out tmp/report_refunds.json
+
       - name: Commit and push updated data
         if: always()
         run: |
@@ -177,4 +200,5 @@ jobs:
             --snapshot tmp/report_snapshot.json \
             --steam-summary tmp/report_steam.json \
             --comments tmp/report_comments.json \
+            --refunds tmp/report_refunds.json \
             >> "$GITHUB_STEP_SUMMARY"
