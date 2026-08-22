@@ -60,7 +60,6 @@ def main():
     ap.add_argument("--analyze", default=None)
     ap.add_argument("--snapshot", default=None)
     ap.add_argument("--steam-summary", default=None)
-    ap.add_argument("--comments", default=None)
     args = ap.parse_args()
 
     fetch = load(args.fetch)
@@ -68,7 +67,6 @@ def main():
     analyze = load(args.analyze)
     snapshot = load(args.snapshot)
     steam_summary = load(args.steam_summary)
-    comments = load(args.comments)
 
     lines = []
     lines.append("## 📊 Review Watch — отчёт о запуске\n")
@@ -177,18 +175,8 @@ def main():
     else:
         lines.append("⚠️ Отчёт о публикации не найден — данные сайта могли не обновиться\n")
 
-    # --- comment threads step ---
-    lines.append("### 6️⃣ Комментарии под отзывами")
-    if comments and comments.get("ok"):
-        lines.append(
-            f"✅ Проверено отзывов с комментариями: **{comments.get('reviews_with_comments_checked', 0)}**  \n"
-            f"Успешно собрано тредов: **{comments.get('reviews_with_comments_fetched', 0)}**  \n"
-            f"Всего текстов комментариев: **{comments.get('comments_fetched', 0)}**\n"
-        )
-    elif comments and not comments.get("ok"):
-        lines.append(f"❌ Ошибка сбора комментариев: `{comments.get('error', 'unknown')}`\n")
-    else:
-        lines.append("⚠️ Отчёт о сборе комментариев не найден\n")
+    # --- comment threads: tracked by the separate fetch-comments.yml
+    # workflow now, not here (see that workflow / write_comments_summary.py) ---
 
     overall_ok = all(
         r is None or r.get("ok", False)
