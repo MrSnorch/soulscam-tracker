@@ -39,6 +39,7 @@ Usage:
 """
 import argparse
 import html as html_lib
+import http.cookiejar
 import json
 import os
 import re
@@ -56,6 +57,40 @@ HEADERS = {
 }
 
 COMMENT_URL = "https://steamcommunity.com/comment/Recommendation/render/{steamid}/{recid}/"
+
+# Steam's comment-render endpoint expects a sessionid matching the
+# anonymous session cookie it hands out on any normal page load - without
+# it the endpoint can silently respond success=1 with an empty/short
+# comments_html instead of erroring, which is why "0 comments everywhere"
+# can happen with no visible HTTP error. We do one GET against the store
+# front page first (via a cookiejar-backed opener) purely to pick up that
+# cookie, then reuse the jar/opener for every comment request below.
+_cookie_jar = http.cookiejar.CookieJar()
+_opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_cookie_jar))
+
+
+def get_session_id(max_retries: int = 3) -> str:
+    """GET steamcommunity.com once to obtain an anonymous `sessionid` cookie,
+    which the comment-render endpoint requires to return real data."""
+    req = urllib.request.Request("https://steamcommunity.com/", headers=HEADERS)
+    backoff = 2.0
+    for attempt in range(1, max_retries + 1):
+        try:
+            with _opener.open(req, timeout=20) as resp:
+                resp.read()
+            for cookie in _cookie_jar:
+                if cookie.name == "sessionid":
+                    return cookie.value
+            print("  [warn] no sessionid cookie found after GET /", file=sys.stderr)
+            return ""
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+            print(f"  [warn] session-id GET attempt {attempt}/{max_retries} failed: {e}", file=sys.stderr)
+            if attempt == max_retries:
+                return ""
+            time.sleep(backoff)
+            backoff *= 2
+    return ""
+
 
 # One comment block, non-greedy up to the next block or end of list.
 COMMENT_BLOCK_RE = re.compile(
@@ -82,13 +117,14 @@ TAG_RE = re.compile(r"<[^>]+>")
 
 
 def http_post(url: str, data: dict, max_retries: int = 4) -> dict | None:
-    """POST form-encoded data, return parsed JSON or None on failure."""
+    """POST form-encoded data using the shared cookiejar opener, return
+    parsed JSON or None on failure."""
     body = urllib.parse.urlencode(data).encode("utf-8")
     backoff = 2.0
     for attempt in range(1, max_retries + 1):
         req = urllib.request.Request(url, data=body, headers=HEADERS, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
+            with _opener.open(req, timeout=20) as resp:
                 raw = resp.read()
                 return json.loads(raw)
         except urllib.error.HTTPError as e:
@@ -153,7 +189,8 @@ def parse_comments_html(comments_html: str, recommendationid: str, review_steami
 
 
 def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: float,
-                               count: int = 100) -> tuple[list[dict], int | None]:
+                               session_id: str, count: int = 100,
+                               debug_dump_path: str | None = None) -> tuple[list[dict], int | None]:
     """Returns (comments, total_count). total_count is Steam's reported
     total so callers can tell if pagination is needed (rare for reviews -
     comment threads under reviews are typically short)."""
@@ -164,7 +201,24 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
 
     while True:
         url = COMMENT_URL.format(steamid=steamid, recid=recommendationid)
-        payload = http_post(url, {"start": start, "count": count, "sessionid": ""})
+        payload = http_post(url, {"start": start, "count": count, "sessionid": session_id})
+
+        if debug_dump_path and start == 0:
+            # One-shot raw dump of the very first request/response this run,
+            # so a "0 comments everywhere" failure can be diagnosed from the
+            # CI artifact instead of guessing blind - see --debug-dump-first.
+            try:
+                with open(debug_dump_path, "w", encoding="utf-8") as f:
+                    json.dump({
+                        "url": url,
+                        "steamid": steamid,
+                        "recommendationid": recommendationid,
+                        "session_id_present": bool(session_id),
+                        "payload": payload,
+                    }, f, ensure_ascii=False, indent=2)
+            except OSError:
+                pass
+
         if not payload or not payload.get("success"):
             break
         total_count = payload.get("total_count", total_count)
@@ -209,6 +263,9 @@ def main():
     ap.add_argument("--sleep", type=float, default=1.0)
     ap.add_argument("--max-reviews", type=int, default=None,
                      help="safety cap on how many distinct reviews to hit per run")
+    ap.add_argument("--debug-dump-first", default=None,
+                     help="optional path to dump the raw first request/response JSON, "
+                          "for diagnosing a run that unexpectedly fetches 0 comments everywhere")
     ap.add_argument("--report-out", default=None)
     args = ap.parse_args()
 
@@ -230,11 +287,15 @@ def main():
     error = None
     fetched_reviews = 0
     fetched_comments = 0
+    session_id = get_session_id()
+    print(f"Obtained sessionid: {'<empty>' if not session_id else session_id[:6] + '...'}")
     try:
         for i, r in enumerate(candidates, 1):
             recid = r["recommendationid"]
             steamid = r["steamid"]
-            comments, total_count = fetch_comments_for_review(steamid, recid, args.sleep)
+            dump_path = args.debug_dump_first if i == 1 else None
+            comments, total_count = fetch_comments_for_review(steamid, recid, args.sleep, session_id,
+                                                                debug_dump_path=dump_path)
             if comments:
                 data["by_recommendationid"][recid] = {
                     "recommendationid": recid,
