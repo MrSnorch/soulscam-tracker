@@ -99,29 +99,34 @@
           <h2 data-i18n="comments.title">Новые комментарии под отзывами</h2>
           <p class="desc" data-i18n-html="comments.desc">Steam не отдаёт текст комментариев анонимно (нужен залогиненный аккаунт), поэтому здесь отслеживается только факт появления новых комментариев (счётчик вырос) — с прямой ссылкой на страницу отзыва, где можно прочитать их самому.</p>
         </div>
-        <button class="reset-link" id="comments-refresh" data-i18n="comments.refresh">обновить список</button>
+        <div style="display:flex; gap:8px; flex-shrink:0;">
+          <button class="reset-link" id="comments-refresh" data-i18n="comments.refresh">обновить список</button>
+          <button class="collapse-toggle" id="comments-collapse-toggle" data-target="comments-body" aria-expanded="true"><span class="chevron">&#9660;</span><span data-i18n="panel.toggle">свернуть</span></button>
+        </div>
       </div>
-      <div class="filters">
-        <div class="field">
-          <label data-i18n="comments.searchLabel">Поиск по тексту отзыва</label>
-          <input type="text" id="comments-search" data-i18n-placeholder="comments.searchPlaceholder" placeholder="подстрока&hellip;">
-        </div>
-        <div class="field">
-          <label data-i18n="comments.searchNickLabel">Поиск по автору отзыва</label>
-          <input type="text" id="comments-search-nick" data-i18n-placeholder="comments.searchNickPlaceholder" placeholder="ник&hellip;">
-        </div>
-        <div class="field">
-          <label data-i18n="filters.dateRange">Дата</label>
-          <div style="display:flex; gap:6px; align-items:center;">
-            <input type="date" id="comments-date-from">
-            <span style="color:var(--text-dimmer);">—</span>
-            <input type="date" id="comments-date-to">
+      <div class="collapsible-body" id="comments-body">
+        <div class="filters">
+          <div class="field">
+            <label data-i18n="comments.searchLabel">Поиск по тексту отзыва</label>
+            <input type="text" id="comments-search" data-i18n-placeholder="comments.searchPlaceholder" placeholder="подстрока&hellip;">
+          </div>
+          <div class="field">
+            <label data-i18n="comments.searchNickLabel">Поиск по автору отзыва</label>
+            <input type="text" id="comments-search-nick" data-i18n-placeholder="comments.searchNickPlaceholder" placeholder="ник&hellip;">
+          </div>
+          <div class="field">
+            <label data-i18n="filters.dateRange">Дата</label>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="date" id="comments-date-from">
+              <span style="color:var(--text-dimmer);">—</span>
+              <input type="date" id="comments-date-to">
+            </div>
           </div>
         </div>
+        <div class="result-count" id="comments-result-count"></div>
+        <div id="comments-list" class="comments-list"></div>
+        <div class="pagination" id="comments-pagination"></div>
       </div>
-      <div class="result-count" id="comments-result-count"></div>
-      <div id="comments-list" class="comments-list"></div>
-      <div class="pagination" id="comments-pagination"></div>
     </section>
 
     <section class="panel" id="devresponse-panel" style="display:none;">
@@ -130,28 +135,31 @@
           <h2 data-i18n="devPanel.title">Ответы разработчика</h2>
           <p class="desc" data-i18n-html="devPanel.desc">Все отзывы, на которые ответил разработчик в Steam, отдельным списком — с текстом отзыва и датой ответа.</p>
         </div>
+        <button class="collapse-toggle" id="devresponse-collapse-toggle" data-target="devresponse-body" aria-expanded="true"><span class="chevron">&#9660;</span><span data-i18n="panel.toggle">свернуть</span></button>
       </div>
-      <div class="filters">
-        <div class="field">
-          <label data-i18n="devPanel.searchLabel">Поиск по тексту</label>
-          <input type="text" id="devresponse-search" data-i18n-placeholder="devPanel.searchPlaceholder" placeholder="подстрока&hellip;">
-        </div>
-        <div class="field">
-          <label data-i18n="devPanel.searchNickLabel">Поиск по автору отзыва</label>
-          <input type="text" id="devresponse-search-nick" data-i18n-placeholder="devPanel.searchNickPlaceholder" placeholder="ник&hellip;">
-        </div>
-        <div class="field">
-          <label data-i18n="filters.devResponseDate">Дата ответа разработчика</label>
-          <div style="display:flex; gap:6px; align-items:center;">
-            <input type="date" id="devresponse-date-from">
-            <span style="color:var(--text-dimmer);">—</span>
-            <input type="date" id="devresponse-date-to">
+      <div class="collapsible-body" id="devresponse-body">
+        <div class="filters">
+          <div class="field">
+            <label data-i18n="devPanel.searchLabel">Поиск по тексту</label>
+            <input type="text" id="devresponse-search" data-i18n-placeholder="devPanel.searchPlaceholder" placeholder="подстрока&hellip;">
+          </div>
+          <div class="field">
+            <label data-i18n="devPanel.searchNickLabel">Поиск по автору отзыва</label>
+            <input type="text" id="devresponse-search-nick" data-i18n-placeholder="devPanel.searchNickPlaceholder" placeholder="ник&hellip;">
+          </div>
+          <div class="field">
+            <label data-i18n="filters.devResponseDate">Дата ответа разработчика</label>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input type="date" id="devresponse-date-from">
+              <span style="color:var(--text-dimmer);">—</span>
+              <input type="date" id="devresponse-date-to">
+            </div>
           </div>
         </div>
+        <div class="result-count" id="devresponse-result-count"></div>
+        <div id="devresponse-list" class="comments-list"></div>
+        <div class="pagination" id="devresponse-pagination"></div>
       </div>
-      <div class="result-count" id="devresponse-result-count"></div>
-      <div id="devresponse-list" class="comments-list"></div>
-      <div class="pagination" id="devresponse-pagination"></div>
     </section>
 
     <section class="panel">
@@ -160,9 +168,13 @@
           <h2 data-i18n="table.title">Все отзывы</h2>
           <p class="desc" data-i18n-html="table.desc">Полная таблица с фильтрами и сортировкой. Клик по строке — разворачивает текст и метаданные.</p>
         </div>
-        <button class="csv-btn" id="export-csv" data-i18n="table.exportCsv">Экспорт CSV (текущий фильтр)</button>
+        <div style="display:flex; gap:8px; flex-shrink:0;">
+          <button class="csv-btn" id="export-csv" data-i18n="table.exportCsv">Экспорт CSV (текущий фильтр)</button>
+          <button class="collapse-toggle" id="table-collapse-toggle" data-target="table-body-wrap" aria-expanded="true"><span class="chevron">&#9660;</span><span data-i18n="panel.toggle">свернуть</span></button>
+        </div>
       </div>
 
+      <div class="collapsible-body" id="table-body-wrap">
       <div class="filters">
         <div class="field">
           <label data-i18n="filters.type">Тип</label>
@@ -253,6 +265,7 @@
       </div>
 
       <div class="pagination" id="pagination"></div>
+      </div>
     </section>
 
   </div>
