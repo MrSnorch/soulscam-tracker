@@ -138,7 +138,127 @@ def fetch_review_page_html(steamid: str, recommendationid: str, max_retries: int
 # Set via the PROXY_URL env var (e.g. a GitHub secret) to route requests
 # through a proxy instead of the runner's own IP - e.g.
 # "http://user:pass@host:port". Empty/unset means no proxy (direct).
+#
+# If PROXY_URL isn't set, we fall back to AUTO_PROXY: pull a batch of free
+# public HTTP proxies from GitHub-hosted lists (updated every few minutes
+# by their own scrapers) and test each one against a *known* review that
+# has comments, until we find one that actually returns the comment
+# thread block (not just "connects OK" - a proxy that connects but still
+# gets the datacenter-stripped page is useless to us). Most free proxies
+# are dead or are themselves datacenter IPs already blocked by the same
+# Akamai rule, so this is a best-effort scan, not a guarantee.
 PROXY_URL = os.environ.get("PROXY_URL", "").strip()
+AUTO_PROXY = os.environ.get("AUTO_PROXY", "1").strip() not in ("0", "false", "False", "")
+
+# A review known (as of writing) to have a real, publicly visible comment
+# thread - used only to *validate* a candidate proxy actually gets the
+# full page through, not to fetch real data for the dataset.
+_PROXY_TEST_STEAMID = "76561198139136627"
+_PROXY_TEST_RECID = "231090656"
+
+# Free proxy lists hosted on GitHub, refreshed on a schedule by their own
+# maintainers. Plain "ip:port" HTTP proxies, one per line / one per JSON
+# entry depending on source.
+FREE_PROXY_LIST_URLS = [
+    "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt",
+    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
+    "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+]
+
+_auto_proxy_cache: dict[str, str | None] = {}
+
+
+def _fetch_free_proxy_candidates(limit: int = 40) -> list[str]:
+    """Pull a deduplicated batch of candidate 'http://ip:port' proxies
+    from the public GitHub-hosted lists above. Best-effort: a list source
+    that's down or empty is skipped, not fatal."""
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for url in FREE_PROXY_LIST_URLS:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": HEADERS["User-Agent"]})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                text = resp.read().decode("utf-8", errors="replace")
+        except Exception as e:
+            print(f"  [warn] couldn't fetch proxy list {url}: {e}", file=sys.stderr)
+            continue
+        for line in text.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            # normalize "ip:port" -> "http://ip:port"; ignore anything
+            # that already has a scheme other than http
+            if "://" not in line:
+                line = "http://" + line
+            if not line.startswith("http://"):
+                continue
+            if line in seen:
+                continue
+            seen.add(line)
+            candidates.append(line)
+        if len(candidates) >= limit:
+            break
+    return candidates[:limit]
+
+
+def _proxy_returns_full_page(proxy_url: str, timeout: int = 10) -> bool:
+    """Test one proxy against a review known to have comments. Returns
+    True only if the response actually contains the comment thread
+    marker - a proxy that merely connects but still gets the stripped
+    datacenter-flavored page is not useful and must not be selected."""
+    test_url = (
+        f"https://steamcommunity.com/profiles/{_PROXY_TEST_STEAMID}"
+        f"/recommended/{_PROXY_TEST_RECID}"
+    )
+    try:
+        opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({"https": proxy_url, "http": proxy_url})
+        )
+        req = urllib.request.Request(test_url, headers=HEADERS)
+        with opener.open(req, timeout=timeout) as resp:
+            raw = resp.read()
+            if resp.headers.get("Content-Encoding") == "gzip":
+                import gzip
+                raw = gzip.decompress(raw)
+            html = raw.decode("utf-8", errors="replace")
+            return "commentthread_comment" in html
+    except Exception:
+        return False
+
+
+def _find_working_free_proxy(max_candidates_to_try: int = 25) -> str | None:
+    """Scan free public proxy lists for one that actually gets through
+    with the full comment thread intact. Cached for the life of the
+    process so we don't re-scan per review."""
+    if "result" in _auto_proxy_cache:
+        return _auto_proxy_cache["result"]
+
+    print("  [auto-proxy] no PROXY_URL set - scanning free public proxy lists...")
+    candidates = _fetch_free_proxy_candidates(limit=max_candidates_to_try)
+    print(f"  [auto-proxy] {len(candidates)} candidate proxies pulled, testing...")
+
+    for i, proxy in enumerate(candidates, 1):
+        if _proxy_returns_full_page(proxy):
+            print(f"  [auto-proxy] found working proxy after {i}/{len(candidates)} tries: "
+                  f"{proxy.split('@')[-1]}")
+            _auto_proxy_cache["result"] = proxy
+            return proxy
+
+    print(f"  [auto-proxy] none of {len(candidates)} free proxies worked - "
+          f"falling back to direct connection.")
+    _auto_proxy_cache["result"] = None
+    return None
+
+
+def get_effective_proxy() -> str | None:
+    """Returns the proxy URL to use: explicit PROXY_URL takes priority,
+    otherwise auto-discovers a free one (if AUTO_PROXY is enabled),
+    otherwise None (direct connection)."""
+    if PROXY_URL:
+        return PROXY_URL
+    if AUTO_PROXY:
+        return _find_working_free_proxy()
+    return None
 
 
 def _fetch_via_browser(review_url: str) -> str | None:
@@ -153,8 +273,9 @@ def _fetch_via_browser(review_url: str) -> str | None:
     try:
         with sync_playwright() as p:
             launch_kwargs = {}
-            if PROXY_URL:
-                launch_kwargs["proxy"] = {"server": PROXY_URL}
+            proxy = get_effective_proxy()
+            if proxy:
+                launch_kwargs["proxy"] = {"server": proxy}
             browser = p.chromium.launch(**launch_kwargs)
             page = browser.new_page(
                 user_agent=HEADERS["User-Agent"],
@@ -171,10 +292,11 @@ def _fetch_via_browser(review_url: str) -> str | None:
 
 def _fetch_via_urllib(review_url: str, max_retries: int) -> str | None:
     opener = _opener
-    if PROXY_URL:
+    proxy = get_effective_proxy()
+    if proxy:
         opener = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor(_cookie_jar),
-            urllib.request.ProxyHandler({"https": PROXY_URL, "http": PROXY_URL}),
+            urllib.request.ProxyHandler({"https": proxy, "http": proxy}),
         )
     backoff = 2.0
     for attempt in range(1, max_retries + 1):
@@ -395,7 +517,13 @@ def main():
     fetched_comments = 0
     session_id = get_session_id()
     print(f"Obtained sessionid: {'<empty>' if not session_id else session_id[:6] + '...'}")
-    print(f"Proxy: {'set (host=' + PROXY_URL.split('@')[-1] + ')' if PROXY_URL else 'not set (direct connection)'}")
+    _effective_proxy = get_effective_proxy()
+    if PROXY_URL:
+        print(f"Proxy: explicit PROXY_URL set (host={PROXY_URL.split('@')[-1]})")
+    elif _effective_proxy:
+        print(f"Proxy: auto-discovered free proxy (host={_effective_proxy.split('@')[-1]})")
+    else:
+        print("Proxy: none available - direct connection (datacenter IP, comments may come back empty)")
     # Dump the review with the highest comment_count, not just the first
     # candidate - the first candidate can have comment_count as low as 1
     # (nothing wrong there, just not representative), which made earlier
