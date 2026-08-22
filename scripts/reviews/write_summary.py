@@ -60,6 +60,7 @@ def main():
     ap.add_argument("--analyze", default=None)
     ap.add_argument("--snapshot", default=None)
     ap.add_argument("--steam-summary", default=None)
+    ap.add_argument("--comments", default=None)
     args = ap.parse_args()
 
     fetch = load(args.fetch)
@@ -67,6 +68,7 @@ def main():
     analyze = load(args.analyze)
     snapshot = load(args.snapshot)
     steam_summary = load(args.steam_summary)
+    comments = load(args.comments)
 
     lines = []
     lines.append("## 📊 Review Watch — отчёт о запуске\n")
@@ -175,8 +177,19 @@ def main():
     else:
         lines.append("⚠️ Отчёт о публикации не найден — данные сайта могли не обновиться\n")
 
-    # --- comment threads: tracked by the separate fetch-comments.yml
-    # workflow now, not here (see that workflow / write_comments_summary.py) ---
+    # --- comment threads: presence-only, no scraped text (see
+    # fetch_review_comments.py's docstring for why) ---
+    lines.append("### 6️⃣ Новые комментарии под отзывами")
+    if comments and comments.get("ok"):
+        lines.append(
+            f"Отзывов проверено: **{comments.get('reviews_checked', 0)}**  \n"
+            f"Отзывов с комментариями (всего): **{comments.get('reviews_with_comments', 0)}**  \n"
+            f"🆕 Новых комментариев обнаружено за этот запуск: **{comments.get('new_comments_detected', 0)}**\n"
+        )
+    elif comments and not comments.get("ok"):
+        lines.append(f"❌ Ошибка отслеживания комментариев: `{comments.get('error', 'unknown')}`\n")
+    else:
+        lines.append("⚠️ Отчёт об отслеживании комментариев не найден\n")
 
     overall_ok = all(
         r is None or r.get("ok", False)
