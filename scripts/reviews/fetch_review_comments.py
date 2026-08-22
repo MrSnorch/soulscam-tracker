@@ -111,19 +111,20 @@ def fetch_review_page_html(steamid: str, recommendationid: str, max_retries: int
     CI logs: 58/58 reviews, including public ones, all failed the same
     way).
 
-    Fetching the review page itself via urllib doesn't work either, even
-    with headers copied verbatim from a real browser's HAR capture
-    (User-Agent, Accept, Accept-Language, Referer) - the page comes back
-    ~33KB shorter with no comment thread block at all, while the same
-    URL in an actual (even logged-out/incognito) browser includes it.
-    That points at TLS/JA3-level fingerprinting on Steam's Akamai edge
-    rather than anything visible in HTTP headers - no header we send
-    from urllib changes the outcome, because urllib's TLS handshake
-    itself doesn't look like a real browser's, and headers can't fix
-    that. So we drive a real headless browser (Playwright/Chromium)
-    instead, which presents a real TLS fingerprint and gets the same
-    page a human would. Falls back to the plain urllib GET if Playwright
-    isn't installed, in case someone runs this script without it.
+    Fetching the review page itself doesn't work either, even with
+    headers copied verbatim from a real browser's HAR capture, and even
+    through a real headless Chromium (Playwright) with a genuine TLS
+    fingerprint - the page comes back ~33KB shorter with no comment
+    thread block at all, while the same URL from a residential IP
+    (confirmed via that same HAR, an ordinary logged-out browser
+    session) includes it, and a captured HAR of that session shows the
+    full comment thread arriving in the *initial* HTML response, with
+    no follow-up XHR/fetch for it - so this isn't a JS-timing issue
+    either. That leaves the CI runner's datacenter IP: Akamai (Steam's
+    CDN) is known to quietly degrade/strip content for datacenter IP
+    ranges without an explicit block. PROXY_URL (below) routes the
+    request through a proxy to test that theory - set it to bypass the
+    runner's own IP.
     """
     review_url = f"https://steamcommunity.com/profiles/{steamid}/recommended/{recommendationid}"
 
@@ -132,6 +133,12 @@ def fetch_review_page_html(steamid: str, recommendationid: str, max_retries: int
         return html
 
     return _fetch_via_urllib(review_url, max_retries)
+
+
+# Set via the PROXY_URL env var (e.g. a GitHub secret) to route requests
+# through a proxy instead of the runner's own IP - e.g.
+# "http://user:pass@host:port". Empty/unset means no proxy (direct).
+PROXY_URL = os.environ.get("PROXY_URL", "").strip()
 
 
 def _fetch_via_browser(review_url: str) -> str | None:
@@ -145,7 +152,10 @@ def _fetch_via_browser(review_url: str) -> str | None:
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch()
+            launch_kwargs = {}
+            if PROXY_URL:
+                launch_kwargs["proxy"] = {"server": PROXY_URL}
+            browser = p.chromium.launch(**launch_kwargs)
             page = browser.new_page(
                 user_agent=HEADERS["User-Agent"],
                 extra_http_headers={"Accept-Language": HEADERS["Accept-Language"]},
@@ -160,11 +170,17 @@ def _fetch_via_browser(review_url: str) -> str | None:
 
 
 def _fetch_via_urllib(review_url: str, max_retries: int) -> str | None:
+    opener = _opener
+    if PROXY_URL:
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(_cookie_jar),
+            urllib.request.ProxyHandler({"https": PROXY_URL, "http": PROXY_URL}),
+        )
     backoff = 2.0
     for attempt in range(1, max_retries + 1):
         req = urllib.request.Request(review_url, headers=HEADERS)
         try:
-            with _opener.open(req, timeout=20) as resp:
+            with opener.open(req, timeout=20) as resp:
                 raw = resp.read()
                 if resp.headers.get("Content-Encoding") == "gzip":
                     import gzip
@@ -289,27 +305,17 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
 
     if debug_dump_path:
         try:
-            # Grab the region around the comments block (or "Comments" text
-            # if the block marker itself isn't present) instead of just the
-            # first 2000 chars - the comment thread sits well past the page
-            # <head>, so a flat head-of-file snippet never actually shows
-            # it. Fall back to head-of-file only if neither marker is found.
-            snippet = None
-            if html:
-                anchor = html.find("commentthread_comments")
-                if anchor == -1:
-                    anchor = html.find("Comments")
-                if anchor != -1:
-                    start = max(0, anchor - 500)
-                    snippet = html[start:start + 4000]
-                else:
-                    snippet = html[:2000]
+            # Dump the full HTML this time - the page is small (~80-110KB)
+            # and prior snippet-around-a-marker dumps came back empty both
+            # times, meaning neither "commentthread_comments" nor "Comments"
+            # appear anywhere in what CI actually receives. Need to see the
+            # whole thing to tell what page this even is.
             with open(debug_dump_path, "w", encoding="utf-8") as f:
                 json.dump({
                     "steamid": steamid,
                     "recommendationid": recommendationid,
                     "html_len": len(html) if html else 0,
-                    "html_snippet": snippet,
+                    "html_full": html,
                 }, f, ensure_ascii=False, indent=2)
         except OSError:
             pass
@@ -389,14 +395,22 @@ def main():
     fetched_comments = 0
     session_id = get_session_id()
     print(f"Obtained sessionid: {'<empty>' if not session_id else session_id[:6] + '...'}")
+    print(f"Proxy: {'set (host=' + PROXY_URL.split('@')[-1] + ')' if PROXY_URL else 'not set (direct connection)'}")
+    # Dump the review with the highest comment_count, not just the first
+    # candidate - the first candidate can have comment_count as low as 1
+    # (nothing wrong there, just not representative), which made earlier
+    # debug dumps misleading about what a real comment thread looks like.
+    dump_recid = None
+    if candidates:
+        dump_recid = max(candidates, key=lambda r: r.get("comment_count") or 0)["recommendationid"]
     try:
         for i, r in enumerate(candidates, 1):
             recid = r["recommendationid"]
             steamid = r["steamid"]
-            dump_path = args.debug_dump_first if i == 1 else None
+            dump_path = args.debug_dump_first if recid == dump_recid else None
             comments, total_count = fetch_comments_for_review(steamid, recid, args.sleep, session_id,
                                                                 debug_dump_path=dump_path,
-                                                                debug_print=(i == 1))
+                                                                debug_print=(i == 1 or recid == dump_recid))
             if comments:
                 data["by_recommendationid"][recid] = {
                     "recommendationid": recid,
