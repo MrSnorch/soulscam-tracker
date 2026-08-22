@@ -92,21 +92,41 @@ def get_session_id(max_retries: int = 3) -> str:
     return ""
 
 
-def warm_up_review_page(steamid: str, recommendationid: str) -> str:
-    """GET the actual review page before POSTing to the comment-render
-    endpoint. Steam's anonymous comment endpoint returns the misleading
-    "This profile is private." error for *every* request - regardless of
-    the review author's actual visibility - when the request doesn't carry
-    a Referer/cookie context matching a real visit to that review page
-    first. Returns the URL to use as Referer for the follow-up POST."""
+def fetch_review_page_html(steamid: str, recommendationid: str, max_retries: int = 4) -> str | None:
+    """GET the review page itself and return its HTML.
+
+    We used to POST to comment/Recommendation/render/ for comment data,
+    but that AJAX endpoint requires a real logged-in session - an
+    anonymous sessionid gets "This profile is private." on every request,
+    regardless of the review author's actual visibility (confirmed via
+    CI logs: 58/58 reviews, including public ones, all failed the same
+    way). The review page itself, by contrast, server-renders its first
+    batch of comments (up to Steam's per-page limit) into the page HTML
+    with no login required - the same markup, just reachable without an
+    authenticated AJAX call. We parse that instead.
+    """
     review_url = f"https://steamcommunity.com/profiles/{steamid}/recommended/{recommendationid}/"
-    req = urllib.request.Request(review_url, headers=HEADERS)
-    try:
-        with _opener.open(req, timeout=20) as resp:
-            resp.read()
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
-        print(f"  [warn] warm-up GET failed for {review_url}: {e}", file=sys.stderr)
-    return review_url
+    backoff = 2.0
+    for attempt in range(1, max_retries + 1):
+        req = urllib.request.Request(review_url, headers=HEADERS)
+        try:
+            with _opener.open(req, timeout=20) as resp:
+                return resp.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 429):
+                print(f"  [warn] HTTP {e.code} on {review_url}, backing off {backoff:.0f}s", file=sys.stderr)
+                time.sleep(backoff)
+                backoff *= 2
+                continue
+            print(f"  [warn] HTTP {e.code} on {review_url}", file=sys.stderr)
+            return None
+        except (urllib.error.URLError, TimeoutError) as e:
+            print(f"  [warn] attempt {attempt}/{max_retries} failed on {review_url}: {e}", file=sys.stderr)
+            if attempt == max_retries:
+                return None
+            time.sleep(backoff)
+            backoff *= 2
+    return None
 
 
 # One comment block, non-greedy up to the next block or end of list.
@@ -131,36 +151,6 @@ TEXT_RE = re.compile(
     re.DOTALL,
 )
 TAG_RE = re.compile(r"<[^>]+>")
-
-
-def http_post(url: str, data: dict, referer: str, max_retries: int = 4) -> dict | None:
-    """POST form-encoded data using the shared cookiejar opener, return
-    parsed JSON or None on failure. `referer` should be the actual review
-    page URL - see warm_up_review_page()."""
-    body = urllib.parse.urlencode(data).encode("utf-8")
-    headers = {**HEADERS, "Referer": referer}
-    backoff = 2.0
-    for attempt in range(1, max_retries + 1):
-        req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-        try:
-            with _opener.open(req, timeout=20) as resp:
-                raw = resp.read()
-                return json.loads(raw)
-        except urllib.error.HTTPError as e:
-            if e.code in (403, 429):
-                print(f"  [warn] HTTP {e.code} on {url}, backing off {backoff:.0f}s", file=sys.stderr)
-                time.sleep(backoff)
-                backoff *= 2
-                continue
-            print(f"  [warn] HTTP {e.code} on {url}", file=sys.stderr)
-            return None
-        except (urllib.error.URLError, json.JSONDecodeError, TimeoutError) as e:
-            print(f"  [warn] attempt {attempt}/{max_retries} failed on {url}: {e}", file=sys.stderr)
-            if attempt == max_retries:
-                return None
-            time.sleep(backoff)
-            backoff *= 2
-    return None
 
 
 def clean_text(raw_html: str) -> str:
@@ -211,82 +201,48 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
                                session_id: str, count: int = 100,
                                debug_dump_path: str | None = None,
                                debug_print: bool = False) -> tuple[list[dict], int | None]:
-    """Returns (comments, total_count). total_count is Steam's reported
-    total so callers can tell if pagination is needed (rare for reviews -
-    comment threads under reviews are typically short)."""
-    all_comments: list[dict] = []
-    start = 0
-    total_count = None
-    seen_ids: set[str] = set()
-    referer = warm_up_review_page(steamid, recommendationid)
+    """Returns (comments, total_count).
 
-    while True:
-        url = COMMENT_URL.format(steamid=steamid, recid=recommendationid)
-        payload = http_post(url, {
-            "start": start,
-            "count": count,
-            "sessionid": session_id,
-            "feature2": -1,
-        }, referer=referer)
+    Pulls comments from the server-rendered review page HTML rather than
+    the comment/Recommendation/render AJAX endpoint - that endpoint
+    requires a real logged-in session and returns "This profile is
+    private." for every anonymous request regardless of the review
+    author's actual visibility. total_count is unknown from the page
+    (Steam doesn't expose it there), so it's None; the page only includes
+    the comments Steam chose to render, which may be fewer than the
+    review's full comment_count for threads with many comments (no
+    anonymous-accessible pagination beyond this without a logged-in
+    session).
+    """
+    html = fetch_review_page_html(steamid, recommendationid)
 
-        if debug_print and start == 0:
-            # Print the raw first response to stdout (not just the debug
-            # dump file) so it's visible directly in the CI step log
-            # without needing to download the separate artifact.
-            print(f"  [debug] raw payload for {recommendationid}: "
-                  f"{json.dumps(payload, ensure_ascii=False)[:500]}")
-        elif start == 0 and payload and not payload.get("success"):
-            # Always surface *why* a review was skipped (private profile,
-            # deleted review, etc.) even without full debug mode - this is
-            # one short line per review, cheap enough to always print, and
-            # is exactly the info needed to tell "nothing to fetch" apart
-            # from "something is broken".
-            print(f"    [info] {recommendationid}: success=false, "
-                  f"error={payload.get('error')!r}")
+    if debug_print:
+        print(f"  [debug] page fetch for {recommendationid}: "
+              f"{'got ' + str(len(html)) + ' chars' if html else 'FAILED'}")
 
-        if debug_dump_path and start == 0:
-            # One-shot raw dump of the very first request/response this run,
-            # so a "0 comments everywhere" failure can be diagnosed from the
-            # CI artifact instead of guessing blind - see --debug-dump-first.
-            try:
-                with open(debug_dump_path, "w", encoding="utf-8") as f:
-                    json.dump({
-                        "url": url,
-                        "steamid": steamid,
-                        "recommendationid": recommendationid,
-                        "session_id_present": bool(session_id),
-                        "payload": payload,
-                    }, f, ensure_ascii=False, indent=2)
-            except OSError:
-                pass
+    if debug_dump_path:
+        try:
+            with open(debug_dump_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "steamid": steamid,
+                    "recommendationid": recommendationid,
+                    "html_len": len(html) if html else 0,
+                    "html_snippet": (html[:2000] if html else None),
+                }, f, ensure_ascii=False, indent=2)
+        except OSError:
+            pass
 
-        if not payload or not payload.get("success"):
-            break
-        total_count = payload.get("total_count", total_count)
-        comments_html = payload.get("comments_html") or ""
-        batch = parse_comments_html(comments_html, recommendationid, steamid)
-        if debug_print and start == 0 and comments_html and not batch:
-            # Steam returned HTML but our regex extracted nothing from it -
-            # this points at a markup/parser mismatch rather than "no
-            # comments exist", worth distinguishing in the log.
-            print(f"  [debug] comments_html non-empty ({len(comments_html)} chars) but parser "
-                  f"extracted 0 comments - markup may have changed. First 300 chars: "
-                  f"{comments_html[:300]!r}")
-        new_batch = [c for c in batch if c["comment_id"] not in seen_ids]
-        if not new_batch:
-            break
-        for c in new_batch:
-            seen_ids.add(c["comment_id"])
-        all_comments.extend(new_batch)
+    if not html:
+        return [], None
 
-        if total_count is not None and len(all_comments) >= total_count:
-            break
-        if len(batch) < count:
-            break
-        start += count
-        time.sleep(sleep_s)
+    comments = parse_comments_html(html, recommendationid, steamid)
+    if debug_print and not comments:
+        print(f"  [debug] page HTML fetched ({len(html)} chars) but parser "
+              f"extracted 0 comments - markup may have changed or comments "
+              f"aren't inlined in the page.")
 
-    return all_comments, total_count
+    time.sleep(sleep_s)
+    return comments, None
 
 
 def load_existing(path: str) -> dict:
