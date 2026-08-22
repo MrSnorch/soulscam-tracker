@@ -215,6 +215,14 @@ def fetch_comments_for_review(steamid: str, recommendationid: str, sleep_s: floa
             # without needing to download the separate artifact.
             print(f"  [debug] raw payload for {recommendationid}: "
                   f"{json.dumps(payload, ensure_ascii=False)[:500]}")
+        elif start == 0 and payload and not payload.get("success"):
+            # Always surface *why* a review was skipped (private profile,
+            # deleted review, etc.) even without full debug mode - this is
+            # one short line per review, cheap enough to always print, and
+            # is exactly the info needed to tell "nothing to fetch" apart
+            # from "something is broken".
+            print(f"    [info] {recommendationid}: success=false, "
+                  f"error={payload.get('error')!r}")
 
         if debug_dump_path and start == 0:
             # One-shot raw dump of the very first request/response this run,
@@ -297,6 +305,20 @@ def main():
                   and r.get("steamid") and r.get("recommendationid")]
     if args.max_reviews:
         candidates = candidates[:args.max_reviews]
+
+    # Steam's comment-render endpoint 403s with "This profile is private"
+    # for any review whose author has a private profile - there's no way
+    # around that anonymously, so skip those up front rather than wasting
+    # a request (and a log line) on a guaranteed failure. account_visibility
+    # comes from enrich_accounts.py; 3 = public, 2 = friends-only (also
+    # blocked), 1 = private. Reviews without this field (enrichment didn't
+    # run) are still attempted, since we can't tell in advance.
+    skipped_private = [r for r in candidates if r.get("account_visibility") in (1, 2)]
+    candidates = [r for r in candidates if r.get("account_visibility") not in (1, 2)]
+    if skipped_private:
+        print(f"Skipping {len(skipped_private)} reviews upfront: author profile is "
+              f"private or friends-only (account_visibility 1/2) - Steam blocks "
+              f"anonymous comment access to these regardless of the review itself.")
 
     print(f"Fetching comment threads for {len(candidates)} reviews "
           f"(out of {len(reviews)} total reviews)...")
