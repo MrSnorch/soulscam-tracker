@@ -63,6 +63,26 @@ const I18N = {
     'reasons.desc': 'Из чего складывается suspicion score по датасету.',
     'reasons.none': 'Флагов не найдено',
 
+    'comments.title': 'Последние комментарии под отзывами',
+    'comments.desc': 'Реальные тексты комментариев Steam, оставленных под отзывами игроков (не сами отзывы, а обсуждение под ними). Обновляется вместе с остальными данными.',
+    'comments.refresh': 'обновить список',
+    'comments.searchLabel': 'Поиск по тексту',
+    'comments.searchPlaceholder': 'подстрока&hellip;',
+    'comments.searchNickLabel': 'Поиск по автору комментария',
+    'comments.searchNickPlaceholder': 'ник&hellip;',
+    'comments.resultCount': '<b>{count}</b> комментариев найдено (из {total} всего)',
+    'comments.empty': 'Комментариев не найдено под текущие фильтры',
+    'comments.noData': 'Данные о комментариях ещё не собраны &mdash; появятся после следующего запуска сбора.',
+    'comments.underReview': 'комментарий под {vote} отзывом {author}',
+    'comments.reviewExcerpt': 'из отзыва: &laquo;{text}&raquo;',
+    'comments.openProfile': '&#8599; профиль автора',
+    'comments.pagePrev': '&larr; назад',
+    'comments.pageNext': 'вперёд &rarr;',
+    'comments.pageOf': 'стр. {page} / {total}',
+    'comments.voteUp': 'позитивным',
+    'comments.voteDown': 'негативным',
+    'comments.anonAuthor': '(аноним)',
+
     'table.title': 'Все отзывы',
     'table.desc': 'Полная таблица с фильтрами и сортировкой. Клик по строке &mdash; разворачивает текст и метаданные.',
     'table.exportCsv': 'Экспорт CSV (текущий фильтр)',
@@ -207,6 +227,26 @@ const I18N = {
     'reasons.title': 'Flag reasons',
     'reasons.desc': "What the dataset's suspicion score is made up of.",
     'reasons.none': 'No flags found',
+
+    'comments.title': 'Latest comments on reviews',
+    'comments.desc': 'Actual Steam comment text posted under player reviews (not the reviews themselves, but the discussion beneath them). Updates alongside the rest of the data.',
+    'comments.refresh': 'refresh list',
+    'comments.searchLabel': 'Search text',
+    'comments.searchPlaceholder': 'substring&hellip;',
+    'comments.searchNickLabel': 'Search by comment author',
+    'comments.searchNickPlaceholder': 'nickname&hellip;',
+    'comments.resultCount': '<b>{count}</b> comments found (out of {total} total)',
+    'comments.empty': 'No comments found for the current filters',
+    'comments.noData': "Comment data hasn't been collected yet &mdash; it will appear after the next collection run.",
+    'comments.underReview': 'comment on a {vote} review by {author}',
+    'comments.reviewExcerpt': 'from the review: &laquo;{text}&raquo;',
+    'comments.openProfile': '&#8599; author profile',
+    'comments.pagePrev': '&larr; prev',
+    'comments.pageNext': 'next &rarr;',
+    'comments.pageOf': 'page {page} / {total}',
+    'comments.voteUp': 'positive',
+    'comments.voteDown': 'negative',
+    'comments.anonAuthor': '(anonymous)',
 
     'table.title': 'All reviews',
     'table.desc': 'Full table with filters and sorting. Click a row to expand its text and metadata.',
@@ -373,6 +413,17 @@ const state = {
   },
 };
 
+const commentsState = {
+  all: [],       // flat list from recent-comments.json, newest first
+  filtered: [],
+  page: 1,
+  pageSize: 25,
+  filters: {
+    search: '',
+    searchNick: '',
+  },
+};
+
 const PLAYTIME_BUCKET_ORDER = ['<1h', '1-5h', '5-20h', '20-100h', '100h+'];
 
 function fmtHours(minutes) {
@@ -400,6 +451,23 @@ async function loadData(appid) {
   const res = await fetch(path, { cache: 'no-store' });
   if (!res.ok) throw new Error(t('error.fetchFailed', { path, status: res.status }));
   return res.json();
+}
+
+async function loadRecentComments(appid) {
+  // recent-comments.json is a flat, newest-first list of individually
+  // scraped Steam comment threads (see fetch_review_comments.py). It's
+  // written alongside latest.json but as a separate file since not every
+  // reviews.json snapshot (older ones, or a custom --appid one someone
+  // points at) will necessarily have a matching comments file.
+  const path = appid ? `reviews/${appid}-comments.json` : 'reviews/recent-comments.json';
+  try {
+    const res = await fetch(path, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return Array.isArray(json.comments) ? json.comments : null;
+  } catch {
+    return null;
+  }
 }
 
 async function loadHistory() {
@@ -450,6 +518,7 @@ function init() {
       applyFiltersAndRender();
       bindControls();
       renderSteamCrossCheck(data.summary);
+      initCommentsPanel(appidParam);
       loadHistory().then(hist => {
         if (hist) {
           document.getElementById('history-panel').style.display = 'block';
@@ -906,6 +975,122 @@ function detailHtml(r) {
       </div>
     </td></tr>
   `;
+}
+
+// --- comments panel -------------------------------------------------------
+
+function fmtCommentDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  return d.toISOString().slice(0, 16).replace('T', ' ');
+}
+
+function applyCommentsFiltersAndRender() {
+  const f = commentsState.filters;
+  const searchLower = f.search.trim().toLowerCase();
+  const nickLower = f.searchNick.trim().toLowerCase();
+
+  commentsState.filtered = commentsState.all.filter(c => {
+    if (searchLower && !(c.text || '').toLowerCase().includes(searchLower)) return false;
+    if (nickLower && !(c.author_name || '').toLowerCase().includes(nickLower)) return false;
+    return true;
+  });
+  commentsState.page = 1;
+  renderComments();
+}
+
+function renderComments() {
+  const listEl = document.getElementById('comments-list');
+  const countEl = document.getElementById('comments-result-count');
+  const pagEl = document.getElementById('comments-pagination');
+
+  const total = commentsState.all.length;
+  const filtered = commentsState.filtered;
+  countEl.innerHTML = t('comments.resultCount', { count: filtered.length, total });
+
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="empty">${t('comments.empty')}</div>`;
+    pagEl.innerHTML = '';
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / commentsState.pageSize));
+  commentsState.page = Math.min(commentsState.page, totalPages);
+  const startIdx = (commentsState.page - 1) * commentsState.pageSize;
+  const pageItems = filtered.slice(startIdx, startIdx + commentsState.pageSize);
+
+  listEl.innerHTML = pageItems.map(c => {
+    const author = c.author_name ? escapeHtml(c.author_name) : t('comments.anonAuthor');
+    const authorHtml = c.author_profile_url
+      ? `<a class="comment-author" href="${escapeHtml(c.author_profile_url)}" target="_blank" rel="noopener">${author}</a>`
+      : `<span class="comment-author">${author}</span>`;
+    const voteWord = c.review_voted_up ? t('comments.voteUp') : t('comments.voteDown');
+    const voteCls = c.review_voted_up ? 'vote-up' : 'vote-down';
+    const reviewAuthor = c.review_author_personaname ? escapeHtml(c.review_author_personaname) : t('comments.anonAuthor');
+    const excerpt = c.review_excerpt ? escapeHtml(c.review_excerpt) : '';
+
+    return `
+      <div class="comment-card">
+        <div class="comment-head">
+          ${authorHtml}
+          <span class="comment-time">${fmtCommentDate(c.timestamp)}</span>
+        </div>
+        <div class="comment-text">${escapeHtml(c.text || '')}</div>
+        <div class="comment-context">
+          ${t('comments.underReview', { vote: `<b class="${voteCls}">${voteWord}</b>`, author: `<b>${reviewAuthor}</b>` })}
+          ${excerpt ? `<br>${t('comments.reviewExcerpt', { text: excerpt })}` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (totalPages > 1) {
+    pagEl.innerHTML = `
+      <button ${commentsState.page <= 1 ? 'disabled' : ''} id="comments-page-prev">${t('comments.pagePrev')}</button>
+      <span>${t('comments.pageOf', { page: commentsState.page, total: totalPages })}</span>
+      <button ${commentsState.page >= totalPages ? 'disabled' : ''} id="comments-page-next">${t('comments.pageNext')}</button>
+    `;
+    const prevBtn = document.getElementById('comments-page-prev');
+    const nextBtn = document.getElementById('comments-page-next');
+    if (prevBtn) prevBtn.addEventListener('click', () => { commentsState.page--; renderComments(); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { commentsState.page++; renderComments(); });
+  } else {
+    pagEl.innerHTML = '';
+  }
+}
+
+function bindCommentsControls() {
+  document.getElementById('comments-search').addEventListener('input', e => {
+    commentsState.filters.search = e.target.value;
+    applyCommentsFiltersAndRender();
+  });
+  document.getElementById('comments-search-nick').addEventListener('input', e => {
+    commentsState.filters.searchNick = e.target.value;
+    applyCommentsFiltersAndRender();
+  });
+  document.getElementById('comments-refresh').addEventListener('click', () => {
+    location.reload();
+  });
+}
+
+function initCommentsPanel(appidParam) {
+  loadRecentComments(appidParam).then(comments => {
+    const panel = document.getElementById('comments-panel');
+    if (!comments || !comments.length) {
+      // Still show the panel with a clear "no data yet" message rather than
+      // hiding it entirely - otherwise it looks like the feature is missing
+      // instead of just not having run yet.
+      panel.style.display = 'block';
+      document.getElementById('comments-list').innerHTML = `<div class="empty">${t('comments.noData')}</div>`;
+      document.getElementById('comments-result-count').textContent = '';
+      return;
+    }
+    commentsState.all = comments;
+    commentsState.filtered = comments;
+    panel.style.display = 'block';
+    renderComments();
+    bindCommentsControls();
+  });
 }
 
 function bindRowClicks() {

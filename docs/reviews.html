@@ -93,6 +93,29 @@
       </section>
     </div>
 
+    <section class="panel" id="comments-panel" style="display:none;">
+      <div class="panel-head-row">
+        <div>
+          <h2 data-i18n="comments.title">Последние комментарии под отзывами</h2>
+          <p class="desc" data-i18n-html="comments.desc">Реальные тексты комментариев Steam, оставленных под отзывами игроков (не сами отзывы, а обсуждение под ними). Обновляется вместе с остальными данными.</p>
+        </div>
+        <button class="reset-link" id="comments-refresh" data-i18n="comments.refresh">обновить список</button>
+      </div>
+      <div class="filters">
+        <div class="field">
+          <label data-i18n="comments.searchLabel">Поиск по тексту</label>
+          <input type="text" id="comments-search" data-i18n-placeholder="comments.searchPlaceholder" placeholder="подстрока&hellip;">
+        </div>
+        <div class="field">
+          <label data-i18n="comments.searchNickLabel">Поиск по автору комментария</label>
+          <input type="text" id="comments-search-nick" data-i18n-placeholder="comments.searchNickPlaceholder" placeholder="ник&hellip;">
+        </div>
+      </div>
+      <div class="result-count" id="comments-result-count"></div>
+      <div id="comments-list" class="comments-list"></div>
+      <div class="pagination" id="comments-pagination"></div>
+    </section>
+
     <section class="panel">
       <div class="panel-head-row">
         <div>

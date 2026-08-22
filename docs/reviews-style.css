@@ -591,3 +591,61 @@ footer a { color: var(--text-dim); }
   gap: 16px;
   flex-wrap: wrap;
 }
+
+/* ---------- comments list ---------- */
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.comment-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  padding: 12px 14px;
+}
+
+.comment-card:hover { background: var(--bg-panel-hover); }
+
+.comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.comment-author {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+.comment-author:hover { color: var(--green); }
+
+.comment-time { color: var(--text-dimmer); }
+
+.comment-text {
+  font-size: 13px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comment-context {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.comment-context b { color: var(--text-dim); }
+
+.comment-context .vote-up { color: var(--green); }
+.comment-context .vote-down { color: var(--red); }
