@@ -1245,6 +1245,9 @@ function renderDevResponses() {
     const author = r.personaname ? escapeHtml(r.personaname) : t('comments.anonAuthor');
     const reviewExcerpt = r.review ? escapeHtml(r.review.slice(0, 300)) : '';
     const respondedTime = r.timestamp_dev_responded ? fmtCommentDate(r.timestamp_dev_responded) : '—';
+    const linkHtml = (r.steamid && state.data.appid)
+      ? `<a class="comment-author" href="https://steamcommunity.com/profiles/${r.steamid}/recommended/${state.data.appid}" target="_blank" rel="noopener">${t('table.openInSteam')}</a>`
+      : '';
 
     return `
       <div class="comment-card">
@@ -1256,6 +1259,7 @@ function renderDevResponses() {
         <div class="comment-context">
           ${t('devPanel.underReview', { vote: `<b class="${voteCls}">${voteWord}</b>` })}
           ${reviewExcerpt ? `<br>${t('comments.reviewExcerpt', { text: reviewExcerpt })}` : ''}
+          ${linkHtml ? `<br>${linkHtml}` : ''}
         </div>
       </div>
     `;
