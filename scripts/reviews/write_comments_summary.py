@@ -31,9 +31,9 @@ def main():
         return
 
     if r.get("ok"):
-        print(f"✅ Проверено отзывов с комментариями: **{r.get('reviews_with_comments_checked', 0)}**  ")
-        print(f"Успешно собрано тредов: **{r.get('reviews_with_comments_fetched', 0)}**  ")
-        print(f"Всего текстов комментариев: **{r.get('comments_fetched', 0)}**")
+        print(f"✅ Проверено отзывов: **{r.get('reviews_checked', 0)}**  ")
+        print(f"Отзывов с комментариями (всего): **{r.get('reviews_with_comments', 0)}**  ")
+        print(f"Новых комментариев обнаружено за этот запуск: **{r.get('new_comments_detected', 0)}**")
     else:
         print(f"❌ Ошибка: `{r.get('error', 'unknown')}`")
 
