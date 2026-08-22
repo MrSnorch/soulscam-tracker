@@ -175,12 +175,13 @@ def _fetch_free_proxy_candidates(limit: int = 40) -> list[str]:
     candidates: list[str] = []
     seen: set[str] = set()
     for url in FREE_PROXY_LIST_URLS:
+        print(f"  [auto-proxy] fetching list: {url}", flush=True)
         try:
             req = urllib.request.Request(url, headers={"User-Agent": HEADERS["User-Agent"]})
             with urllib.request.urlopen(req, timeout=15) as resp:
                 text = resp.read().decode("utf-8", errors="replace")
         except Exception as e:
-            print(f"  [warn] couldn't fetch proxy list {url}: {e}", file=sys.stderr)
+            print(f"  [warn] couldn't fetch proxy list {url}: {e}", file=sys.stderr, flush=True)
             continue
         for line in text.splitlines():
             line = line.strip()
@@ -201,15 +202,23 @@ def _fetch_free_proxy_candidates(limit: int = 40) -> list[str]:
     return candidates[:limit]
 
 
-def _proxy_returns_full_page(proxy_url: str, timeout: int = 10) -> bool:
+def _proxy_returns_full_page(proxy_url: str, timeout: int = 6) -> bool:
     """Test one proxy against a review known to have comments. Returns
     True only if the response actually contains the comment thread
     marker - a proxy that merely connects but still gets the stripped
-    datacenter-flavored page is not useful and must not be selected."""
+    datacenter-flavored page is not useful and must not be selected.
+
+    Uses socket.setdefaulttimeout as a hard backstop: dead free proxies
+    often hang on the TCP connect itself rather than refusing quickly,
+    and urllib's timeout kwarg doesn't always cover that phase, which is
+    what made earlier runs look "stuck" rather than just slow."""
     test_url = (
         f"https://steamcommunity.com/profiles/{_PROXY_TEST_STEAMID}"
         f"/recommended/{_PROXY_TEST_RECID}"
     )
+    import socket
+    prev_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(timeout)
     try:
         opener = urllib.request.build_opener(
             urllib.request.ProxyHandler({"https": proxy_url, "http": proxy_url})
@@ -224,30 +233,63 @@ def _proxy_returns_full_page(proxy_url: str, timeout: int = 10) -> bool:
             return "commentthread_comment" in html
     except Exception:
         return False
+    finally:
+        socket.setdefaulttimeout(prev_timeout)
 
 
-def _find_working_free_proxy(max_candidates_to_try: int = 25) -> str | None:
+def _find_working_free_proxy(max_candidates_to_try: int = 25, overall_deadline_s: float = 90.0) -> str | None:
     """Scan free public proxy lists for one that actually gets through
     with the full comment thread intact. Cached for the life of the
-    process so we don't re-scan per review."""
+    process so we don't re-scan per review.
+
+    Tests candidates concurrently (most free proxies are dead and would
+    otherwise burn max_candidates_to_try * timeout seconds serially) and
+    gives up after overall_deadline_s regardless of how many candidates
+    were checked, so a bad proxy list can't stall the whole job."""
     if "result" in _auto_proxy_cache:
         return _auto_proxy_cache["result"]
 
-    print("  [auto-proxy] no PROXY_URL set - scanning free public proxy lists...")
+    print("  [auto-proxy] no PROXY_URL set - scanning free public proxy lists...", flush=True)
     candidates = _fetch_free_proxy_candidates(limit=max_candidates_to_try)
-    print(f"  [auto-proxy] {len(candidates)} candidate proxies pulled, testing...")
+    print(f"  [auto-proxy] {len(candidates)} candidate proxies pulled, testing "
+          f"(up to {overall_deadline_s:.0f}s total)...", flush=True)
 
-    for i, proxy in enumerate(candidates, 1):
-        if _proxy_returns_full_page(proxy):
-            print(f"  [auto-proxy] found working proxy after {i}/{len(candidates)} tries: "
-                  f"{proxy.split('@')[-1]}")
-            _auto_proxy_cache["result"] = proxy
-            return proxy
+    if not candidates:
+        print("  [auto-proxy] no candidates available - falling back to direct connection.", flush=True)
+        _auto_proxy_cache["result"] = None
+        return None
 
-    print(f"  [auto-proxy] none of {len(candidates)} free proxies worked - "
-          f"falling back to direct connection.")
-    _auto_proxy_cache["result"] = None
-    return None
+    import concurrent.futures
+    start = time.monotonic()
+    checked = 0
+    found: str | None = None
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(10, len(candidates))) as pool:
+        future_to_proxy = {pool.submit(_proxy_returns_full_page, p): p for p in candidates}
+        try:
+            for fut in concurrent.futures.as_completed(future_to_proxy, timeout=overall_deadline_s):
+                proxy = future_to_proxy[fut]
+                checked += 1
+                elapsed = time.monotonic() - start
+                try:
+                    ok = fut.result()
+                except Exception:
+                    ok = False
+                print(f"  [auto-proxy] [{checked}/{len(candidates)}, {elapsed:.0f}s] "
+                      f"{proxy.split('@')[-1]}: {'OK' if ok else 'failed'}", flush=True)
+                if ok:
+                    found = proxy
+                    break
+        except concurrent.futures.TimeoutError:
+            print(f"  [auto-proxy] overall deadline ({overall_deadline_s:.0f}s) reached, "
+                  f"stopping scan ({checked}/{len(candidates)} checked).", flush=True)
+
+    if found:
+        print(f"  [auto-proxy] using {found.split('@')[-1]}", flush=True)
+    else:
+        print(f"  [auto-proxy] none of {checked} tested proxies worked - "
+              f"falling back to direct connection.", flush=True)
+    _auto_proxy_cache["result"] = found
+    return found
 
 
 def get_effective_proxy() -> str | None:
