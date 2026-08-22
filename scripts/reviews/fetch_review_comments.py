@@ -109,12 +109,57 @@ def fetch_review_page_html(steamid: str, recommendationid: str, max_retries: int
     anonymous sessionid gets "This profile is private." on every request,
     regardless of the review author's actual visibility (confirmed via
     CI logs: 58/58 reviews, including public ones, all failed the same
-    way). The review page itself, by contrast, server-renders its first
-    batch of comments (up to Steam's per-page limit) into the page HTML
-    with no login required - the same markup, just reachable without an
-    authenticated AJAX call. We parse that instead.
+    way).
+
+    Fetching the review page itself via urllib doesn't work either, even
+    with headers copied verbatim from a real browser's HAR capture
+    (User-Agent, Accept, Accept-Language, Referer) - the page comes back
+    ~33KB shorter with no comment thread block at all, while the same
+    URL in an actual (even logged-out/incognito) browser includes it.
+    That points at TLS/JA3-level fingerprinting on Steam's Akamai edge
+    rather than anything visible in HTTP headers - no header we send
+    from urllib changes the outcome, because urllib's TLS handshake
+    itself doesn't look like a real browser's, and headers can't fix
+    that. So we drive a real headless browser (Playwright/Chromium)
+    instead, which presents a real TLS fingerprint and gets the same
+    page a human would. Falls back to the plain urllib GET if Playwright
+    isn't installed, in case someone runs this script without it.
     """
     review_url = f"https://steamcommunity.com/profiles/{steamid}/recommended/{recommendationid}"
+
+    html = _fetch_via_browser(review_url)
+    if html is not None:
+        return html
+
+    return _fetch_via_urllib(review_url, max_retries)
+
+
+def _fetch_via_browser(review_url: str) -> str | None:
+    """Fetch review_url with a real headless Chromium via Playwright.
+    Returns None (not an error) if Playwright isn't installed, so the
+    caller can fall back to the plain HTTP GET."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        return None
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page(
+                user_agent=HEADERS["User-Agent"],
+                extra_http_headers={"Accept-Language": HEADERS["Accept-Language"]},
+            )
+            page.goto(review_url, timeout=20000, wait_until="domcontentloaded")
+            html = page.content()
+            browser.close()
+            return html
+    except Exception as e:
+        print(f"  [warn] Playwright fetch failed for {review_url}: {e}", file=sys.stderr)
+        return None
+
+
+def _fetch_via_urllib(review_url: str, max_retries: int) -> str | None:
     backoff = 2.0
     for attempt in range(1, max_retries + 1):
         req = urllib.request.Request(review_url, headers=HEADERS)
