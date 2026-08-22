@@ -109,6 +109,20 @@ jobs:
             --steam-summary tmp/steam_summary.json \
             --report-out tmp/report_snapshot.json
 
+      - name: Fetch review comment threads
+        if: always()
+        run: |
+          if [ ! -f docs/reviews/latest.json ]; then
+            echo "docs/reviews/latest.json missing, skipping"
+            exit 0
+          fi
+          python scripts/reviews/fetch_review_comments.py \
+            --reviews-in docs/reviews/latest.json \
+            --out docs/reviews/comments.json \
+            --recent-out docs/reviews/recent-comments.json \
+            --sleep 1.0 \
+            --report-out tmp/report_comments.json
+
       - name: Commit and push updated data
         if: always()
         run: |
@@ -156,4 +170,5 @@ jobs:
             --analyze tmp/report_analyze.json \
             --snapshot tmp/report_snapshot.json \
             --steam-summary tmp/report_steam.json \
+            --comments tmp/report_comments.json \
             >> "$GITHUB_STEP_SUMMARY"
