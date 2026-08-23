@@ -49,7 +49,7 @@ jobs:
         run: |
           git config user.name "armoury-watch-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add -f docs/armoury/players.json docs/armoury/summary.json docs/armoury/duplicates.json scripts/armoury/armoury_scraper_config.json 2>/dev/null || true
+          git add -f docs/armoury/players.json docs/armoury/summary.json docs/armoury/duplicates.json docs/armoury/online-history.json docs/armoury/by-region.json scripts/armoury/armoury_scraper_config.json 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No data changes to commit."
