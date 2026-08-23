@@ -225,14 +225,18 @@ def fetch_all_comments(steamid: str, appid: str, page_size: int = 10,
         body = urllib.parse.urlencode({"start": start, "count": page_size}).encode()
         raw = _request(render_url, method="POST", data=body, extra_headers=headers)
         if raw is None:
-            return all_comments, False
+            return all_comments, False  # _request already logged the HTTP/network error
 
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError:
+            print(f"    [warn] non-JSON response from comment render endpoint "
+                  f"(page {page_num}, first 200 chars: {raw[:200]!r})", file=sys.stderr)
             return all_comments, False
 
         if not payload.get("success"):
+            print(f"    [warn] comment render endpoint returned success=false "
+                  f"(page {page_num}): {payload}", file=sys.stderr)
             return all_comments, False
 
         if total_count is None:
@@ -240,6 +244,10 @@ def fetch_all_comments(steamid: str, appid: str, page_size: int = 10,
 
         page_comments = extract_comments(payload.get("comments_html", ""))
         if not page_comments:
+            if page_num == 1 and total_count and total_count > 0:
+                print(f"    [warn] API reports total_count={total_count} but page 1 "
+                      f"parsed 0 comments - extraction regex may not match this "
+                      f"response's markup", file=sys.stderr)
             break
         all_comments.extend(page_comments)
 
@@ -407,4 +415,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
