@@ -133,7 +133,7 @@ jobs:
             --reviews-in docs/reviews/latest.json \
             --out docs/reviews/review_page_data.json \
             --recent-comments-out docs/reviews/recent-comments.json \
-            --limit 150 \
+            --limit 600 \
             --sleep 1.5 \
             --report-out tmp/report_page_data.json
 
