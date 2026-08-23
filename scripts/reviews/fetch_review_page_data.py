@@ -27,6 +27,19 @@ requires authentication - that conclusion was wrong (or Steam's behavior
 here has changed since); trust this file's docstring over any older
 comment in this repo's history that says otherwise.
 
+IMPORTANT: "anonymous" here means "no login required", not "no cookies
+required". The comment/render/ endpoint intermittently returns
+{"success": false, "error": "This profile is private."} for requests
+that carry no sessionid cookie at all (confirmed directly in CI logs -
+about half of requests with zero cookies failed this way, the rest
+succeeded). A real browser - logged in or not - always has an anonymous
+sessionid cookie the moment it loads any steamcommunity.com page, since
+Steam issues one via Set-Cookie on first visit; a bare script making
+one-off requests never picks one up unless it explicitly keeps a cookie
+jar across requests, which is what this script now does
+(ensure_session_cookie() + a shared http.cookiejar.CookieJar via
+urllib.request.HTTPCookieProcessor).
+
 The endpoint pages through the full comment thread (e.g. 10 per page,
 109 total across 11 pages for a busy review) rather than being capped at
 whatever the main review page server-renders on first load (~10), so
@@ -72,6 +85,7 @@ Usage:
         --report-out tmp/report_page_data.json
 """
 import argparse
+import http.cookiejar
 import json
 import os
 import re
@@ -84,6 +98,21 @@ from datetime import datetime, timezone
 from html import unescape
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+
+# Steam's comment/Recommendation/render/ endpoint intermittently returns
+# {"success": false, "error": "This profile is private."} for anonymous
+# requests that carry no sessionid cookie at all - seen directly in CI
+# logs, mixed in with plenty of requests that succeed with no cookie.
+# Confirmed in a real incognito browser that this endpoint DOES work
+# anonymously as long as Steam has issued that browser an anonymous
+# sessionid cookie (which it does automatically as soon as you load any
+# steamcommunity.com page, no login required) - the earlier bare
+# urllib.request calls here just never picked one up in the first place.
+# A shared cookiejar across the whole run picks up and reuses that
+# anonymous sessionid automatically via Set-Cookie, the same way a real
+# browser tab would.
+_cookie_jar = http.cookiejar.CookieJar()
+_opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_cookie_jar))
 
 REFUND_RE = re.compile(
     r'<div\s+class="refunded\s+tooltip"[^>]*>\s*Product refunded\s*</div>',
@@ -170,7 +199,7 @@ def _request(url: str, method: str = "GET", data: bytes | None = None,
     backoff = 2.0
     for attempt in range(1, max_retries + 1):
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with _opener.open(req, timeout=timeout) as resp:
                 return resp.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as e:
             if e.code == 429:
@@ -195,6 +224,16 @@ def fetch_refund_status(steamid: str, appid: str) -> bool | None:
     if html is None:
         return None
     return bool(REFUND_RE.search(html))
+
+
+def ensure_session_cookie() -> bool:
+    """Loads the plain steamcommunity.com homepage once so Steam issues an
+    anonymous sessionid via Set-Cookie into the shared cookiejar, the same
+    way a fresh incognito tab gets one just from opening the site. Returns
+    whether a sessionid cookie is present afterward (it should be, but
+    this makes the assumption checkable rather than silent)."""
+    _request("https://steamcommunity.com/")
+    return any(c.name == "sessionid" for c in _cookie_jar)
 
 
 def fetch_all_comments(steamid: str, appid: str, page_size: int = 10,
@@ -282,6 +321,13 @@ def main():
                           "already-checked reviews, or after a markup change)")
     ap.add_argument("--report-out", default=None)
     args = ap.parse_args()
+
+    have_session = ensure_session_cookie()
+    if have_session:
+        print("Anonymous session cookie acquired.")
+    else:
+        print("[warn] no sessionid cookie after warmup request - comment "
+              "fetches may fail with 'This profile is private.'", file=sys.stderr)
 
     with open(args.reviews_in, encoding="utf-8") as f:
         latest = json.load(f)
