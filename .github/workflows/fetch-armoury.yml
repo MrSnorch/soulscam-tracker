@@ -2,14 +2,28 @@ name: Fetch Armoury data
 
 # Scrapes https://soulbound.game/armoury/ for every player (all regions)
 # and writes docs/armoury/*.json for the dashboard's "real online today"
-# stat and the name-duplicates tab. Separate workflow from poll.yml (Steam
-# API player counts) and fetch-forum.yml (Steam forum scraping) - a failed
-# or slow armoury scrape shouldn't affect either of those.
+# stat, the by-server/trend charts, and the name-duplicates tab. Separate
+# workflow from poll.yml (Steam API player counts) and fetch-forum.yml
+# (Steam forum scraping) - a failed or slow armoury scrape shouldn't
+# affect either of those.
+#
+# Sharded across 5 parallel runners to keep the hourly run fast:
+#   1. list    - lists all ~2000 players once, uploads the list as an
+#                artifact.
+#   2. scrape  - matrix of 5 runners, each downloads the list and scrapes
+#                its own 400-player slice, uploads its own shard result.
+#   3. merge   - downloads all 5 shard results, stitches them into the
+#                final docs/armoury/*.json files, commits and pushes.
+#
+# Each shard runner gets the same safe fixed starting delay (see
+# scrape_shard.py) rather than sharing/adapting one rate limiter across
+# processes - 5 parallel runners land on different GitHub Actions IPs, so
+# there's nothing meaningful to coordinate between them.
 #
 # The site itself only refreshes armoury data once a day ("Data refreshes
 # daily" - see scripts/armoury/soulbound_armoury_scraper.py docstring), so
-# hourly is already more often than the underlying data changes; this is
-# for a timely "online today" figure, not to catch every update.
+# hourly is already more often than the underlying data changes; sharding
+# is purely to keep each hourly run comfortably inside its time budget.
 
 on:
   schedule:
@@ -23,10 +37,13 @@ concurrency:
   group: fetch-armoury
   cancel-in-progress: false
 
+env:
+  SHARD_SIZE: 400
+
 jobs:
-  scrape:
+  list:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     env:
       PYTHONUNBUFFERED: "1"
     steps:
@@ -41,15 +58,88 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4 --break-system-packages
 
-      - name: Scrape armoury (all regions)
-        run: python scripts/armoury/build_armoury_data.py
+      - name: List all players
+        run: python scripts/armoury/list_players.py -o players_list.json
+
+      - name: Upload player list
+        uses: actions/upload-artifact@v4
+        with:
+          name: armoury-players-list
+          path: players_list.json
+          retention-days: 1
+
+  scrape:
+    needs: list
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUNBUFFERED: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 --break-system-packages
+
+      - name: Download player list
+        uses: actions/download-artifact@v4
+        with:
+          name: armoury-players-list
+
+      - name: Scrape this shard
+        run: |
+          START=$(( ${{ matrix.shard }} * ${{ env.SHARD_SIZE }} ))
+          END=$(( START + ${{ env.SHARD_SIZE }} ))
+          python scripts/armoury/scrape_shard.py players_list.json \
+            --start "$START" --end "$END" \
+            -o "shard_${{ matrix.shard }}.json"
+
+      - name: Upload shard result
+        uses: actions/upload-artifact@v4
+        with:
+          name: armoury-shard-${{ matrix.shard }}
+          path: shard_${{ matrix.shard }}.json
+          retention-days: 1
+
+  merge:
+    needs: scrape
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download all shard results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: armoury-shard-*
+          merge-multiple: true
+
+      - name: Merge shards into dashboard data
+        run: python scripts/armoury/merge_shards.py shard_0.json shard_1.json shard_2.json shard_3.json shard_4.json
 
       - name: Commit and push updated data
         if: always()
         run: |
           git config user.name "armoury-watch-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add -f docs/armoury/players.json docs/armoury/summary.json docs/armoury/duplicates.json docs/armoury/online-history.json docs/armoury/by-region.json scripts/armoury/armoury_scraper_config.json 2>/dev/null || true
+          git add -f docs/armoury/players.json docs/armoury/summary.json docs/armoury/duplicates.json docs/armoury/online-history.json docs/armoury/by-region.json 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No data changes to commit."
