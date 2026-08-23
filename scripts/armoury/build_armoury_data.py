@@ -12,6 +12,10 @@
   "реального" онлайна, отдельная от Steam concurrent players.
 - docs/armoury/duplicates.json — группы игроков с одинаковым именем
   (без учёта регистра) на разных серверах/регионах.
+- docs/armoury/online-history.json — по одной точке {date, online, total}
+  за каждый успешный прогон (перезаписывает точку за тот же today_date,
+  если прогон уже был сегодня), хранит последние 90 дней — источник для
+  графика тренда "реальный онлайн по дням" на armoury.html.
 
 Использует ту же адаптивную задержку и сохранённый конфиг, что и сам
 скрапер (armoury_scraper_config.json рядом со скриптом).
@@ -97,6 +101,27 @@ def main():
     }
     with open(os.path.join(OUT_DIR, "summary.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
+
+    # История для графика тренда: одна точка на день, последняя точка за
+    # today_date перезаписывается каждым новым прогоном в течение дня.
+    history_path = os.path.join(OUT_DIR, "online-history.json")
+    try:
+        with open(history_path, "r", encoding="utf-8") as f:
+            history = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        history = []
+    history = [h for h in history if h["date"] != summary["today_date"]]
+    history.append({"date": summary["today_date"], "online": online_today, "total": len(players)})
+    history.sort(key=lambda h: h["date"])
+    history = history[-90:]
+    with open(history_path, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, separators=(",", ":"))
+
+    by_region = defaultdict(int)
+    for p in players:
+        by_region[p["region"]] += 1
+    with open(os.path.join(OUT_DIR, "by-region.json"), "w", encoding="utf-8") as f:
+        json.dump(dict(sorted(by_region.items(), key=lambda kv: -kv[1])), f, ensure_ascii=False, separators=(",", ":"))
 
     by_name = defaultdict(list)
     for p in players:
