@@ -237,12 +237,24 @@ def ensure_session_cookie() -> bool:
 
 
 def fetch_all_comments(steamid: str, appid: str, page_size: int = 10,
-                        max_pages: int = 15, sleep: float = 1.0) -> tuple[list[dict], bool]:
+                        max_pages: int = 15, sleep: float = 1.0,
+                        private_retries: int = 3) -> tuple[list[dict], bool]:
     """Pages through comment/Recommendation/render/ to collect every
     comment on the review. Returns (comments, complete) where `complete`
     is False if we stopped early due to max_pages or a fetch failure
     partway through - callers can use that to avoid treating a partial
-    scrape as the final word on a review's comments."""
+    scrape as the final word on a review's comments.
+
+    The endpoint intermittently answers {"success": false, "error": "This
+    profile is private."} to otherwise-identical anonymous requests (seen
+    in CI: roughly 1 in 4 requests, no discernible pattern by review or
+    profile) - this looks like a soft rate-limit or transient state on
+    Steam's side rather than an actual permission check, since the same
+    review/steamid succeeds on a later attempt. So this specific error
+    (and only this one - a real "success": false for another reason still
+    fails immediately) gets its own short retry loop with a fresh delay,
+    separate from _request's retries which only cover HTTP/network-level
+    failures and never see this since the response itself is 200 OK."""
     render_url = f"https://steamcommunity.com/comment/Recommendation/render/{steamid}/{appid}/"
     referer = f"https://steamcommunity.com/profiles/{steamid}/recommended/{appid}"
     headers = {
@@ -262,20 +274,34 @@ def fetch_all_comments(steamid: str, appid: str, page_size: int = 10,
             return all_comments, False
 
         body = urllib.parse.urlencode({"start": start, "count": page_size}).encode()
-        raw = _request(render_url, method="POST", data=body, extra_headers=headers)
-        if raw is None:
-            return all_comments, False  # _request already logged the HTTP/network error
 
-        try:
-            payload = json.loads(raw)
-        except json.JSONDecodeError:
-            print(f"    [warn] non-JSON response from comment render endpoint "
-                  f"(page {page_num}, first 200 chars: {raw[:200]!r})", file=sys.stderr)
-            return all_comments, False
+        payload = None
+        for private_attempt in range(1, private_retries + 1):
+            raw = _request(render_url, method="POST", data=body, extra_headers=headers)
+            if raw is None:
+                return all_comments, False  # _request already logged the HTTP/network error
 
-        if not payload.get("success"):
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError:
+                print(f"    [warn] non-JSON response from comment render endpoint "
+                      f"(page {page_num}, first 200 chars: {raw[:200]!r})", file=sys.stderr)
+                return all_comments, False
+
+            if payload.get("success"):
+                break
+
+            is_private_error = "private" in str(payload.get("error", "")).lower()
+            if is_private_error and private_attempt < private_retries:
+                print(f"    [warn] transient 'private profile' response "
+                      f"(page {page_num}, attempt {private_attempt}/{private_retries}) "
+                      f"- retrying", file=sys.stderr)
+                time.sleep(sleep * private_attempt)  # back off a bit more each retry
+                continue
+
             print(f"    [warn] comment render endpoint returned success=false "
-                  f"(page {page_num}): {payload}", file=sys.stderr)
+                  f"(page {page_num}, after {private_attempt} attempt(s)): {payload}",
+                  file=sys.stderr)
             return all_comments, False
 
         if total_count is None:
