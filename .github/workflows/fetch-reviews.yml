@@ -109,35 +109,19 @@ jobs:
             --steam-summary tmp/steam_summary.json \
             --report-out tmp/report_snapshot.json
 
-      - name: Detect new comments under reviews
-        # Tracks NEW COMMENT EVENTS (comment_count going up since last run),
-        # not comment text. Steam's comment-render endpoint requires an
-        # authenticated session - anonymous requests get "This profile is
-        # private" on every review regardless of IP/proxy/Tor/browser, so
-        # scraping actual comment text isn't possible here. This step needs
-        # no network access at all - it just diffs comment_count against
-        # docs/reviews/comments.json from the last run.
-        if: always()
-        run: |
-          if [ ! -f docs/reviews/latest.json ]; then
-            echo "docs/reviews/latest.json missing, skipping"
-            exit 0
-          fi
-          python scripts/reviews/fetch_review_comments.py \
-            --reviews-in docs/reviews/latest.json \
-            --out docs/reviews/comments.json \
-            --recent-out docs/reviews/recent-comments.json \
-            --report-out tmp/report_comments.json
-
-      - name: Check refund status on new reviews
-        # The "Product refunded" tag IS visible anonymously (confirmed
-        # against a real review page), unlike comment text - it's rendered
-        # server-side into the public review page HTML for anyone. But
-        # it's NOT in the appreviews JSON API at all (checked against the
-        # official docs), so this scrapes the per-review HTML page
-        # directly - one request per review, since Steam has no bulk
-        # endpoint for this. Only reviews not yet in docs/reviews/refunds.json
-        # get checked each run (see --limit), so a normal run only pays for
+      - name: Scrape refund status and comment text from review pages
+        # Both the "Product refunded" tag and actual comment text/author/
+        # timestamp are visible anonymously - confirmed in a real incognito
+        # browser window against a live review page, not assumed. Neither
+        # exists in the appreviews JSON API (checked against the official
+        # docs), so this scrapes the public per-review HTML page directly -
+        # one request per review, since Steam has no bulk endpoint for
+        # this. Comments are capped at whatever Steam server-renders on
+        # first page load (seen: 10 of a review's 109 total comments) -
+        # strictly better than the old comment_count-delta-only approach,
+        # just not guaranteed complete for reviews with long threads. Only
+        # reviews not yet in docs/reviews/review_page_data.json get
+        # checked each run (see --limit), so a normal run only pays for
         # reviews new since last time, not the whole history.
         if: always()
         run: |
@@ -145,12 +129,13 @@ jobs:
             echo "docs/reviews/latest.json missing, skipping"
             exit 0
           fi
-          python scripts/reviews/fetch_refund_status.py \
+          python scripts/reviews/fetch_review_page_data.py \
             --reviews-in docs/reviews/latest.json \
-            --out docs/reviews/refunds.json \
+            --out docs/reviews/review_page_data.json \
+            --recent-comments-out docs/reviews/recent-comments.json \
             --limit 150 \
             --sleep 1.5 \
-            --report-out tmp/report_refunds.json
+            --report-out tmp/report_page_data.json
 
       - name: Commit and push updated data
         if: always()
@@ -199,6 +184,5 @@ jobs:
             --analyze tmp/report_analyze.json \
             --snapshot tmp/report_snapshot.json \
             --steam-summary tmp/report_steam.json \
-            --comments tmp/report_comments.json \
-            --refunds tmp/report_refunds.json \
+            --page-data tmp/report_page_data.json \
             >> "$GITHUB_STEP_SUMMARY"
