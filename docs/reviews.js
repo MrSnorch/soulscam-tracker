@@ -103,6 +103,7 @@ const I18N = {
     'table.colType': 'Тип',
     'table.colPlaytime': 'Playtime',
     'table.colScore': 'Score',
+    'table.colComments': 'Комментарии',
     'table.colFlags': 'Флаги',
     'table.colText': 'Текст',
     'table.resultCount': '<b>{count}</b> отзывов найдено (из {total} всего)',
@@ -292,6 +293,7 @@ const I18N = {
     'table.colType': 'Type',
     'table.colPlaytime': 'Playtime',
     'table.colScore': 'Score',
+    'table.colComments': 'Comments',
     'table.colFlags': 'Flags',
     'table.colText': 'Text',
     'table.resultCount': '<b>{count}</b> reviews found (of {total} total)',
@@ -472,6 +474,7 @@ const state = {
   data: null,
   reviews: [],
   filtered: [],
+  activeTab: 'comments',
   sortKey: 'timestamp_created',
   sortDir: 'desc',
   page: 1,
@@ -676,6 +679,7 @@ function init() {
       renderSteamCrossCheck(data.summary);
       initCommentsPanel(appidParam);
       initDevResponsePanel();
+      initTabs();
       loadRefunds(appidParam).then(refundsByRecid => {
         if (!refundsByRecid) return;
         // Merge the refunded flag and scraped comments onto whatever
@@ -1048,7 +1052,18 @@ function sortReviews(list) {
   const { sortKey, sortDir } = state;
   const mul = sortDir === 'asc' ? 1 : -1;
   return [...list].sort((a, b) => {
-    let va = a[sortKey], vb = b[sortKey];
+    let va, vb;
+    if (sortKey === 'comments_count') {
+      // Derived from the scraped comments array rather than a stored
+      // field - undefined (not yet loaded) sorts as -Infinity below like
+      // any other missing value, so unloaded rows drop to the bottom on
+      // desc sort instead of jumping around as data trickles in.
+      va = a.comments ? a.comments.length : undefined;
+      vb = b.comments ? b.comments.length : undefined;
+    } else {
+      va = a[sortKey];
+      vb = b[sortKey];
+    }
     if (sortKey === 'voted_up') { va = va ? 1 : 0; vb = vb ? 1 : 0; }
     if (va === undefined || va === null) va = -Infinity;
     if (vb === undefined || vb === null) vb = -Infinity;
@@ -1087,7 +1102,7 @@ function renderTable() {
   document.getElementById('result-count').innerHTML = t('table.resultCount', { count: total, total: state.reviews.length });
 
   if (!pageItems.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty">${t('table.empty')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">${t('table.empty')}</td></tr>`;
   } else {
     tbody.innerHTML = pageItems.map(r => rowHtml(r)).join('');
   }
@@ -1134,6 +1149,7 @@ function rowHtml(r) {
       <td class="td-score">
         <span class="score-bar"><i style="width:${r.suspicion_score || 0}%"></i></span>${r.suspicion_score || 0}
       </td>
+      <td class="td-comments-count">${r.comments ? r.comments.length : '—'}</td>
       <td>${tags.join('') || '—'}</td>
       <td class="td-text">${escapeHtml((r.review || '').slice(0, 140))}</td>
     </tr>
@@ -1155,7 +1171,7 @@ function detailHtml(r) {
   const commentsHtml = renderInlineComments(r);
 
   return `
-    <tr class="detail-row"><td colspan="6">
+    <tr class="detail-row"><td colspan="7">
       <div class="detail-grid">
         <div class="detail-text">${escapeHtml(r.review || t('table.emptyText'))}${devResponseHtml}${commentsHtml}</div>
         <div class="detail-meta">
@@ -1440,17 +1456,22 @@ function bindDevResponseControls() {
 function initDevResponsePanel() {
   const withResponse = state.reviews.filter(r => r.developer_response);
   const panel = document.getElementById('devresponse-panel');
+  const tabBtn = document.getElementById('tab-btn-devresponse');
   if (!withResponse.length) {
-    // Keep hidden entirely rather than showing an empty-state message -
-    // unlike the comments panel, dev responses aren't expected to exist
-    // for most games, so an empty panel here would just be noise.
+    // Hide the tab entirely rather than showing an empty panel - unlike
+    // comments, dev responses aren't expected to exist for most games,
+    // so an empty tab here would just be noise. If this was the active
+    // tab (shouldn't normally happen since it starts non-active, but a
+    // stale localStorage choice could point here), fall back to comments.
+    if (tabBtn) tabBtn.style.display = 'none';
+    if (state.activeTab === 'devresponse') switchTab('comments');
     return;
   }
   // newest response first
   withResponse.sort((a, b) => (b.timestamp_dev_responded || 0) - (a.timestamp_dev_responded || 0));
   devResponseState.all = withResponse;
   devResponseState.filtered = withResponse;
-  panel.style.display = 'block';
+  panel.dataset.hasData = '1';
   renderDevResponses();
   bindDevResponseControls();
 }
@@ -1458,21 +1479,46 @@ function initDevResponsePanel() {
 function initCommentsPanel(appidParam) {
   loadRecentComments(appidParam).then(comments => {
     const panel = document.getElementById('comments-panel');
+    panel.dataset.hasData = '1';
     if (!comments || !comments.length) {
       // Still show the panel with a clear "no data yet" message rather than
       // hiding it entirely - otherwise it looks like the feature is missing
       // instead of just not having run yet.
-      panel.style.display = 'block';
       document.getElementById('comments-list').innerHTML = `<div class="empty">${t('comments.noData')}</div>`;
       document.getElementById('comments-result-count').textContent = '';
       return;
     }
     commentsState.all = comments;
     commentsState.filtered = comments;
-    panel.style.display = 'block';
     renderComments();
     bindCommentsControls();
   });
+}
+
+const TAB_STORAGE_KEY = 'reviewsActiveTab';
+
+function switchTab(tabName) {
+  const btn = document.getElementById(`tab-btn-${tabName}`);
+  // Never switch to a tab whose button is hidden (e.g. dev responses
+  // with zero data) - fall back to the always-present comments tab.
+  if (!btn || btn.style.display === 'none') tabName = 'comments';
+
+  state.activeTab = tabName;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tabName);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.dataset.tab === tabName);
+  });
+  localStorage.setItem(TAB_STORAGE_KEY, tabName);
+}
+
+function initTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+  const stored = localStorage.getItem(TAB_STORAGE_KEY);
+  switchTab(stored || 'comments');
 }
 
 function bindRowClicks() {
