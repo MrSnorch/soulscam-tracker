@@ -1472,6 +1472,7 @@ function initDevResponsePanel() {
   devResponseState.all = withResponse;
   devResponseState.filtered = withResponse;
   panel.dataset.hasData = '1';
+  if (tabBtn) tabBtn.style.display = '';
   renderDevResponses();
   bindDevResponseControls();
 }
