@@ -63,22 +63,20 @@ const I18N = {
     'reasons.desc': 'Из чего складывается suspicion score по датасету.',
     'reasons.none': 'Флагов не найдено',
 
-    'comments.title': 'Новые комментарии под отзывами',
-    'comments.desc': 'Steam не отдаёт текст комментариев анонимно (нужен залогиненный аккаунт), поэтому здесь отслеживается только факт появления новых комментариев (счётчик вырос) &mdash; с прямой ссылкой на страницу отзыва.',
+    'comments.title': 'Комментарии под отзывами',
+    'comments.desc': 'Реальный текст комментариев, оставленных под отзывами игроков, собранный со страниц отзывов Steam &mdash; обычно доступны первые ~10 комментариев под каждым отзывом.',
     'comments.refresh': 'обновить список',
-    'comments.searchLabel': 'Поиск по тексту отзыва',
+    'comments.searchLabel': 'Поиск по тексту комментария',
     'comments.searchPlaceholder': 'подстрока&hellip;',
-    'comments.searchNickLabel': 'Поиск по автору отзыва',
+    'comments.searchNickLabel': 'Поиск по автору комментария',
     'comments.searchNickPlaceholder': 'ник&hellip;',
-    'comments.resultCount': '<b>{count}</b> событий найдено (из {total} всего)',
-    'comments.empty': 'Событий не найдено под текущие фильтры',
+    'comments.resultCount': '<b>{count}</b> комментариев найдено (из {total} всего)',
+    'comments.empty': 'Комментариев не найдено под текущие фильтры',
     'comments.noData': 'Данные о комментариях ещё не собраны &mdash; появятся после следующего запуска сбора.',
     'comments.underReview': 'под {vote} отзывом {author}',
     'comments.reviewExcerpt': 'из отзыва: &laquo;{text}&raquo;',
     'comments.openProfile': '&#8599; профиль автора',
     'comments.openReview': '&#8599; открыть отзыв и комментарии в Steam',
-    'comments.newCount': '&#128172; +{count} новых комментариев',
-    'comments.countLine': 'Комментариев под отзывом: {count} (было {prev})',
     'comments.pagePrev': '&larr; назад',
     'comments.pageNext': 'вперёд &rarr;',
     'comments.pageOf': 'стр. {page} / {total}',
@@ -250,22 +248,20 @@ const I18N = {
     'reasons.desc': "What the dataset's suspicion score is made up of.",
     'reasons.none': 'No flags found',
 
-    'comments.title': 'New comments on reviews',
-    'comments.desc': "Steam won't serve comment text anonymously (a logged-in account is required), so this only tracks new comments appearing (the counter going up) &mdash; with a direct link to the review page.",
+    'comments.title': 'Comments on reviews',
+    'comments.desc': "Actual comment text posted under player reviews, collected from Steam's review pages &mdash; usually the first ~10 comments per review are available.",
     'comments.refresh': 'refresh list',
-    'comments.searchLabel': 'Search review text',
+    'comments.searchLabel': 'Search comment text',
     'comments.searchPlaceholder': 'substring&hellip;',
-    'comments.searchNickLabel': 'Search by review author',
+    'comments.searchNickLabel': 'Search by comment author',
     'comments.searchNickPlaceholder': 'nickname&hellip;',
-    'comments.resultCount': '<b>{count}</b> events found (out of {total} total)',
-    'comments.empty': 'No events found for the current filters',
+    'comments.resultCount': '<b>{count}</b> comments found (out of {total} total)',
+    'comments.empty': 'No comments found for the current filters',
     'comments.noData': "Comment data hasn't been collected yet &mdash; it will appear after the next collection run.",
     'comments.underReview': 'on a {vote} review by {author}',
     'comments.reviewExcerpt': 'from the review: &laquo;{text}&raquo;',
     'comments.openProfile': '&#8599; author profile',
     'comments.openReview': '&#8599; open review and comments on Steam',
-    'comments.newCount': '&#128172; +{count} new comments',
-    'comments.countLine': 'Comments on this review: {count} (was {prev})',
     'comments.pagePrev': '&larr; prev',
     'comments.pageNext': 'next &rarr;',
     'comments.pageOf': 'page {page} / {total}',
@@ -523,12 +519,11 @@ const devResponseState = {
 };
 
 // Turns a 'YYYY-MM-DD' <input type=date> value + which edge it represents
-// into a Unix-seconds boundary, for comparing against either a raw
-// unix-seconds field (timestamp_created) or an ISO-string field
-// (last_increase_at, converted to unix-seconds at the call site first).
-// 'from' means start of that day, 'to' means end of that day (23:59:59)
-// so the day itself is inclusive rather than excluded by anything with a
-// nonzero time-of-day.
+// into a Unix-seconds boundary, for comparing against unix-seconds
+// fields like timestamp_created or a comment's timestamp. 'from' means
+// start of that day, 'to' means end of that day (23:59:59) so the day
+// itself is inclusive rather than excluded by anything with a nonzero
+// time-of-day.
 function dateInputToUnix(value, edge) {
   if (!value) return null;
   const d = new Date(value + (edge === 'to' ? 'T23:59:59Z' : 'T00:00:00Z'));
@@ -587,11 +582,11 @@ async function loadData(appid) {
 }
 
 async function loadRecentComments(appid) {
-  // recent-comments.json is a flat, newest-first list of individually
-  // scraped Steam comment threads (see fetch_review_comments.py). It's
-  // written alongside latest.json but as a separate file since not every
-  // reviews.json snapshot (older ones, or a custom --appid one someone
-  // points at) will necessarily have a matching comments file.
+  // recent-comments.json is a flat, newest-first list of actual comment
+  // text scraped from public review pages (see fetch_review_page_data.py).
+  // It's written alongside latest.json but as a separate file since not
+  // every reviews.json snapshot (older ones, or a custom --appid one
+  // someone points at) will necessarily have a matching comments file.
   const path = appid ? `reviews/${appid}-comments.json` : 'reviews/recent-comments.json';
   try {
     const res = await fetch(path, { cache: 'no-store' });
@@ -604,13 +599,14 @@ async function loadRecentComments(appid) {
 }
 
 async function loadRefunds(appid) {
-  // refunds.json holds the "Product refunded" flag scraped per-review
-  // from the public review page (see fetch_refund_status.py) - keyed by
-  // recommendationid, not a flat list, since it's a lookup table merged
-  // onto each review rather than its own feed. Only reviews checked so
-  // far will have an entry; anything missing just means "not checked
-  // yet", not "not refunded".
-  const path = appid ? `reviews/${appid}-refunds.json` : 'reviews/refunds.json';
+  // review_page_data.json holds the "Product refunded" flag (plus the
+  // comments already covered by loadRecentComments above) scraped
+  // per-review from the public review page (see
+  // fetch_review_page_data.py) - keyed by recommendationid, not a flat
+  // list, since it's a lookup table merged onto each review rather than
+  // its own feed. Only reviews checked so far will have an entry;
+  // anything missing just means "not checked yet", not "not refunded".
+  const path = appid ? `reviews/${appid}-page-data.json` : 'reviews/review_page_data.json';
   try {
     const res = await fetch(path, { cache: 'no-store' });
     if (!res.ok) return null;
@@ -1175,13 +1171,12 @@ function applyCommentsFiltersAndRender() {
   const toUnix = dateInputToUnix(f.dateTo, 'to');
 
   commentsState.filtered = commentsState.all.filter(c => {
-    if (nickLower && !(c.review_author_personaname || '').toLowerCase().includes(nickLower)) return false;
-    if (searchLower && !(c.review_excerpt || '').toLowerCase().includes(searchLower)) return false;
+    if (nickLower && !(c.author_name || '').toLowerCase().includes(nickLower)) return false;
+    if (searchLower && !(c.text || '').toLowerCase().includes(searchLower)) return false;
     if (fromUnix !== null || toUnix !== null) {
-      const eventUnix = c.last_increase_at ? Math.floor(new Date(c.last_increase_at).getTime() / 1000) : null;
-      if (eventUnix === null) return false;
-      if (fromUnix !== null && eventUnix < fromUnix) return false;
-      if (toUnix !== null && eventUnix > toUnix) return false;
+      if (c.timestamp === undefined || c.timestamp === null) return false;
+      if (fromUnix !== null && c.timestamp < fromUnix) return false;
+      if (toUnix !== null && c.timestamp > toUnix) return false;
     }
     return true;
   });
@@ -1214,7 +1209,11 @@ function renderComments() {
     const voteCls = c.review_voted_up ? 'vote-up' : 'vote-down';
     const reviewAuthor = c.review_author_personaname ? escapeHtml(c.review_author_personaname) : t('comments.anonAuthor');
     const excerpt = c.review_excerpt ? escapeHtml(c.review_excerpt) : '';
-    const eventTime = c.last_increase_at ? fmtCommentDate(Math.floor(new Date(c.last_increase_at).getTime() / 1000)) : '—';
+    const commentAuthor = c.author_name ? escapeHtml(c.author_name) : t('comments.anonAuthor');
+    const authorHtml = c.author_profile_url
+      ? `<a class="comment-author" href="${escapeHtml(c.author_profile_url)}" target="_blank" rel="noopener">${commentAuthor}</a>`
+      : `<span class="comment-author">${commentAuthor}</span>`;
+    const commentTime = fmtCommentDate(c.timestamp);
     const linkHtml = c.review_url
       ? `<a class="comment-author" href="${escapeHtml(c.review_url)}" target="_blank" rel="noopener">${t('comments.openReview')}</a>`
       : '';
@@ -1222,10 +1221,10 @@ function renderComments() {
     return `
       <div class="comment-card">
         <div class="comment-head">
-          <span class="comment-author">${t('comments.newCount', { count: c.new_comments_detected || 0 })}</span>
-          <span class="comment-time">${eventTime}</span>
+          ${authorHtml}
+          <span class="comment-time">${commentTime}</span>
         </div>
-        <div class="comment-text">${t('comments.countLine', { count: c.comment_count || 0, prev: c.previous_comment_count || 0 })}</div>
+        <div class="comment-text">${escapeHtml(c.text || '').replace(/\n/g, '<br>')}</div>
         <div class="comment-context">
           ${t('comments.underReview', { vote: `<b class="${voteCls}">${voteWord}</b>`, author: `<b>${reviewAuthor}</b>` })}
           ${excerpt ? `<br>${t('comments.reviewExcerpt', { text: excerpt })}` : ''}
