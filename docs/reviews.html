@@ -96,8 +96,8 @@
     <section class="panel" id="comments-panel" style="display:none;">
       <div class="panel-head-row">
         <div>
-          <h2 data-i18n="comments.title">Новые комментарии под отзывами</h2>
-          <p class="desc" data-i18n-html="comments.desc">Steam не отдаёт текст комментариев анонимно (нужен залогиненный аккаунт), поэтому здесь отслеживается только факт появления новых комментариев (счётчик вырос) — с прямой ссылкой на страницу отзыва, где можно прочитать их самому.</p>
+          <h2 data-i18n="comments.title">Комментарии под отзывами</h2>
+          <p class="desc" data-i18n-html="comments.desc">Реальный текст комментариев, оставленных под отзывами игроков, собранный со страниц отзывов Steam — обычно доступны первые ~10 комментариев под каждым отзывом.</p>
         </div>
         <div style="display:flex; gap:8px; flex-shrink:0;">
           <button class="reset-link" id="comments-refresh" data-i18n="comments.refresh">обновить список</button>
@@ -107,11 +107,11 @@
       <div class="collapsible-body" id="comments-body">
         <div class="filters">
           <div class="field">
-            <label data-i18n="comments.searchLabel">Поиск по тексту отзыва</label>
+            <label data-i18n="comments.searchLabel">Поиск по тексту комментария</label>
             <input type="text" id="comments-search" data-i18n-placeholder="comments.searchPlaceholder" placeholder="подстрока&hellip;">
           </div>
           <div class="field">
-            <label data-i18n="comments.searchNickLabel">Поиск по автору отзыва</label>
+            <label data-i18n="comments.searchNickLabel">Поиск по автору комментария</label>
             <input type="text" id="comments-search-nick" data-i18n-placeholder="comments.searchNickPlaceholder" placeholder="ник&hellip;">
           </div>
           <div class="field">
