@@ -429,6 +429,11 @@ table.reviews td {
   font-size: 10px;
   color: var(--text-dimmer);
 }
+.td-playtime .playtime-at-review {
+  display: block;
+  font-size: 10px;
+  color: var(--text-dimmer);
+}
 
 .td-score {
   font-family: var(--mono);
