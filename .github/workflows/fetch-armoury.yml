@@ -1,0 +1,71 @@
+name: Fetch Armoury data
+
+# Scrapes https://soulbound.game/armoury/ for every player (all regions)
+# and writes docs/armoury/*.json for the dashboard's "real online today"
+# stat and the name-duplicates tab. Separate workflow from poll.yml (Steam
+# API player counts) and fetch-forum.yml (Steam forum scraping) - a failed
+# or slow armoury scrape shouldn't affect either of those.
+#
+# The site itself only refreshes armoury data once a day ("Data refreshes
+# daily" - see scripts/armoury/soulbound_armoury_scraper.py docstring), so
+# hourly is already more often than the underlying data changes; this is
+# for a timely "online today" figure, not to catch every update.
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-armoury
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 --break-system-packages
+
+      - name: Scrape armoury (all regions)
+        run: python scripts/armoury/build_armoury_data.py
+
+      - name: Commit and push updated data
+        if: always()
+        run: |
+          git config user.name "armoury-watch-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f docs/armoury/players.json docs/armoury/summary.json docs/armoury/duplicates.json scripts/armoury/armoury_scraper_config.json 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore: update armoury data ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+
+          for attempt in 1 2 3 4 5; do
+            if git push --quiet; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5), rebasing onto latest and retrying..."
+            git pull --rebase --quiet
+            sleep 2
+          done
+          echo "::error::Failed to push armoury data after 5 attempts."
+          exit 1
