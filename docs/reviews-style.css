@@ -249,6 +249,39 @@ header.top {
   max-width: 640px;
 }
 
+/* ---------- tab switcher (Comments / Dev responses / All reviews) ---------- */
+
+.tab-switcher {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.tab-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 9px 16px;
+  cursor: pointer;
+  position: relative;
+  top: 1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--green);
+  border-color: var(--border);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--bg-panel);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -438,6 +471,11 @@ table.reviews td {
 .td-score {
   font-family: var(--mono);
   font-weight: 700;
+}
+.td-comments-count {
+  font-family: var(--mono);
+  text-align: center;
+  color: var(--text-dim);
 }
 .score-bar {
   display: inline-block;
