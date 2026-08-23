@@ -60,8 +60,7 @@ def main():
     ap.add_argument("--analyze", default=None)
     ap.add_argument("--snapshot", default=None)
     ap.add_argument("--steam-summary", default=None)
-    ap.add_argument("--comments", default=None)
-    ap.add_argument("--refunds", default=None)
+    ap.add_argument("--page-data", default=None)
     args = ap.parse_args()
 
     fetch = load(args.fetch)
@@ -69,8 +68,7 @@ def main():
     analyze = load(args.analyze)
     snapshot = load(args.snapshot)
     steam_summary = load(args.steam_summary)
-    comments = load(args.comments)
-    refunds = load(args.refunds)
+    page_data = load(args.page_data)
 
     lines = []
     lines.append("## 📊 Review Watch — отчёт о запуске\n")
@@ -179,40 +177,28 @@ def main():
     else:
         lines.append("⚠️ Отчёт о публикации не найден — данные сайта могли не обновиться\n")
 
-    # --- comment threads: presence-only, no scraped text (see
-    # fetch_review_comments.py's docstring for why) ---
-    lines.append("### 6️⃣ Новые комментарии под отзывами")
-    if comments and comments.get("ok"):
+    # --- comments + refund status: both scraped from the public per-
+    # review HTML page in one pass (see fetch_review_page_data.py's
+    # docstring) - no auth needed for either, but it IS one HTTP request
+    # per review, so only a batch of new reviews gets checked each run ---
+    lines.append("### 6️⃣ Комментарии и статус возврата (со страниц отзывов)")
+    if page_data and page_data.get("ok"):
         lines.append(
-            f"Отзывов проверено: **{comments.get('reviews_checked', 0)}**  \n"
-            f"Отзывов с комментариями (всего): **{comments.get('reviews_with_comments', 0)}**  \n"
-            f"🆕 Новых комментариев обнаружено за этот запуск: **{comments.get('new_comments_detected', 0)}**\n"
+            f"Проверено страниц за этот запуск: **{page_data.get('checked_this_run', 0)}**  \n"
+            f"💬 Комментариев собрано всего: **{page_data.get('total_comments', 0)}** "
+            f"({page_data.get('comments_found_this_run', 0)} новых за этот запуск)  \n"
+            f"💸 С отметкой \"Product refunded\": **{page_data.get('total_refunded', 0)}** "
+            f"из **{page_data.get('total_checked', 0)}** проверенных отзывов  \n"
+            f"Осталось непроверенных отзывов: **{page_data.get('remaining_unchecked', 0)}**"
         )
-    elif comments and not comments.get("ok"):
-        lines.append(f"❌ Ошибка отслеживания комментариев: `{comments.get('error', 'unknown')}`\n")
-    else:
-        lines.append("⚠️ Отчёт об отслеживании комментариев не найден\n")
-
-    # --- refund status: scraped from public per-review HTML pages (no
-    # auth needed, unlike comments - but it IS one HTTP request per
-    # review, so only a batch of new reviews gets checked each run; see
-    # fetch_refund_status.py's docstring) ---
-    lines.append("### 7️⃣ Статус возврата средств (Product refunded)")
-    if refunds and refunds.get("ok"):
-        lines.append(
-            f"Проверено за этот запуск: **{refunds.get('checked_this_run', 0)}**  \n"
-            f"💸 С отметкой \"Product refunded\" (всего накоплено): **{refunds.get('total_refunded', 0)}** "
-            f"из **{refunds.get('total_checked', 0)}** проверенных отзывов  \n"
-            f"Осталось непроверенных отзывов: **{refunds.get('remaining_unchecked', 0)}**"
-        )
-        if refunds.get("failed_this_run"):
-            lines.append(f"  \n⚠️ Не удалось проверить: **{refunds.get('failed_this_run', 0)}** "
+        if page_data.get("failed_this_run"):
+            lines.append(f"  \n⚠️ Не удалось проверить: **{page_data.get('failed_this_run', 0)}** "
                           f"(попробуются в следующем запуске)")
         lines.append("")
-    elif refunds and not refunds.get("ok"):
-        lines.append(f"❌ Ошибка проверки статуса возврата: `{refunds.get('error', 'unknown')}`\n")
+    elif page_data and not page_data.get("ok"):
+        lines.append(f"❌ Ошибка сбора данных со страниц отзывов: `{page_data.get('error', 'unknown')}`\n")
     else:
-        lines.append("⚠️ Отчёт о проверке статуса возврата не найден\n")
+        lines.append("⚠️ Отчёт о сборе данных со страниц отзывов не найден\n")
 
     overall_ok = all(
         r is None or r.get("ok", False)
