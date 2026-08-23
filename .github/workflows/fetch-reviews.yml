@@ -146,7 +146,24 @@ jobs:
           fi
           git config user.name "review-watch-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add -f docs/reviews
+          # Add only the specific files this workflow writes, NOT the whole
+          # docs/reviews directory - fetch-forum.yml runs on the same cron
+          # schedule and commits its own files (forum-profiles.json,
+          # forum-activity.json) into this same directory in parallel. A
+          # blanket `git add -f docs/reviews` used to stage whatever forum
+          # state happened to be on disk at commit time, which produced
+          # merge conflicts on every rebase when the two workflows' pushes
+          # interleaved. Scoping to exactly these paths means this
+          # workflow's commits never touch forum-*.json at all, so a
+          # forum-only change from the other workflow can never conflict
+          # with a rebase here.
+          git add -f \
+            docs/reviews/latest.json \
+            docs/reviews/snapshots \
+            docs/reviews/hitlist.json \
+            docs/reviews/summary-only.json \
+            docs/reviews/review_page_data.json \
+            docs/reviews/recent-comments.json
 
           if git diff --cached --quiet; then
             echo "No data changes to commit."
