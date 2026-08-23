@@ -132,6 +132,7 @@ const I18N = {
     'table.nickname': 'ник: {name}',
     'table.playtimeForever': 'playtime forever: {v}',
     'table.playtimeAtReview': 'playtime at review: {v}',
+    'table.playtimeAtReviewShort': 'на момент отзыва: {v}',
     'table.playtime2w': 'playtime last 2 weeks: {v}',
 
     'filters.type': 'Тип',
@@ -320,6 +321,7 @@ const I18N = {
     'table.nickname': 'nickname: {name}',
     'table.playtimeForever': 'playtime forever: {v}',
     'table.playtimeAtReview': 'playtime at review: {v}',
+    'table.playtimeAtReviewShort': 'as of review: {v}',
     'table.playtime2w': 'playtime last 2 weeks: {v}',
 
     'filters.type': 'Type',
@@ -1101,6 +1103,18 @@ function renderTable() {
   });
 }
 
+function playtimeCellHtml(r) {
+  const current = fmtHours(r.playtime_forever);
+  const atReview = fmtHours(r.playtime_at_review);
+  // Only show the "at review" figure separately when it actually differs
+  // from current playtime - for a review posted today they're identical,
+  // and repeating the same number twice is just noise.
+  if (r.playtime_forever === r.playtime_at_review || r.playtime_forever == null) {
+    return current;
+  }
+  return `${current}<span class="playtime-at-review">${t('table.playtimeAtReviewShort', { v: atReview })}</span>`;
+}
+
 function rowHtml(r) {
   const flagged = (r.suspicion_score || 0) >= 40;
   const tags = [];
@@ -1116,7 +1130,7 @@ function rowHtml(r) {
     <tr class="${flagged ? 'flagged' : ''}" data-rid="${r.recommendationid}">
       <td class="td-date">${fmtDate(r.timestamp_created)}</td>
       <td><span class="td-vote ${r.voted_up ? 'up' : 'down'}">${r.voted_up ? t('table.votePositive') : t('table.voteNegative')}</span></td>
-      <td class="td-playtime">${fmtHours(r.playtime_at_review)}<span class="bucket">${r.playtime_bucket || ''}</span></td>
+      <td class="td-playtime">${playtimeCellHtml(r)}<span class="bucket">${r.playtime_bucket || ''}</span></td>
       <td class="td-score">
         <span class="score-bar"><i style="width:${r.suspicion_score || 0}%"></i></span>${r.suspicion_score || 0}
       </td>
