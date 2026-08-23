@@ -18,6 +18,75 @@ let state = {
   search: '',
 };
 
+function renderOnlineHistoryChart(history) {
+  const svg = document.getElementById('online-history-chart');
+  if (!history || !history.length) {
+    svg.innerHTML = `<text x="10" y="20" fill="var(--text-dim)" font-family="var(--mono)" font-size="12">Пока недостаточно данных &mdash; появится после нескольких дней прогонов.</text>`;
+    return;
+  }
+  const W = 700, H = 220, padL = 36, padR = 10, padB = 24, padT = 10;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxVal = Math.max(...history.map(h => h.online), 1);
+  const stepX = history.length > 1 ? plotW / (history.length - 1) : 0;
+
+  const points = history.map((h, i) => {
+    const x = padL + (history.length > 1 ? i * stepX : plotW / 2);
+    const y = padT + plotH - (h.online / maxVal) * plotH;
+    return { x, y, h };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(padT + plotH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(padT + plotH).toFixed(1)} Z`;
+
+  const labelEvery = Math.max(1, Math.ceil(history.length / 8));
+  let labels = '';
+  points.forEach((p, i) => {
+    if (i % labelEvery === 0 || i === points.length - 1) {
+      labels += `<text x="${p.x.toFixed(1)}" y="${H - 6}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5" text-anchor="middle">${escapeHTML(p.h.date.slice(5))}</text>`;
+    }
+  });
+
+  const dots = points.map(p => `
+    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--green)">
+      <title>${escapeHTML(p.h.date)}: ${p.h.online} онлайн из ${p.h.total}</title>
+    </circle>
+  `).join('');
+
+  svg.innerHTML = `
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <text x="4" y="${padT + 8}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5">${maxVal}</text>
+    <path d="${areaPath}" fill="var(--green)" opacity="0.12"/>
+    <path d="${linePath}" fill="none" stroke="var(--green)" stroke-width="2"/>
+    ${dots}
+    ${labels}
+  `;
+}
+
+function renderByRegionChart(byRegion) {
+  const svg = document.getElementById('by-region-chart');
+  const entries = Object.entries(byRegion || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) {
+    svg.innerHTML = `<text x="10" y="20" fill="var(--text-dim)" font-family="var(--mono)" font-size="12">Нет данных.</text>`;
+    return;
+  }
+  const W = 700, H = 220, padL = 10, padR = 60, rowH = H / entries.length;
+  const maxVal = Math.max(...entries.map(e => e[1]));
+
+  let bars = '';
+  entries.forEach(([region, count], i) => {
+    const y = i * rowH + rowH * 0.2;
+    const barH = rowH * 0.5;
+    const barW = (count / maxVal) * (W - padL - padR - 100);
+    bars += `
+      <text x="0" y="${y + barH * 0.75}" fill="var(--text-dim)" font-family="var(--mono)" font-size="11">${escapeHTML(region)}</text>
+      <rect x="100" y="${y}" width="${Math.max(barW, 2)}" height="${barH}" fill="var(--green)" opacity="0.75"/>
+      <text x="${100 + barW + 8}" y="${y + barH * 0.75}" fill="var(--text)" font-family="var(--mono)" font-size="11" font-weight="700">${count}</text>
+    `;
+  });
+  svg.innerHTML = bars;
+}
+
 function renderStats(summary) {
   const grid = document.getElementById('stats-grid');
   grid.innerHTML = `
@@ -148,6 +217,16 @@ async function init() {
   renderStats(summary);
   renderPlayersTable();
   renderDuplicates();
+
+  // Графики — из отдельных файлов, которые появляются только начиная с
+  // первого прогона обновлённого build_armoury_data.py. Их отсутствие
+  // (старый снапшот до апдейта) не должно ронять остальную страницу.
+  loadJSON('armoury/online-history.json')
+    .then(renderOnlineHistoryChart)
+    .catch(() => renderOnlineHistoryChart([]));
+  loadJSON('armoury/by-region.json')
+    .then(renderByRegionChart)
+    .catch(() => renderByRegionChart({}));
 
   document.getElementById('players-search').addEventListener('input', e => {
     state.search = e.target.value;
