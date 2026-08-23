@@ -530,6 +530,11 @@
         <div class="label"><span data-i18n="live.nowOnline">Сейчас онлайн</span> <span id="stat-now-time">&mdash;</span></div>
         <div class="value mono" id="stat-now">&mdash;</div>
       </div>
+      <div class="stat-now-card" id="armoury-now-card" style="display:none;">
+        <div class="label"><span data-i18n="armoury.onlineToday">Реальный онлайн сегодня</span></div>
+        <div class="value mono" id="armoury-online-today">&mdash;</div>
+        <div class="sub"><a href="armoury.html" data-i18n-html="armoury.linkText">по данным armoury &middot; открыть реестр игроков и повторы ников &rarr;</a></div>
+      </div>
     </div>
     <div class="controls">
       <div class="range-btns" id="live-range-btns"></div>
@@ -662,6 +667,8 @@ const I18N = {
     'live.position': 'Позиция',
     'live.noData': 'Пока нет данных &mdash; появятся после первого флаша.',
     'live.loadingHistory': 'Загрузка всей истории&hellip;',
+    'armoury.onlineToday': 'Реальный онлайн сегодня',
+    'armoury.linkText': 'по данным armoury &middot; открыть реестр игроков и повторы ников &rarr;',
 
     // Overview panel
     'overview.title': 'Общая динамика',
@@ -820,6 +827,8 @@ const I18N = {
     'live.position': 'Position',
     'live.noData': 'No data yet &mdash; will appear after the first flush.',
     'live.loadingHistory': 'Loading full history&hellip;',
+    'armoury.onlineToday': 'Real online today',
+    'armoury.linkText': 'from armoury data &middot; open player registry and name duplicates &rarr;',
 
     'overview.title': 'Overall trend',
     'overview.desc': 'Average player count by hour over the whole collected period &middot; <span style="color:var(--warn)">&#9650;</span> &mdash; suspicious review spike &middot; <span style="color:#e6707a">&#9711;</span> &mdash; unusual online-count jump',
@@ -2672,7 +2681,22 @@ async function init() {
     // Forum pipeline not configured or hasn't produced output yet.
   }
 
+  // Separate, independent pipeline (scripts/armoury/build_armoury_data.py,
+  // its own hourly workflow) - a missing file just means the card stays
+  // hidden, same reasoning as reviewsData/forumData above.
+  let armourySummary = null;
+  try {
+    armourySummary = await loadJSON('armoury/summary.json');
+  } catch (e) {
+    // Armoury pipeline not configured or hasn't produced output yet.
+  }
+
   function renderAll() {
+    if (armourySummary) {
+      document.getElementById('armoury-now-card').style.display = '';
+      document.getElementById('armoury-online-today').textContent = armourySummary.online_today;
+    }
+
     if (points.length) {
       const lastPoint = points[points.length - 1];
       document.getElementById('stat-now').textContent = lastPoint.player_count;
