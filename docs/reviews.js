@@ -115,6 +115,9 @@ const I18N = {
     'table.noFlags': '&mdash;',
     'table.emptyText': '(пустой текст)',
     'table.noReasons': 'без флагов',
+    'table.commentsLoading': 'Загрузка комментариев…',
+    'table.commentsNone': 'Комментариев нет (или профиль автора приватный / комментарии отключены)',
+    'table.commentsLabel': 'Комментарии ({count})',
     'table.devReplyDate': ' ({date})',
     'table.devReplyLabel': '&#128172; Ответ разработчика{date}',
     'table.gamesOwned': 'игр в библиотеке: {n}',
@@ -300,6 +303,9 @@ const I18N = {
     'table.noFlags': '&mdash;',
     'table.emptyText': '(empty text)',
     'table.noReasons': 'no flags',
+    'table.commentsLoading': 'Loading comments…',
+    'table.commentsNone': 'No comments (or author\u2019s profile is private / comments are disabled)',
+    'table.commentsLabel': 'Comments ({count})',
     'table.devReplyDate': ' ({date})',
     'table.devReplyLabel': '&#128172; Developer response{date}',
     'table.gamesOwned': 'games owned: {n}',
@@ -670,15 +676,17 @@ function init() {
       initDevResponsePanel();
       loadRefunds(appidParam).then(refundsByRecid => {
         if (!refundsByRecid) return;
-        // Merge the refunded flag onto whatever reviews we already have an
-        // entry for; missing entries just mean "not checked yet" and stay
-        // undefined rather than being coerced to false, so the table/filter
-        // can distinguish "confirmed not refunded" from "unknown".
+        // Merge the refunded flag and scraped comments onto whatever
+        // reviews we already have an entry for; missing entries just
+        // mean "not checked yet" and stay undefined rather than being
+        // coerced to false/[], so the table/filter can distinguish
+        // "confirmed not refunded" from "unknown".
         let anyMatched = false;
         state.reviews.forEach(r => {
           const entry = refundsByRecid[r.recommendationid];
           if (entry) {
             r.refunded = !!entry.refunded;
+            r.comments = entry.comments || [];
             anyMatched = true;
           }
         });
@@ -1130,10 +1138,12 @@ function detailHtml(r) {
           <div class="detail-dev-response-text">${escapeHtml(r.developer_response)}</div>
         </div>` : '';
 
+  const commentsHtml = renderInlineComments(r);
+
   return `
     <tr class="detail-row"><td colspan="6">
       <div class="detail-grid">
-        <div class="detail-text">${escapeHtml(r.review || t('table.emptyText'))}${devResponseHtml}</div>
+        <div class="detail-text">${escapeHtml(r.review || t('table.emptyText'))}${devResponseHtml}${commentsHtml}</div>
         <div class="detail-meta">
           ${r.personaname ? `<div>${t('table.nickname', { name: escapeHtml(r.personaname) })}</div>` : ''}
           <div>steamid: ${r.steamid ? `<a href="https://steamcommunity.com/profiles/${r.steamid}" target="_blank" rel="noopener">${r.steamid}</a>` : '—'}</div>
@@ -1151,6 +1161,43 @@ function detailHtml(r) {
         </div>
       </div>
     </td></tr>
+  `;
+}
+
+// Renders the comments scraped for this review (see review_page_data.json
+// / fetch_review_page_data.py) inline inside the expanded table row, so
+// reading them doesn't require jumping to the separate Comments panel.
+// r.comments is undefined until loadRefunds()'s merge completes (async,
+// happens shortly after the table itself renders) - shown as a "loading"
+// state rather than silently blank so it's clear more may still arrive.
+function renderInlineComments(r) {
+  if (r.comments === undefined) {
+    return `<div class="detail-comments detail-comments-loading">${t('table.commentsLoading')}</div>`;
+  }
+  if (!r.comments.length) {
+    return `<div class="detail-comments detail-comments-empty">${t('table.commentsNone')}</div>`;
+  }
+  const sorted = [...r.comments].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  const items = sorted.map(c => {
+    const author = c.author_name ? escapeHtml(c.author_name) : t('comments.anonAuthor');
+    const authorHtml = c.author_profile_url
+      ? `<a href="${escapeHtml(c.author_profile_url)}" target="_blank" rel="noopener">${author}</a>`
+      : author;
+    return `
+      <div class="detail-comment">
+        <div class="detail-comment-head">
+          <span class="detail-comment-author">${authorHtml}</span>
+          <span class="detail-comment-time">${fmtCommentDate(c.timestamp)}</span>
+        </div>
+        <div class="detail-comment-text">${escapeHtml(c.text || '').replace(/\n/g, '<br>')}</div>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="detail-comments">
+      <div class="detail-comments-label">${t('table.commentsLabel', { count: r.comments.length })}</div>
+      ${items}
+    </div>
   `;
 }
 
