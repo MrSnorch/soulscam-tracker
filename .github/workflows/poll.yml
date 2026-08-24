@@ -19,6 +19,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Without an explicit ref, checkout can leave the runner in a
+          # detached HEAD state on repeated programmatic workflow_dispatch
+          # triggers (see the "Re-trigger this workflow" step below) - the
+          # symptom is "You are not currently on a branch" on every git pull
+          # / push for the rest of the job, silently swallowed by the
+          # `|| true` guards further down, so commits kept piling up locally
+          # and never actually got pushed.
+          ref: ${{ github.ref_name }}
+
+      - name: Confirm we're on a branch, not detached HEAD
+        run: |
+          git symbolic-ref -q HEAD || {
+            echo "::error::Checkout left us in detached HEAD - aborting before we silently lose commits."
+            exit 1
+          }
+          echo "On branch: $(git symbolic-ref --short HEAD)"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,6 +49,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="$(git symbolic-ref --short HEAD)"
 
           # Commit new data every minute while poll.py runs in the background,
           # so docs/ changes -> Pages redeploys roughly once a minute instead
@@ -43,8 +61,8 @@ jobs:
             python3 scripts/build-index.py
             git add docs/hourly/ docs/points-by-day/ docs/recent.json docs/points.json docs/points-index.json docs/.recent-cache.json
             git diff --cached --quiet || git commit -m "chore: player count $(date -u +'%Y-%m-%dT%H:%M')"
-            git pull --rebase --quiet || true
-            git push --quiet || true
+            git pull --rebase --quiet origin "$BRANCH" || true
+            git push --quiet origin "HEAD:$BRANCH" || true
           done
 
           wait $POLL_PID
@@ -53,8 +71,8 @@ jobs:
           python3 scripts/build-index.py
           git add docs/hourly/ docs/points-by-day/ docs/recent.json docs/points.json docs/points-index.json docs/.recent-cache.json
           git diff --cached --quiet || git commit -m "chore: player count $(date -u +'%Y-%m-%dT%H:%M') (final)"
-          git pull --rebase --quiet || true
-          git push --quiet || true
+          git pull --rebase --quiet origin "$BRANCH" || true
+          git push --quiet origin "HEAD:$BRANCH" || true
 
       - name: Re-trigger this workflow to keep polling
         if: always()
