@@ -45,14 +45,15 @@ PLAYERS_PATH = os.path.join(OUT_DIR, "players.json")
 
 def load_known_players():
     """Читает уже накопленную базу как dict {slug: player}. Пустая база,
-    если файла ещё нет или он в старом (не-накопительном) формате без
-    first_seen — тогда просто начинаем копить с этого прогона."""
+    если файла ещё нет, битый JSON, или записи в старом (не-накопительном)
+    формате без first_seen — тогда просто начинаем копить с этого прогона
+    (те же игроки заново попадут в базу на первом же скрейпе, где встретятся)."""
     try:
         with open(PLAYERS_PATH, "r", encoding="utf-8") as f:
             existing = json.load(f)
     except (OSError, json.JSONDecodeError):
         return {}
-    return {p["slug"]: p for p in existing if "slug" in p}
+    return {p["slug"]: p for p in existing if "slug" in p and "first_seen" in p}
 
 
 def main():
