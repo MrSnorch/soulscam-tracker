@@ -16,6 +16,7 @@ let state = {
   sortKey: 'last_seen',
   sortDir: 'desc',
   search: '',
+  todayDate: null,
 };
 
 function renderOnlineHistoryChart(history) {
@@ -96,8 +97,12 @@ function renderStats(summary) {
       <div class="sub">заходили в игру ${summary.today_date}</div>
     </div>
     <div class="stat">
-      <div class="label">Всего персонажей в реестре</div>
-      <div class="value mono">${summary.total_players}</div>
+      <div class="label">Известно всего (накопительная база)</div>
+      <div class="value mono">${summary.total_players_known}</div>
+    </div>
+    <div class="stat">
+      <div class="label">Отвечали сегодняшнему прогону</div>
+      <div class="value mono">${summary.total_players_seen_today}</div>
     </div>
   `;
   document.getElementById('generated-at').textContent =
@@ -114,7 +119,7 @@ function sortPlayers(list) {
       av = Number(av) || 0;
       bv = Number(bv) || 0;
     }
-    if (sortKey === 'last_seen') {
+    if (sortKey === 'last_seen' || sortKey === 'first_seen' || sortKey === 'last_seen_scrape') {
       av = av ? Date.parse(av) || 0 : 0;
       bv = bv ? Date.parse(bv) || 0 : 0;
     }
@@ -131,14 +136,19 @@ function renderPlayersTable() {
   if (q) rows = rows.filter(p => (p.name || '').toLowerCase().includes(q));
   rows = sortPlayers(rows);
 
-  tbody.innerHTML = rows.slice(0, 500).map(p => `
-    <tr>
+  tbody.innerHTML = rows.slice(0, 500).map(p => {
+    const missing = state.todayDate && p.last_seen_scrape !== state.todayDate;
+    return `
+    <tr class="${missing ? 'missing-today' : ''}">
       <td class="name-cell"><a href="${escapeHTML(p.url)}" target="_blank" rel="noopener">${escapeHTML(p.name || p.slug)}</a></td>
       <td class="mono">${escapeHTML(p.region)}</td>
       <td class="mono">${escapeHTML(p.level || '—')}</td>
       <td class="mono">${escapeHTML(p.last_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.first_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_seen_scrape || '—')}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   document.querySelectorAll('#players-table thead th[data-sort]').forEach(th => {
     th.classList.toggle('sorted', th.dataset.sort === state.sortKey);
@@ -213,6 +223,7 @@ async function init() {
 
   state.players = players;
   state.duplicates = duplicates;
+  state.todayDate = summary.today_date;
 
   renderStats(summary);
   renderPlayersTable();
