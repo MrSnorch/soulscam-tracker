@@ -1,29 +1,39 @@
 name: Fetch Armoury data
 
 # Scrapes https://soulbound.game/armoury/ for every player (all regions)
-# and writes docs/armoury/*.json for the dashboard's "real online today"
-# stat, the by-server/trend charts, and the name-duplicates tab. Separate
-# workflow from poll.yml (Steam API player counts) and fetch-forum.yml
-# (Steam forum scraping) - a failed or slow armoury scrape shouldn't
-# affect either of those.
+# and writes docs/armoury/*.json - the accumulating known-players
+# database, "real online today" stat, the by-server/trend charts, and the
+# name-duplicates tab. Separate workflow from poll.yml (Steam API player
+# counts) and fetch-forum.yml (Steam forum scraping) - a failed or slow
+# armoury scrape shouldn't affect either of those.
 #
-# Sharded across 5 parallel runners to keep the hourly run fast:
-#   1. list    - lists all ~2000 players once, uploads the list as an
-#                artifact.
-#   2. scrape  - matrix of 5 runners, each downloads the list and scrapes
-#                its own 400-player slice, uploads its own shard result.
-#   3. merge   - downloads all 5 shard results, stitches them into the
-#                final docs/armoury/*.json files, commits and pushes.
+# Sharded across 5 parallel runners to keep each run fast:
+#   1. list         - lists all ~2000 players once, uploads the list as an
+#                     artifact.
+#   2. scrape       - matrix of 5 runners, each downloads the list and
+#                     scrapes its own 400-player slice, uploads its own
+#                     shard result.
+#   3. merge        - downloads all 5 shard results, merges them into the
+#                     accumulating known-players database in
+#                     docs/armoury/*.json (existing players are updated,
+#                     never dropped - see merge_shards.py), commits and
+#                     pushes.
+#   4. trigger-next - on success, sleeps until an hour has passed since
+#                     this run started, then kicks off the next run via
+#                     workflow_dispatch (using GH_PAT, since the default
+#                     GITHUB_TOKEN is deliberately blocked from triggering
+#                     further workflow runs). This guarantees exactly one
+#                     hour between run starts, rather than "however long
+#                     the scrape took" - the tradeoff is the runner just
+#                     sits idle for the leftover minutes, burning Actions
+#                     minutes for nothing. The hourly cron below is a
+#                     fallback in case a run fails before reaching this
+#                     job.
 #
 # Each shard runner gets the same safe fixed starting delay (see
 # scrape_shard.py) rather than sharing/adapting one rate limiter across
 # processes - 5 parallel runners land on different GitHub Actions IPs, so
 # there's nothing meaningful to coordinate between them.
-#
-# The site itself only refreshes armoury data once a day ("Data refreshes
-# daily" - see scripts/armoury/soulbound_armoury_scraper.py docstring), so
-# hourly is already more often than the underlying data changes; sharding
-# is purely to keep each hourly run comfortably inside its time budget.
 
 on:
   schedule:
@@ -47,6 +57,16 @@ jobs:
     env:
       PYTHONUNBUFFERED: "1"
     steps:
+      - name: Record run start time
+        run: date +%s > run_started_at.txt
+
+      - name: Upload run start time
+        uses: actions/upload-artifact@v4
+        with:
+          name: armoury-run-started-at
+          path: run_started_at.txt
+          retention-days: 1
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -159,3 +179,33 @@ jobs:
           done
           echo "::error::Failed to push armoury data after 5 attempts."
           exit 1
+
+  trigger-next:
+    needs: merge
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Download run start time
+        uses: actions/download-artifact@v4
+        with:
+          name: armoury-run-started-at
+
+      - name: Sleep until an hour has passed since this run started
+        run: |
+          STARTED_AT=$(cat run_started_at.txt)
+          NOW=$(date +%s)
+          ELAPSED=$(( NOW - STARTED_AT ))
+          REMAINING=$(( 3600 - ELAPSED ))
+          if [ "$REMAINING" -gt 0 ]; then
+            echo "Run took ${ELAPSED}s so far, sleeping ${REMAINING}s to reach exactly 1h."
+            sleep "$REMAINING"
+          else
+            echo "Run already took ${ELAPSED}s (>= 1h) - triggering next run immediately, no sleep."
+          fi
+
+      - name: Trigger next run
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh workflow run fetch-armoury.yml --repo "${{ github.repository }}"
