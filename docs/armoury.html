@@ -24,6 +24,12 @@
     color: var(--amber); border: 1px solid var(--amber); border-radius: 3px;
     padding: 1px 6px;
   }
+  tr.missing-today { opacity: 0.55; }
+  tr.missing-today td.name-cell::after {
+    content: "пропал с сайта";
+    margin-left: 6px; font-size: 10px; color: var(--red);
+    border: 1px solid var(--red); border-radius: 3px; padding: 1px 5px;
+  }
 </style>
 </head>
 <body>
@@ -68,7 +74,7 @@
       </div>
 
       <div class="tab-panel active" data-tab="players" id="players-panel">
-        <p class="desc">Полный список персонажей из armoury &mdash; по данным последнего часового прогона. Обновляется раз в час; данные на самом сайте, по его собственному описанию, обновляются раз в сутки.</p>
+        <p class="desc">Накопительная база всех персонажей, когда-либо встреченных armoury-скрапером &mdash; включая тех, кто с тех пор пропал с сайта. Каждый час база сверяется с текущим списком сайта: новые персонажи добавляются, у видимых сейчас обновляются данные, у пропавших последние известные данные остаются как есть.</p>
         <div class="field" style="max-width:320px; margin-bottom:12px;">
           <label>Поиск по нику</label>
           <input type="text" id="players-search" placeholder="ник...">
@@ -81,6 +87,8 @@
                 <th data-sort="region">Сервер</th>
                 <th data-sort="level">Уровень</th>
                 <th data-sort="last_seen">Последний вход</th>
+                <th data-sort="first_seen">Впервые замечен</th>
+                <th data-sort="last_seen_scrape">Виден на сайте</th>
               </tr>
             </thead>
             <tbody id="players-tbody"></tbody>
