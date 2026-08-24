@@ -21,7 +21,13 @@ docs/armoury/ — та же логика вывода, что раньше бы�
 - docs/armoury/duplicates.json — группы игроков с одинаковым именем на
   разных серверах/регионах (по всей накопленной базе).
 - docs/armoury/online-history.json — по одной точке в день за 90 дней,
-  источник графика тренда.
+  источник графика тренда. Точка за день пишется только если сайт реально
+  обновил данные в этот день (есть хотя бы один игрок с last_seen ==
+  сегодня) — иначе на сайте просто отдаётся вчерашний слепок ("Last
+  updated <вчера>" у всех игроков), и писать за сегодня online_today как
+  фактическое число было бы искажением графика; в этом случае за сегодня
+  остаётся дыра, прогон при этом не пропускается — players.json/summary.json
+  всё равно обновляются как обычно.
 - docs/armoury/by-region.json — распределение по серверам (по всей
   накопленной базе).
 
@@ -110,12 +116,21 @@ def main():
             history = json.load(f)
     except (OSError, json.JSONDecodeError):
         history = []
-    history = [h for h in history if h["date"] != summary["today_date"]]
-    history.append({"date": summary["today_date"], "online": online_today, "total": len(players)})
-    history.sort(key=lambda h: h["date"])
-    history = history[-90:]
-    with open(history_path, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, separators=(",", ":"))
+    if online_today > 0:
+        # Сайт реально обновил хотя бы чей-то last_seen сегодняшней датой —
+        # значит данные свежие, точку можно писать. Если online_today == 0,
+        # это значит сайт не обновлялся (last_seen у всех датирован вчера
+        # или раньше — та же ситуация, что и "Last updated August 23" на
+        # самом сайте, когда уже 24-е) - в этом случае за сегодня в графике
+        # остаётся дыра, а не ложный ноль.
+        history = [h for h in history if h["date"] != summary["today_date"]]
+        history.append({"date": summary["today_date"], "online": online_today, "total": len(players)})
+        history.sort(key=lambda h: h["date"])
+        history = history[-90:]
+        with open(history_path, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, separators=(",", ":"))
+    else:
+        print(f"[i] online_today=0 — сайт, похоже, не обновлял last_seen сегодня ({today_iso}), точку в историю не пишу.", file=sys.stderr)
 
     by_region = defaultdict(int)
     for p in players:
