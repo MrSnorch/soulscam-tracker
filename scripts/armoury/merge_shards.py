@@ -1,18 +1,29 @@
 #!/usr/bin/env python3
 """
 Job 3 шардированного пайплайна: собирает все shard_*.json от матрицы job'ов
-(scrape_shard.py) в один список игроков и пишет финальные файлы для
-дашборда в docs/armoury/ — та же логика вывода, что раньше была в
-build_armoury_data.py (теперь только сборка, без самого скрапинга):
+(scrape_shard.py) и обновляет накопительную базу известных игроков в
+docs/armoury/ — та же логика вывода, что раньше была в build_armoury_data.py
+(теперь только сборка, без самого скрапинга):
 
-- docs/armoury/players.json — по одному объекту на игрока.
-- docs/armoury/summary.json — { generated_at, total_players, online_today,
-  today_date }.
+- docs/armoury/players.json — НАКОПИТЕЛЬНАЯ база: каждый игрок, увиденный
+  хотя бы одним прогоном, остаётся здесь навсегда, даже если сайт перестал
+  его отдавать (удалён/скрыт/недоступен в моменте). Ключ — slug (постоянный
+  и уникальный, в отличие от name). У игроков из текущего скрейпа
+  name/level/last_seen/url обновляются и last_seen_scrape = сегодня; у
+  игроков, не встреченных в этом прогоне, все поля остаются как были
+  зафиксированы в последний раз, когда их видели. first_seen у уже
+  известных игроков не трогается.
+- docs/armoury/summary.json — { generated_at, total_players_known,
+  total_players_seen_today, online_today, today_date }.
+  total_players_known — размер всей накопленной базы, total_players_seen_today —
+  сколько из них реально ответил сайт сегодняшним скрейпом (online_today —
+  подмножество этого по дате last_seen на самой странице игрока).
 - docs/armoury/duplicates.json — группы игроков с одинаковым именем на
-  разных серверах/регионах.
+  разных серверах/регионах (по всей накопленной базе).
 - docs/armoury/online-history.json — по одной точке в день за 90 дней,
   источник графика тренда.
-- docs/armoury/by-region.json — распределение по серверам.
+- docs/armoury/by-region.json — распределение по серверам (по всей
+  накопленной базе).
 
 Использование:
     python merge_shards.py shard_0.json shard_1.json shard_2.json shard_3.json shard_4.json
@@ -29,33 +40,63 @@ sys.path.insert(0, os.path.dirname(__file__))
 from armoury_common import parse_date
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "armoury")
+PLAYERS_PATH = os.path.join(OUT_DIR, "players.json")
+
+
+def load_known_players():
+    """Читает уже накопленную базу как dict {slug: player}. Пустая база,
+    если файла ещё нет или он в старом (не-накопительном) формате без
+    first_seen — тогда просто начинаем копить с этого прогона."""
+    try:
+        with open(PLAYERS_PATH, "r", encoding="utf-8") as f:
+            existing = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return {p["slug"]: p for p in existing if "slug" in p}
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Сшить шарды armoury-скрапинга в финальные данные дашборда")
+    parser = argparse.ArgumentParser(description="Сшить шарды armoury-скрапинга в накопительную базу игроков")
     parser.add_argument("shards", nargs="+", help="JSON-файлы от scrape_shard.py")
     args = parser.parse_args()
 
     os.makedirs(OUT_DIR, exist_ok=True)
 
-    players = []
+    scraped = []
     for path in args.shards:
         with open(path, "r", encoding="utf-8") as f:
-            players.extend(json.load(f))
+            scraped.extend(json.load(f))
 
-    if not players:
-        print("[!] Все шарды пусты — файлы не перезаписываю.", file=sys.stderr)
+    if not scraped:
+        print("[!] Все шарды пусты — базу не трогаю.", file=sys.stderr)
         sys.exit(1)
 
-    with open(os.path.join(OUT_DIR, "players.json"), "w", encoding="utf-8") as f:
+    today_iso = datetime.now(timezone.utc).date().isoformat()
+
+    known = load_known_players()
+    for p in scraped:
+        slug = p["slug"]
+        existing = known.get(slug)
+        first_seen = existing["first_seen"] if existing else today_iso
+        known[slug] = {
+            **p,
+            "first_seen": first_seen,
+            "last_seen_scrape": today_iso,
+        }
+
+    players = sorted(known.values(), key=lambda p: p["slug"])
+
+    with open(PLAYERS_PATH, "w", encoding="utf-8") as f:
         json.dump(players, f, ensure_ascii=False, separators=(",", ":"))
 
     today = datetime.now(timezone.utc).date()
     online_today = sum(1 for p in players if parse_date(p["last_seen"]) == today)
+    seen_today = sum(1 for p in players if p["last_seen_scrape"] == today_iso)
 
     summary = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "total_players": len(players),
+        "total_players_known": len(players),
+        "total_players_seen_today": seen_today,
         "online_today": online_today,
         "today_date": today.isoformat(),
     }
@@ -99,8 +140,8 @@ def main():
         json.dump(duplicates, f, ensure_ascii=False, separators=(",", ":"))
 
     print(
-        f"[✓] {len(players)} игроков ({len(args.shards)} шардов), {online_today} онлайн сегодня, "
-        f"{len(duplicates)} повторяющихся ников",
+        f"[✓] база: {len(players)} игроков известно всего, {seen_today} видели сегодня "
+        f"({online_today} реально онлайн), {len(duplicates)} повторяющихся ников",
         file=sys.stderr,
     )
 
