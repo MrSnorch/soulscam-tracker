@@ -147,8 +147,10 @@ function renderPlayersTable() {
 
   tbody.innerHTML = pageRows.map(p => {
     const missing = state.todayDate && p.last_seen_scrape !== state.todayDate;
+    const isNew = !missing && state.todayDate && p.first_seen === state.todayDate;
+    const rowClass = missing ? 'missing-today' : (isNew ? 'new-today' : '');
     return `
-    <tr class="${missing ? 'missing-today' : ''}">
+    <tr class="${rowClass}">
       <td class="name-cell"><a href="${escapeHTML(p.url)}" target="_blank" rel="noopener">${escapeHTML(p.name || p.slug)}</a></td>
       <td class="mono">${escapeHTML(p.region)}</td>
       <td class="mono">${escapeHTML(p.level || '—')}</td>
