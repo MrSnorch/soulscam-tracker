@@ -1,8 +1,8 @@
 {
   "appid": 4369490,
-  "generated_at": "2026-08-24T13:08:29.424244+00:00",
-  "total_forum_accounts": 286,
-  "total_checked": 286,
+  "generated_at": "2026-08-25T01:45:29.970059+00:00",
+  "total_forum_accounts": 287,
+  "total_checked": 287,
   "summary": {
     "forum_active_but_never_owned_or_reviewed": 80,
     "owns_game_but_never_reviewed": 20,
@@ -3154,6 +3154,17 @@
       "review_suspicion_score": null,
       "forum_source": "https://steamcommunity.com/app/4369490/discussions/0/572667758937062951/",
       "first_seen_on_forum": "2026-08-24T01:48:00.221492+00:00"
+    },
+    {
+      "steamid": "76561197961308774",
+      "profile_public": false,
+      "owns_tracked_game": null,
+      "playtime_forever_minutes": null,
+      "total_games_owned": null,
+      "left_a_review": false,
+      "review_suspicion_score": null,
+      "forum_source": "https://steamcommunity.com/app/4369490/discussions/0/582806239606720092/",
+      "first_seen_on_forum": "2026-08-25T01:39:39.802457+00:00"
     }
   ],
   "total_friend_accounts_checked": 27,
