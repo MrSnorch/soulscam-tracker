@@ -17,6 +17,8 @@ let state = {
   sortDir: 'desc',
   search: '',
   todayDate: null,
+  page: 0,
+  pageSize: 500,
 };
 
 function renderOnlineHistoryChart(history) {
@@ -136,7 +138,14 @@ function renderPlayersTable() {
   if (q) rows = rows.filter(p => (p.name || '').toLowerCase().includes(q));
   rows = sortPlayers(rows);
 
-  tbody.innerHTML = rows.slice(0, 500).map(p => {
+  const totalPages = Math.max(1, Math.ceil(rows.length / state.pageSize));
+  if (state.page >= totalPages) state.page = totalPages - 1;
+  if (state.page < 0) state.page = 0;
+
+  const start = state.page * state.pageSize;
+  const pageRows = rows.slice(start, start + state.pageSize);
+
+  tbody.innerHTML = pageRows.map(p => {
     const missing = state.todayDate && p.last_seen_scrape !== state.todayDate;
     return `
     <tr class="${missing ? 'missing-today' : ''}">
@@ -153,6 +162,15 @@ function renderPlayersTable() {
   document.querySelectorAll('#players-table thead th[data-sort]').forEach(th => {
     th.classList.toggle('sorted', th.dataset.sort === state.sortKey);
   });
+
+  const info = document.getElementById('players-page-info');
+  if (rows.length === 0) {
+    info.textContent = 'ничего не найдено';
+  } else {
+    info.textContent = `${start + 1}\u2013${Math.min(start + state.pageSize, rows.length)} из ${rows.length} \u00b7 стр. ${state.page + 1}/${totalPages}`;
+  }
+  document.getElementById('players-page-prev').disabled = state.page <= 0;
+  document.getElementById('players-page-next').disabled = state.page >= totalPages - 1;
 }
 
 function renderDuplicates() {
@@ -241,6 +259,7 @@ async function init() {
 
   document.getElementById('players-search').addEventListener('input', e => {
     state.search = e.target.value;
+    state.page = 0;
     renderPlayersTable();
   });
 
@@ -252,8 +271,18 @@ async function init() {
         state.sortKey = th.dataset.sort;
         state.sortDir = 'asc';
       }
+      state.page = 0;
       renderPlayersTable();
     });
+  });
+
+  document.getElementById('players-page-prev').addEventListener('click', () => {
+    state.page -= 1;
+    renderPlayersTable();
+  });
+  document.getElementById('players-page-next').addEventListener('click', () => {
+    state.page += 1;
+    renderPlayersTable();
   });
 
   document.getElementById('show-same-region-dupes').addEventListener('change', renderDuplicates);
