@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-25T00:49:26Z",
+  "generated_at": "2026-08-25T12:35:36Z",
   "appid": "4369490",
   "top_suspicious": [
     {
@@ -62,6 +62,21 @@
       "playtime_at_review_minutes": 55,
       "timestamp_created": 1784677007,
       "review_excerpt": "Well.. as every ♥♥♥♥♥♥ mmo that is released, you will have mostly negative reviews in the release. Nothing new there. Difference here is something related to a possible scam... well... game is relativ"
+    },
+    {
+      "recommendationid": "231512484",
+      "steamid": "76561198077535177",
+      "profile_url": "https://steamcommunity.com/profiles/76561198077535177",
+      "suspicion_score": 40,
+      "suspicion_reasons": [
+        "prolific_reviewer_few_games",
+        "posted_during_review_burst",
+        "private_profile"
+      ],
+      "voted_up": true,
+      "playtime_at_review_minutes": 181,
+      "timestamp_created": 1785244178,
+      "review_excerpt": "Cheap game, fun game. That's it. I dont know anything about the previous titles and dont really care. It costed me less then a maccas combo and some nuggies. - If you're curious on the game just play "
     },
     {
       "recommendationid": "231112534",
