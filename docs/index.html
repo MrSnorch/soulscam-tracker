@@ -535,6 +535,10 @@
         <div class="value mono" id="armoury-online-today">&mdash;</div>
         <div class="sub"><a href="armoury.html" data-i18n-html="armoury.linkText">по данным armoury &middot; открыть реестр игроков и повторы ников &rarr;</a></div>
       </div>
+      <div class="stat-now-card" id="armoury-new-now-card" style="display:none;">
+        <div class="label"><span data-i18n="armoury.newToday">Новых сегодня</span></div>
+        <div class="value mono" id="armoury-new-today">&mdash;</div>
+      </div>
     </div>
     <div class="controls">
       <div class="range-btns" id="live-range-btns"></div>
@@ -560,7 +564,12 @@
         <p class="desc" data-i18n-html="armoury.trendDesc">Сколько уникальных персонажей заходило в игру за день, по данным armoury &mdash; отдельная метрика от Steam concurrent players выше &middot; <a href="armoury.html" class="reviews-link">открыть реестр игроков и повторы ников &rarr;</a></p>
       </div>
     </div>
-    <svg id="armoury-history-chart" viewBox="0 0 700 220" preserveAspectRatio="none" style="width:100%;height:220px;display:block;"></svg>
+    <div id="armoury-history-chart"><div id="status" data-i18n-html="live.loading">Загрузка данных&hellip;</div></div>
+
+    <h3 data-i18n="armoury.newPlayersTitle" style="margin-top:24px;">Новых игроков в базе за день</h3>
+    <p class="desc" data-i18n="armoury.newPlayersDesc">Сколько новых персонажей armoury-скрапер впервые записал в накопительную базу за каждый день.</p>
+    <div id="armoury-new-players-chart"><div id="status" data-i18n-html="live.loading">Загрузка данных&hellip;</div></div>
+
     <h3 data-i18n="armoury.byRegionTitle" style="margin-top:24px;">Игроки по серверам</h3>
     <svg id="armoury-region-chart" viewBox="0 0 700 220" preserveAspectRatio="none" style="width:100%;height:220px;display:block;"></svg>
   </div>
@@ -684,6 +693,9 @@ const I18N = {
     'armoury.trendTitle': 'Реальный онлайн (armoury)',
     'armoury.trendDesc': 'Сколько уникальных персонажей заходило в игру за день, по данным armoury &mdash; отдельная метрика от Steam concurrent players выше &middot; <a href="armoury.html" class="reviews-link">открыть реестр игроков и повторы ников &rarr;</a>',
     'armoury.byRegionTitle': 'Игроки по серверам',
+    'armoury.newPlayersTitle': 'Новых игроков в базе за день',
+    'armoury.newPlayersDesc': 'Сколько новых персонажей armoury-скрапер впервые записал в накопительную базу за каждый день.',
+    'armoury.newToday': 'Новых сегодня',
 
     // Overview panel
     'overview.title': 'Общая динамика',
@@ -847,6 +859,9 @@ const I18N = {
     'armoury.trendTitle': 'Real online (armoury)',
     'armoury.trendDesc': 'How many unique characters logged in per day, from armoury data &mdash; a separate metric from Steam concurrent players above &middot; <a href="armoury.html" class="reviews-link">open player registry and name duplicates &rarr;</a>',
     'armoury.byRegionTitle': 'Players by server',
+    'armoury.newPlayersTitle': 'New players added to database per day',
+    'armoury.newPlayersDesc': 'How many new characters the armoury scraper recorded into the accumulating database for each day.',
+    'armoury.newToday': 'New today',
 
     'overview.title': 'Overall trend',
     'overview.desc': 'Average player count by hour over the whole collected period &middot; <span style="color:var(--warn)">&#9650;</span> &mdash; suspicious review spike &middot; <span style="color:#e6707a">&#9711;</span> &mdash; unusual online-count jump',
@@ -2639,53 +2654,98 @@ function renderForumActivity(data) {
   }
 }
 
-// "Real online" trend from armoury data (scripts/armoury/build_armoury_data.py,
+// "Real online" trend from armoury data (scripts/armoury/merge_shards.py,
 // docs/armoury/online-history.json) - a distinct metric from the Steam
 // concurrent-players chart above (unique characters who logged in that day,
-// not simultaneous connections), shown as its own small panel.
+// not simultaneous connections). Built with the same chart primitives as
+// the Steam charts (makeSvg/drawGridAndAxes/linePath/attachTooltip) so it
+// looks and behaves identically - grid, axis labels, hover tooltip.
 function renderArmouryHistoryChart(history) {
-  const svg = document.getElementById('armoury-history-chart');
+  const container = document.getElementById('armoury-history-chart');
+  container.innerHTML = '';
   if (!history.length) {
-    svg.innerHTML = `<text x="10" y="20" fill="var(--muted)" font-family="monospace" font-size="12">${t('hourly.noData')}</text>`;
+    container.innerHTML = '<div id="status">' + t('hourly.noData') + '</div>';
     return;
   }
-  const W = 700, H = 220, padL = 36, padR = 10, padB = 24, padT = 10;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
+
   const maxVal = Math.max(...history.map(h => h.online), 1);
-  const stepX = history.length > 1 ? plotW / (history.length - 1) : 0;
+  const innerW = W - PAD.left - PAD.right;
+  const xForIndex = i => PAD.left + innerW * (history.length === 1 ? 0.5 : i / (history.length - 1));
 
-  const points = history.map((h, i) => {
-    const x = padL + (history.length > 1 ? i * stepX : plotW / 2);
-    const y = padT + plotH - (h.online / maxVal) * plotH;
-    return { x, y, h };
+  const svg = makeSvg();
+  const labelCount = Math.min(6, history.length);
+  const xLabels = [];
+  for (let i = 0; i < labelCount; i++) {
+    const idx = Math.round(i * (history.length - 1) / Math.max(1, labelCount - 1));
+    xLabels.push({ x: xForIndex(idx), label: history[idx].date.slice(5) });
+  }
+  drawGridAndAxes(svg, maxVal, xLabels);
+
+  const coords = linePath(history.map(h => h.online), xForIndex, maxVal);
+  const path = svgEl('path', { d: pathD(coords), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2 });
+  svg.appendChild(path);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-wrap';
+  wrap.appendChild(svg);
+  container.appendChild(wrap);
+
+  attachTooltip(wrap, svg, [{
+    coords,
+    color: 'var(--accent)',
+    labelFor: i => ({ value: history[i].online, sub: `${history[i].date} &middot; ${history[i].total} total` })
+  }], xForIndex, history.length);
+}
+
+// New-players-per-day bar chart (docs/armoury/new-players-history.json) -
+// same visual treatment as renderHourlyActivity's bars, but one bar per
+// calendar day instead of one per hour-of-day.
+function renderArmouryNewPlayersChart(history) {
+  const container = document.getElementById('armoury-new-players-chart');
+  container.innerHTML = '';
+  if (!history.length) {
+    container.innerHTML = '<div id="status">' + t('hourly.noData') + '</div>';
+    return;
+  }
+
+  const maxVal = Math.max(...history.map(h => h.count), 1);
+  const innerW = W - PAD.left - PAD.right;
+  const n = history.length;
+  const barGap = 3;
+  const barW = innerW / n - barGap;
+  const xForBar = i => PAD.left + (innerW / n) * i;
+  const xForIndex = i => xForBar(i) + barW / 2;
+
+  const svg = makeSvg();
+  const labelCount = Math.min(6, n);
+  const xLabels = [];
+  for (let i = 0; i < labelCount; i++) {
+    const idx = Math.round(i * (n - 1) / Math.max(1, labelCount - 1));
+    xLabels.push({ x: xForIndex(idx), label: history[idx].date.slice(5) });
+  }
+  drawGridAndAxes(svg, maxVal, xLabels);
+
+  history.forEach((h, i) => {
+    const y = scaleY(h.count, maxVal);
+    const rect = svgEl('rect', {
+      x: xForBar(i), y, width: Math.max(barW, 1), height: (H - PAD.bottom) - y,
+      rx: 2,
+      fill: 'var(--accent-dim)'
+    });
+    svg.appendChild(rect);
   });
 
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(padT + plotH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(padT + plotH).toFixed(1)} Z`;
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-wrap';
+  wrap.appendChild(svg);
+  container.appendChild(wrap);
 
-  const labelEvery = Math.max(1, Math.ceil(history.length / 8));
-  let labels = '';
-  points.forEach((p, i) => {
-    if (i % labelEvery === 0 || i === points.length - 1) {
-      labels += `<text x="${p.x.toFixed(1)}" y="${H - 6}" fill="var(--muted)" font-family="monospace" font-size="9.5" text-anchor="middle">${p.h.date.slice(5)}</text>`;
-    }
-  });
-
-  const dots = points.map(p => `
-    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--accent)">
-      <title>${p.h.date}: ${p.h.online} / ${p.h.total}</title>
-    </circle>
-  `).join('');
-
-  svg.innerHTML = `
-    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="var(--line)"/>
-    <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="var(--line)"/>
-    <text x="4" y="${padT + 8}" fill="var(--muted)" font-family="monospace" font-size="9.5">${maxVal}</text>
-    <path d="${areaPath}" fill="var(--accent)" opacity="0.12"/>
-    <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2"/>
-    ${dots}
-    ${labels}
-  `;
+  const coords = history.map((h, i) => ({ x: xForIndex(i), y: scaleY(h.count, maxVal) }));
+  attachTooltip(wrap, svg, [{
+    coords,
+    color: 'var(--accent)',
+    labelFor: i => ({ value: history[i].count, sub: history[i].date })
+  }], xForIndex, n);
 }
 
 function renderArmouryRegionChart(byRegion) {
@@ -2794,6 +2854,12 @@ async function init() {
   } catch (e) {
     // Same as above.
   }
+  let armouryNewPlayersHistory = null;
+  try {
+    armouryNewPlayersHistory = await loadJSON('armoury/new-players-history.json');
+  } catch (e) {
+    // Same as above - older pipeline runs before this file existed.
+  }
 
   function renderAll() {
     if (armourySummary) {
@@ -2802,6 +2868,11 @@ async function init() {
       document.getElementById('armoury-panel').style.display = '';
       renderArmouryHistoryChart(armouryHistory || []);
       renderArmouryRegionChart(armouryByRegion || {});
+      if (armourySummary.new_players_today != null) {
+        document.getElementById('armoury-new-now-card').style.display = '';
+        document.getElementById('armoury-new-today').textContent = armourySummary.new_players_today;
+      }
+      renderArmouryNewPlayersChart(armouryNewPlayersHistory || []);
     }
 
     if (points.length) {
