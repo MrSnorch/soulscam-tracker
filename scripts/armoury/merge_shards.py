@@ -28,6 +28,12 @@ docs/armoury/ — та же логика вывода, что раньше бы�
   фактическое число было бы искажением графика; в этом случае за сегодня
   остаётся дыра, прогон при этом не пропускается — players.json/summary.json
   всё равно обновляются как обычно.
+- docs/armoury/new-players-history.json — по одной точке в день за 90 дней:
+  { date, count } — сколько новых slug'ов впервые попало в накопительную
+  базу (first_seen == этот день) за конкретный календарный день. В отличие
+  от online-history, пишется всегда, даже если сегодня новых 0 — "сегодня
+  никого нового не нашли" (в отличие от online-history) не искажает
+  график, это просто нулевая, но настоящая точка.
 - docs/armoury/by-region.json — распределение по серверам (по всей
   накопленной базе).
 
@@ -99,12 +105,14 @@ def main():
     today = datetime.now(timezone.utc).date()
     online_today = sum(1 for p in players if parse_date(p["last_seen"]) == today)
     seen_today = sum(1 for p in players if p["last_seen_scrape"] == today_iso)
+    new_today = sum(1 for p in players if p["first_seen"] == today_iso)
 
     summary = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_players_known": len(players),
         "total_players_seen_today": seen_today,
         "online_today": online_today,
+        "new_players_today": new_today,
         "today_date": today.isoformat(),
     }
     with open(os.path.join(OUT_DIR, "summary.json"), "w", encoding="utf-8") as f:
@@ -132,6 +140,19 @@ def main():
     else:
         print(f"[i] online_today=0 — сайт, похоже, не обновлял last_seen сегодня ({today_iso}), точку в историю не пишу.", file=sys.stderr)
 
+    new_history_path = os.path.join(OUT_DIR, "new-players-history.json")
+    try:
+        with open(new_history_path, "r", encoding="utf-8") as f:
+            new_history = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        new_history = []
+    new_history = [h for h in new_history if h["date"] != summary["today_date"]]
+    new_history.append({"date": summary["today_date"], "count": new_today})
+    new_history.sort(key=lambda h: h["date"])
+    new_history = new_history[-90:]
+    with open(new_history_path, "w", encoding="utf-8") as f:
+        json.dump(new_history, f, ensure_ascii=False, separators=(",", ":"))
+
     by_region = defaultdict(int)
     for p in players:
         by_region[p["region"]] += 1
@@ -157,7 +178,7 @@ def main():
 
     print(
         f"[✓] база: {len(players)} игроков известно всего, {seen_today} видели сегодня "
-        f"({online_today} реально онлайн), {len(duplicates)} повторяющихся ников",
+        f"({online_today} реально онлайн, {new_today} новых сегодня), {len(duplicates)} повторяющихся ников",
         file=sys.stderr,
     )
 
