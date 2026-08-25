@@ -30,6 +30,18 @@
     margin-left: 6px; font-size: 10px; color: var(--red);
     border: 1px solid var(--red); border-radius: 3px; padding: 1px 5px;
   }
+  .page-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .page-btn:hover:not(:disabled) { color: var(--text); border-color: var(--text-dim); }
+  .page-btn:disabled { opacity: 0.4; cursor: default; }
 </style>
 </head>
 <body>
@@ -95,9 +107,9 @@
           </table>
         </div>
         <div class="pagination" id="players-pagination" style="display:flex; align-items:center; gap:10px; margin-top:12px; font-size:13px; color:var(--text-dim);">
-          <button type="button" id="players-page-prev" class="tab-btn">&larr; назад</button>
+          <button type="button" id="players-page-prev" class="page-btn">&larr; назад</button>
           <span id="players-page-info">&mdash;</span>
-          <button type="button" id="players-page-next" class="tab-btn">вперёд &rarr;</button>
+          <button type="button" id="players-page-next" class="page-btn">вперёд &rarr;</button>
         </div>
       </div>
 
