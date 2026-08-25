@@ -34,6 +34,21 @@ docs/armoury/ — та же логика вывода, что раньше бы�
   от online-history, пишется всегда, даже если сегодня новых 0 — "сегодня
   никого нового не нашли" (в отличие от online-history) не искажает
   график, это просто нулевая, но настоящая точка.
+- docs/armoury/retention-history.json — по одной точке в день за 90 дней:
+  { date, seen, total, pct } — какая доля всей известной на тот момент
+  базы (total = total_players_known в тот день) реально "откликнулась"
+  сайту в этот день (seen = сколько игроков получили last_seen_scrape ==
+  этот день). Отвечает на вопрос "сколько аккаунтов ещё живые, а не
+  мёртвые" - пишется всегда, даже 0%, по тем же соображениям, что и
+  new-players-history.
+- docs/armoury/history/<slug>.json — история изменений одного игрока:
+  список { date, level, last_seen } с одной новой записью только когда
+  level или last_seen реально изменились относительно последней
+  сохранённой записи (не пишется на каждый прогон - иначе на 1999+
+  игроков это тысячи файлов, растущих каждый час без всякой новой
+  информации). Отдельный файл на игрока, а не поле в players.json,
+  чтобы не раздувать основной файл, который целиком читается на каждой
+  загрузке страницы.
 - docs/armoury/by-region.json — распределение по серверам (по всей
   накопленной базе).
 
@@ -53,6 +68,7 @@ from armoury_common import parse_date
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "armoury")
 PLAYERS_PATH = os.path.join(OUT_DIR, "players.json")
+HISTORY_DIR = os.path.join(OUT_DIR, "history")
 
 
 def load_known_players():
@@ -66,6 +82,31 @@ def load_known_players():
     except (OSError, json.JSONDecodeError):
         return {}
     return {p["slug"]: p for p in existing if "slug" in p and "first_seen" in p}
+
+
+def update_player_history(slug, level, last_seen, today_iso):
+    """Дописывает docs/armoury/history/<slug>.json новой записью
+    {date, level, last_seen}, но только если level или last_seen реально
+    изменились относительно последней сохранённой записи - иначе на
+    1999+ игроков история росла бы на файл в час без всякой новой
+    информации. Файл создаётся при первом реальном изменении, не при
+    первом появлении игрока (иначе на каждого сразу пишется файл с
+    единственной записью, дублирующей players.json без пользы)."""
+    path = os.path.join(HISTORY_DIR, f"{slug}.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            history = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        history = []
+
+    last = history[-1] if history else None
+    if last and last["level"] == level and last["last_seen"] == last_seen:
+        return  # ничего не изменилось - не пишем
+
+    history.append({"date": today_iso, "level": level, "last_seen": last_seen})
+    os.makedirs(HISTORY_DIR, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, separators=(",", ":"))
 
 
 def main():
@@ -96,6 +137,7 @@ def main():
             "first_seen": first_seen,
             "last_seen_scrape": today_iso,
         }
+        update_player_history(slug, p.get("level"), p.get("last_seen"), today_iso)
 
     players = sorted(known.values(), key=lambda p: p["slug"])
 
@@ -152,6 +194,25 @@ def main():
     new_history = new_history[-90:]
     with open(new_history_path, "w", encoding="utf-8") as f:
         json.dump(new_history, f, ensure_ascii=False, separators=(",", ":"))
+
+    retention_path = os.path.join(OUT_DIR, "retention-history.json")
+    try:
+        with open(retention_path, "r", encoding="utf-8") as f:
+            retention_history = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        retention_history = []
+    retention_history = [h for h in retention_history if h["date"] != summary["today_date"]]
+    retention_pct = round(100 * seen_today / len(players), 1) if players else 0
+    retention_history.append({
+        "date": summary["today_date"],
+        "seen": seen_today,
+        "total": len(players),
+        "pct": retention_pct,
+    })
+    retention_history.sort(key=lambda h: h["date"])
+    retention_history = retention_history[-90:]
+    with open(retention_path, "w", encoding="utf-8") as f:
+        json.dump(retention_history, f, ensure_ascii=False, separators=(",", ":"))
 
     by_region = defaultdict(int)
     for p in players:
