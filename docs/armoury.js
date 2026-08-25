@@ -13,12 +13,13 @@ function escapeHTML(s) {
 let state = {
   players: [],
   duplicates: [],
-  sortKey: 'last_seen',
-  sortDir: 'desc',
-  search: '',
   todayDate: null,
-  page: 0,
-  pageSize: 500,
+  // Per-table state (players / missing), each with its own sort/search/page
+  // so switching tabs doesn't reset the other table's view.
+  tables: {
+    players: { sortKey: 'last_seen', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
+    missing: { sortKey: 'last_seen_scrape', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
+  },
 };
 
 function renderOnlineHistoryChart(history) {
@@ -66,6 +67,53 @@ function renderOnlineHistoryChart(history) {
   `;
 }
 
+// Retention trend: same visual treatment as the online-history chart, but
+// plotting pct (0-100) instead of a raw count, from docs/armoury/retention-history.json.
+function renderRetentionChart(history) {
+  const svg = document.getElementById('retention-chart');
+  if (!history || !history.length) {
+    svg.innerHTML = `<text x="10" y="20" fill="var(--text-dim)" font-family="var(--mono)" font-size="12">Пока недостаточно данных &mdash; появится после нескольких дней прогонов.</text>`;
+    return;
+  }
+  const W = 700, H = 220, padL = 36, padR = 10, padB = 24, padT = 10;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxVal = 100; // pct scale, fixed 0-100 so the chart is comparable day to day
+  const stepX = history.length > 1 ? plotW / (history.length - 1) : 0;
+
+  const points = history.map((h, i) => {
+    const x = padL + (history.length > 1 ? i * stepX : plotW / 2);
+    const y = padT + plotH - (h.pct / maxVal) * plotH;
+    return { x, y, h };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(padT + plotH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(padT + plotH).toFixed(1)} Z`;
+
+  const labelEvery = Math.max(1, Math.ceil(history.length / 8));
+  let labels = '';
+  points.forEach((p, i) => {
+    if (i % labelEvery === 0 || i === points.length - 1) {
+      labels += `<text x="${p.x.toFixed(1)}" y="${H - 6}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5" text-anchor="middle">${escapeHTML(p.h.date.slice(5))}</text>`;
+    }
+  });
+
+  const dots = points.map(p => `
+    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--green)">
+      <title>${escapeHTML(p.h.date)}: ${p.h.pct}% (${p.h.seen} из ${p.h.total})</title>
+    </circle>
+  `).join('');
+
+  svg.innerHTML = `
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <text x="4" y="${padT + 8}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5">100%</text>
+    <path d="${areaPath}" fill="var(--green)" opacity="0.12"/>
+    <path d="${linePath}" fill="none" stroke="var(--green)" stroke-width="2"/>
+    ${dots}
+    ${labels}
+  `;
+}
+
 function renderByRegionChart(byRegion) {
   const svg = document.getElementById('by-region-chart');
   const entries = Object.entries(byRegion || {}).sort((a, b) => b[1] - a[1]);
@@ -106,13 +154,16 @@ function renderStats(summary) {
       <div class="label">Отвечали сегодняшнему прогону</div>
       <div class="value mono">${summary.total_players_seen_today}</div>
     </div>
+    <div class="stat">
+      <div class="label">Новых сегодня</div>
+      <div class="value mono">${summary.new_players_today != null ? summary.new_players_today : '—'}</div>
+    </div>
   `;
   document.getElementById('generated-at').textContent =
     'Обновлено: ' + new Date(summary.generated_at).toLocaleString('ru-RU');
 }
 
-function sortPlayers(list) {
-  const { sortKey, sortDir } = state;
+function sortRows(list, sortKey, sortDir) {
   const dir = sortDir === 'asc' ? 1 : -1;
   return [...list].sort((a, b) => {
     let av = a[sortKey] || '';
@@ -131,27 +182,46 @@ function sortPlayers(list) {
   });
 }
 
-function renderPlayersTable() {
-  const tbody = document.getElementById('players-tbody');
-  const q = state.search.trim().toLowerCase();
-  let rows = state.players;
+// Shared renderer for the "players" and "missing" tables - same sort/search/
+// pagination mechanics, different source rows and row template.
+function renderTable(tableKey, sourceRows, tbodyId, tableId, rowTemplate) {
+  const ts = state.tables[tableKey];
+  const tbody = document.getElementById(tbodyId);
+  const q = ts.search.trim().toLowerCase();
+  let rows = sourceRows;
   if (q) rows = rows.filter(p => (p.name || '').toLowerCase().includes(q));
-  rows = sortPlayers(rows);
+  rows = sortRows(rows, ts.sortKey, ts.sortDir);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / state.pageSize));
-  if (state.page >= totalPages) state.page = totalPages - 1;
-  if (state.page < 0) state.page = 0;
+  const totalPages = Math.max(1, Math.ceil(rows.length / ts.pageSize));
+  if (ts.page >= totalPages) ts.page = totalPages - 1;
+  if (ts.page < 0) ts.page = 0;
 
-  const start = state.page * state.pageSize;
-  const pageRows = rows.slice(start, start + state.pageSize);
+  const start = ts.page * ts.pageSize;
+  const pageRows = rows.slice(start, start + ts.pageSize);
 
-  tbody.innerHTML = pageRows.map(p => {
-    const missing = state.todayDate && p.last_seen_scrape !== state.todayDate;
-    const isNew = !missing && state.todayDate && p.first_seen === state.todayDate;
-    const rowClass = missing ? 'missing-today' : (isNew ? 'new-today' : '');
-    return `
+  tbody.innerHTML = pageRows.map(rowTemplate).join('');
+
+  document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach(th => {
+    th.classList.toggle('sorted', th.dataset.sort === ts.sortKey);
+  });
+
+  const info = document.getElementById(`${tableKey}-page-info`);
+  if (rows.length === 0) {
+    info.textContent = 'ничего не найдено';
+  } else {
+    info.textContent = `${start + 1}\u2013${Math.min(start + ts.pageSize, rows.length)} из ${rows.length} \u00b7 стр. ${ts.page + 1}/${totalPages}`;
+  }
+  document.getElementById(`${tableKey}-page-prev`).disabled = ts.page <= 0;
+  document.getElementById(`${tableKey}-page-next`).disabled = ts.page >= totalPages - 1;
+}
+
+function playerRowTemplate(p) {
+  const missing = state.todayDate && p.last_seen_scrape !== state.todayDate;
+  const isNew = !missing && state.todayDate && p.first_seen === state.todayDate;
+  const rowClass = missing ? 'missing-today' : (isNew ? 'new-today' : '');
+  return `
     <tr class="${rowClass}">
-      <td class="name-cell"><a href="${escapeHTML(p.url)}" target="_blank" rel="noopener">${escapeHTML(p.name || p.slug)}</a></td>
+      <td class="name-cell"><a href="#" class="player-link" data-slug="${escapeHTML(p.slug)}">${escapeHTML(p.name || p.slug)}</a></td>
       <td class="mono">${escapeHTML(p.region)}</td>
       <td class="mono">${escapeHTML(p.level || '—')}</td>
       <td class="mono">${escapeHTML(p.last_seen || '—')}</td>
@@ -159,20 +229,29 @@ function renderPlayersTable() {
       <td class="mono">${escapeHTML(p.last_seen_scrape || '—')}</td>
     </tr>
   `;
-  }).join('');
+}
 
-  document.querySelectorAll('#players-table thead th[data-sort]').forEach(th => {
-    th.classList.toggle('sorted', th.dataset.sort === state.sortKey);
-  });
+function missingRowTemplate(p) {
+  return `
+    <tr>
+      <td class="name-cell"><a href="#" class="player-link" data-slug="${escapeHTML(p.slug)}">${escapeHTML(p.name || p.slug)}</a></td>
+      <td class="mono">${escapeHTML(p.region)}</td>
+      <td class="mono">${escapeHTML(p.level || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_seen_scrape || '—')}</td>
+    </tr>
+  `;
+}
 
-  const info = document.getElementById('players-page-info');
-  if (rows.length === 0) {
-    info.textContent = 'ничего не найдено';
-  } else {
-    info.textContent = `${start + 1}\u2013${Math.min(start + state.pageSize, rows.length)} из ${rows.length} \u00b7 стр. ${state.page + 1}/${totalPages}`;
-  }
-  document.getElementById('players-page-prev').disabled = state.page <= 0;
-  document.getElementById('players-page-next').disabled = state.page >= totalPages - 1;
+function renderPlayersTable() {
+  renderTable('players', state.players, 'players-tbody', 'players-table', playerRowTemplate);
+}
+
+function renderMissingTable() {
+  const missingRows = state.todayDate
+    ? state.players.filter(p => p.last_seen_scrape !== state.todayDate)
+    : [];
+  renderTable('missing', missingRows, 'missing-tbody', 'missing-table', missingRowTemplate);
 }
 
 function renderDuplicates() {
@@ -225,6 +304,87 @@ function initTabs() {
   });
 }
 
+// Wires search input, sortable headers, and prev/next buttons for one of
+// the two tables (players / missing) - same event plumbing, parameterized
+// by which render function to call after each interaction.
+function wireTableControls(tableKey, tableId, renderFn) {
+  const ts = state.tables[tableKey];
+
+  document.getElementById(`${tableKey}-search`).addEventListener('input', e => {
+    ts.search = e.target.value;
+    ts.page = 0;
+    renderFn();
+  });
+
+  document.querySelectorAll(`#${tableId} thead th[data-sort]`).forEach(th => {
+    th.addEventListener('click', () => {
+      if (ts.sortKey === th.dataset.sort) {
+        ts.sortDir = ts.sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        ts.sortKey = th.dataset.sort;
+        ts.sortDir = 'asc';
+      }
+      ts.page = 0;
+      renderFn();
+    });
+  });
+
+  document.getElementById(`${tableKey}-page-prev`).addEventListener('click', () => {
+    ts.page -= 1;
+    renderFn();
+  });
+  document.getElementById(`${tableKey}-page-next`).addEventListener('click', () => {
+    ts.page += 1;
+    renderFn();
+  });
+}
+
+// Player history modal - fetched lazily per-slug on click, not preloaded,
+// since most players will never be clicked and docs/armoury/history/<slug>.json
+// only exists for players who've actually changed at least once (see
+// merge_shards.py) - many clicks will legitimately find nothing yet.
+function openPlayerHistory(slug, displayName) {
+  const modal = document.getElementById('player-history-modal');
+  const title = document.getElementById('player-history-title');
+  const body = document.getElementById('player-history-body');
+  title.textContent = displayName || slug;
+  body.textContent = 'Загружаю…';
+  modal.style.display = 'flex';
+
+  loadJSON(`armoury/history/${encodeURIComponent(slug)}.json`)
+    .then(history => {
+      if (!history.length) {
+        body.innerHTML = '<div class="empty">История изменений пока не зафиксирована.</div>';
+        return;
+      }
+      body.innerHTML = [...history].reverse().map(h => `
+        <div class="history-row">
+          <span class="hdate">${escapeHTML(h.date)}</span>
+          <span>уровень ${escapeHTML(h.level || '—')}, последний вход: ${escapeHTML(h.last_seen || '—')}</span>
+        </div>
+      `).join('');
+    })
+    .catch(() => {
+      body.innerHTML = '<div class="empty">Изменений уровня или даты входа с момента первого появления не зафиксировано.</div>';
+    });
+}
+
+function initPlayerHistoryModal() {
+  const modal = document.getElementById('player-history-modal');
+  document.getElementById('player-history-close').addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+  document.addEventListener('click', e => {
+    const link = e.target.closest('.player-link');
+    if (!link) return;
+    e.preventDefault();
+    openPlayerHistory(link.dataset.slug, link.textContent);
+  });
+}
+
 async function init() {
   let summary, players, duplicates;
   try {
@@ -247,49 +407,29 @@ async function init() {
 
   renderStats(summary);
   renderPlayersTable();
+  renderMissingTable();
   renderDuplicates();
 
   // Графики — из отдельных файлов, которые появляются только начиная с
-  // первого прогона обновлённого build_armoury_data.py. Их отсутствие
-  // (старый снапшот до апдейта) не должно ронять остальную страницу.
+  // первого прогона обновлённого merge_shards.py. Их отсутствие (старый
+  // снапшот до апдейта) не должно ронять остальную страницу.
   loadJSON('armoury/online-history.json')
     .then(renderOnlineHistoryChart)
     .catch(() => renderOnlineHistoryChart([]));
+  loadJSON('armoury/retention-history.json')
+    .then(renderRetentionChart)
+    .catch(() => renderRetentionChart([]));
   loadJSON('armoury/by-region.json')
     .then(renderByRegionChart)
     .catch(() => renderByRegionChart({}));
 
-  document.getElementById('players-search').addEventListener('input', e => {
-    state.search = e.target.value;
-    state.page = 0;
-    renderPlayersTable();
-  });
-
-  document.querySelectorAll('#players-table thead th[data-sort]').forEach(th => {
-    th.addEventListener('click', () => {
-      if (state.sortKey === th.dataset.sort) {
-        state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        state.sortKey = th.dataset.sort;
-        state.sortDir = 'asc';
-      }
-      state.page = 0;
-      renderPlayersTable();
-    });
-  });
-
-  document.getElementById('players-page-prev').addEventListener('click', () => {
-    state.page -= 1;
-    renderPlayersTable();
-  });
-  document.getElementById('players-page-next').addEventListener('click', () => {
-    state.page += 1;
-    renderPlayersTable();
-  });
+  wireTableControls('players', 'players-table', renderPlayersTable);
+  wireTableControls('missing', 'missing-table', renderMissingTable);
 
   document.getElementById('show-same-region-dupes').addEventListener('change', renderDuplicates);
 
   initTabs();
+  initPlayerHistoryModal();
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('content').style.display = '';
