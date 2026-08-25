@@ -2,10 +2,11 @@ name: Fetch Armoury data
 
 # Scrapes https://soulbound.game/armoury/ for every player (all regions)
 # and writes docs/armoury/*.json - the accumulating known-players
-# database, "real online today" stat, the by-server/trend charts, and the
-# name-duplicates tab. Separate workflow from poll.yml (Steam API player
-# counts) and fetch-forum.yml (Steam forum scraping) - a failed or slow
-# armoury scrape shouldn't affect either of those.
+# database, "real online today" stat, the by-server/trend/retention
+# charts, per-player change history (docs/armoury/history/<slug>.json),
+# and the name-duplicates tab. Separate workflow from poll.yml (Steam API
+# player counts) and fetch-forum.yml (Steam forum scraping) - a failed or
+# slow armoury scrape shouldn't affect either of those.
 #
 # Sharded across 5 parallel runners to keep each run fast:
 #   1. list         - lists all ~2000 players once, uploads the list as an
@@ -159,7 +160,7 @@ jobs:
         run: |
           git config user.name "armoury-watch-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add -f docs/armoury/players.json docs/armoury/summary.json docs/armoury/duplicates.json docs/armoury/online-history.json docs/armoury/by-region.json 2>/dev/null || true
+          git add -f docs/armoury/players.json docs/armoury/summary.json docs/armoury/duplicates.json docs/armoury/online-history.json docs/armoury/new-players-history.json docs/armoury/retention-history.json docs/armoury/by-region.json docs/armoury/history/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No data changes to commit."
