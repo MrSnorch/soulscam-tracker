@@ -236,12 +236,16 @@ class PlayerData:
     url: str = ""
 
 
+class DeadlineExceeded(Exception):
+    """Общий дедлайн запуска скрипта истёк во время ожидания сайта."""
+
+
 def fetch(
     session: requests.Session,
     url: str,
     limiter: "AdaptiveRateLimiter",
     max_retries: int = MAX_RETRIES,
-    max_outage_wait: float = 3600.0,
+    deadline: Optional[float] = None,
 ) -> Optional[BeautifulSoup]:
     """
     Делает GET с ретраями и адаптивной задержкой. Задержка выдерживается
@@ -251,10 +255,12 @@ def fetch(
     Первые max_retries попыток — обычный адаптивный ретрай (как раньше).
     Если после них сайт всё ещё не отвечает (лежит целиком — 502/504/timeout
     и т.п.), скрипт НЕ переходит к следующему игроку, а переходит в режим
-    "ожидания оживления сайта": ждёт max_delay (потолок лимитера, обычно 30s)
-    между попытками и пробует бесконечно (до max_outage_wait секунд суммарно
-    в этом режиме), пока сайт не ответит 200 или пока не поймает не-серверную
-    ошибку (404 и т.п., которую ретраить бессмысленно).
+    "ожидания оживления сайта": ждёт 1s между попытками и пробует, пока
+    сайт не ответит 200, пока не поймает не-серверную ошибку (404 и т.п.,
+    которую ретраить бессмысленно), или пока не будет достигнут общий
+    deadline запуска (unix timestamp) — в этом случае поднимает
+    DeadlineExceeded, чтобы main() успел сохранить уже собранные результаты
+    вместо того, чтобы зависнуть здесь до принудительного убийства job'а.
     """
     for attempt in range(1, max_retries + 1):
         limiter.wait()
@@ -289,22 +295,30 @@ def fetch(
         return None
 
     # Обычные ретраи исчерпаны — сайт, похоже, лёг целиком.
-    # Не идём дальше по списку игроков: ждём и продолжаем стучаться сюда же.
+    # Не идём дальше по списку игроков: ждём и продолжаем стучаться сюда же,
+    # но не дольше общего дедлайна запуска.
     print(
         f"[!] {url} не отвечает после {max_retries} попыток — похоже, сайт лёг. "
-        f"Перехожу в режим ожидания (жду и повторяю тот же запрос, "
+        f"Перехожу в режим ожидания (жду по 1s и повторяю тот же запрос, "
         f"не двигаясь к следующему игроку)...",
         file=sys.stderr,
     )
     waited = 0.0
     outage_attempt = 0
     outage_poll_delay = 1.0
-    while waited < max_outage_wait:
+    while True:
+        if deadline is not None and time.time() >= deadline:
+            print(
+                f"[!] Общий дедлайн запуска истёк во время ожидания {url} "
+                f"(ждал {waited:.0f}s) — прерываю сканирование, сохраняю то, что есть.",
+                file=sys.stderr,
+            )
+            raise DeadlineExceeded()
+
         outage_attempt += 1
-        wait_for = outage_poll_delay
-        print(f"[i] Ожидание оживления сайта: попытка {outage_attempt}, жду {wait_for:.0f}s...", file=sys.stderr)
-        time.sleep(wait_for)
-        waited += wait_for
+        print(f"[i] Ожидание оживления сайта: попытка {outage_attempt}, жду {outage_poll_delay:.0f}s...", file=sys.stderr)
+        time.sleep(outage_poll_delay)
+        waited += outage_poll_delay
         try:
             resp = session.get(url, headers=HEADERS, timeout=TIMEOUT)
         except requests.RequestException as e:
@@ -325,13 +339,6 @@ def fetch(
 
         print(f"[!] HTTP {resp.status_code} для {url}, не ретраю.", file=sys.stderr)
         return None
-
-    print(
-        f"[!] Сайт не ожил за {max_outage_wait:.0f}s ожидания — пропускаю {url} "
-        f"и продолжаю со следующим игроком.",
-        file=sys.stderr,
-    )
-    return None
 
 
 def parse_player_page(soup: BeautifulSoup, slug: str, region: str, url: str) -> PlayerData:
@@ -407,9 +414,15 @@ def parse_player_page(soup: BeautifulSoup, slug: str, region: str, url: str) -> 
     return data
 
 
-def scrape_player(session: requests.Session, region: str, slug: str, limiter: AdaptiveRateLimiter) -> Optional[PlayerData]:
+def scrape_player(
+    session: requests.Session,
+    region: str,
+    slug: str,
+    limiter: AdaptiveRateLimiter,
+    deadline: Optional[float] = None,
+) -> Optional[PlayerData]:
     url = f"{ARMOURY_URL}/{region}/{slug}/"
-    soup = fetch(session, url, limiter)
+    soup = fetch(session, url, limiter, deadline=deadline)
     if soup is None:
         return None
     return parse_player_page(soup, slug, region, url)
@@ -550,6 +563,17 @@ def main():
         "--no-save-config", action="store_true",
         help="Не сохранять найденную задержку в конфиг по завершении работы",
     )
+    parser.add_argument(
+        "--max-runtime", type=float, default=25 * 60,
+        help=(
+            "Общий бюджет времени на весь запуск в секундах (по умолчанию "
+            "25 минут — с запасом под 30-минутный лимит job'а GitHub Actions). "
+            "Если сайт лежит и скрипт застревает в ожидании его оживления, по "
+            "истечении этого времени сканирование прерывается и уже собранные "
+            "результаты сохраняются в CSV, вместо того чтобы зависнуть до "
+            "принудительной отмены job'а. 0 — без ограничения."
+        ),
+    )
     args = parser.parse_args()
 
     session = requests.Session()
@@ -595,12 +619,26 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    deadline = time.time() + args.max_runtime if args.max_runtime > 0 else None
+
     results: list[PlayerData] = []
+    interrupted = False
     for i, (region, slug) in enumerate(targets, 1):
         print(f"[{i}/{len(targets)}] Парсинг {region}/{slug} (задержка {limiter.delay:.3f}s) ...", file=sys.stderr)
-        pdata = scrape_player(session, region, slug, limiter)
+        try:
+            pdata = scrape_player(session, region, slug, limiter, deadline=deadline)
+        except DeadlineExceeded:
+            interrupted = True
+            break
         if pdata:
             results.append(pdata)
+
+    if interrupted:
+        print(
+            f"[!] Сканирование прервано по общему таймауту ({args.max_runtime:.0f}s). "
+            f"Сохраняю {len(results)} уже собранных игроков из {len(targets)}.",
+            file=sys.stderr,
+        )
 
     print(f"[i] {limiter.summary()}", file=sys.stderr)
 
