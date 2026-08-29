@@ -241,11 +241,20 @@ def fetch(
     url: str,
     limiter: "AdaptiveRateLimiter",
     max_retries: int = MAX_RETRIES,
+    max_outage_wait: float = 3600.0,
 ) -> Optional[BeautifulSoup]:
     """
     Делает GET с ретраями и адаптивной задержкой. Задержка выдерживается
     ПЕРЕД каждой попыткой (включая первую), её длительность управляется
     limiter'ом снаружи.
+
+    Первые max_retries попыток — обычный адаптивный ретрай (как раньше).
+    Если после них сайт всё ещё не отвечает (лежит целиком — 502/504/timeout
+    и т.п.), скрипт НЕ переходит к следующему игроку, а переходит в режим
+    "ожидания оживления сайта": ждёт max_delay (потолок лимитера, обычно 30s)
+    между попытками и пробует бесконечно (до max_outage_wait секунд суммарно
+    в этом режиме), пока сайт не ответит 200 или пока не поймает не-серверную
+    ошибку (404 и т.п., которую ретраить бессмысленно).
     """
     for attempt in range(1, max_retries + 1):
         limiter.wait()
@@ -279,7 +288,49 @@ def fetch(
         print(f"[!] HTTP {resp.status_code} для {url}, не ретраю.", file=sys.stderr)
         return None
 
-    print(f"[!] Не удалось получить {url} после {max_retries} попыток.", file=sys.stderr)
+    # Обычные ретраи исчерпаны — сайт, похоже, лёг целиком.
+    # Не идём дальше по списку игроков: ждём и продолжаем стучаться сюда же.
+    print(
+        f"[!] {url} не отвечает после {max_retries} попыток — похоже, сайт лёг. "
+        f"Перехожу в режим ожидания (жду и повторяю тот же запрос, "
+        f"не двигаясь к следующему игроку)...",
+        file=sys.stderr,
+    )
+    waited = 0.0
+    outage_attempt = 0
+    outage_poll_delay = 1.0
+    while waited < max_outage_wait:
+        outage_attempt += 1
+        wait_for = outage_poll_delay
+        print(f"[i] Ожидание оживления сайта: попытка {outage_attempt}, жду {wait_for:.0f}s...", file=sys.stderr)
+        time.sleep(wait_for)
+        waited += wait_for
+        try:
+            resp = session.get(url, headers=HEADERS, timeout=TIMEOUT)
+        except requests.RequestException as e:
+            print(f"[!] Сайт всё ещё недоступен ({e}), жду дальше (суммарно {waited:.0f}s)...", file=sys.stderr)
+            continue
+
+        if resp.status_code == 200:
+            print(f"[✓] Сайт снова отвечает после {waited:.0f}s ожидания. Продолжаю сканирование.", file=sys.stderr)
+            limiter.on_success()
+            return BeautifulSoup(resp.text, "html.parser")
+
+        if resp.status_code in (403, 429, 500, 502, 503, 504):
+            print(
+                f"[!] Всё ещё HTTP {resp.status_code} (суммарно ждал {waited:.0f}s), жду дальше...",
+                file=sys.stderr,
+            )
+            continue
+
+        print(f"[!] HTTP {resp.status_code} для {url}, не ретраю.", file=sys.stderr)
+        return None
+
+    print(
+        f"[!] Сайт не ожил за {max_outage_wait:.0f}s ожидания — пропускаю {url} "
+        f"и продолжаю со следующим игроком.",
+        file=sys.stderr,
+    )
     return None
 
 
