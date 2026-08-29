@@ -440,7 +440,10 @@ def list_region_slugs(session: requests.Session, region: str, limiter: AdaptiveR
     slugs: list[str] = []
     seen_urls = set()
 
-    for page in range(1, max_pages + 1):
+    page = 1
+    consecutive_page_failures = 0
+    max_consecutive_page_failures = 10
+    while page <= max_pages:
         if page == 1:
             url = f"{ARMOURY_URL}/?region={region}"
         else:
@@ -452,7 +455,23 @@ def list_region_slugs(session: requests.Session, region: str, limiter: AdaptiveR
 
         soup = fetch(session, url, limiter)
         if soup is None:
-            break
+            consecutive_page_failures += 1
+            if consecutive_page_failures >= max_consecutive_page_failures:
+                print(
+                    f"[!] Страница {page} не отвечает {consecutive_page_failures} раз подряд — "
+                    f"прекращаю сбор списка (собрано {len(slugs)}).",
+                    file=sys.stderr,
+                )
+                break
+            print(
+                f"[!] Страница {page} не получена, жду 5s и пробую эту же страницу снова "
+                f"(попытка {consecutive_page_failures}/{max_consecutive_page_failures})...",
+                file=sys.stderr,
+            )
+            time.sleep(5)
+            continue
+
+        consecutive_page_failures = 0
 
         found_this_page = 0
         for a in soup.find_all("a", href=True):
@@ -469,6 +488,8 @@ def list_region_slugs(session: requests.Session, region: str, limiter: AdaptiveR
         if found_this_page == 0:
             break
 
+        page += 1
+
     return slugs
 
 
@@ -479,12 +500,24 @@ def list_all_slugs(session: requests.Session, limiter: AdaptiveRateLimiter, max_
     что без region пагинация листает общий список всех регионов).
     Регион для каждого игрока берётся прямо из его href
     (напр. /armoury/us/diovani-c1mky/ -> region='us').
-    Останавливается, когда страница не даёт новых игроков, или по max_pages.
+    Останавливается, когда страница не даёт новых игроков (это и есть
+    конец списка), или по max_pages.
+
+    ВАЖНО: soup is None означает лишь то, что fetch() не смог получить
+    ИМЕННО ЭТУ страницу (сайт полежал слишком долго и т.д.) — это не
+    признак конца списка. Раньше это ошибочно трактовалось как конец и
+    обрубало сбор на середине (если сайт временно лежал во время сбора
+    списка, все игроки с более поздних страниц никогда не попадали ни в
+    один прогон скрапера). Теперь при неудаче одной страницы делаем
+    паузу и повторяем ту же страницу заново, не прерывая весь список.
     """
     results: list[tuple[str, str]] = []
     seen_pairs = set()
 
-    for page in range(1, max_pages + 1):
+    page = 1
+    consecutive_page_failures = 0
+    max_consecutive_page_failures = 10  # защита от вечного цикла, если сайт лёг насовсем
+    while page <= max_pages:
         if page == 1:
             url = f"{ARMOURY_URL}/"
         else:
@@ -492,7 +525,23 @@ def list_all_slugs(session: requests.Session, limiter: AdaptiveRateLimiter, max_
 
         soup = fetch(session, url, limiter)
         if soup is None:
-            break
+            consecutive_page_failures += 1
+            if consecutive_page_failures >= max_consecutive_page_failures:
+                print(
+                    f"[!] Страница {page} не отвечает {consecutive_page_failures} раз подряд — "
+                    f"прекращаю сбор списка (собрано {len(results)}).",
+                    file=sys.stderr,
+                )
+                break
+            print(
+                f"[!] Страница {page} не получена, жду 5s и пробую эту же страницу снова "
+                f"(попытка {consecutive_page_failures}/{max_consecutive_page_failures})...",
+                file=sys.stderr,
+            )
+            time.sleep(5)
+            continue  # не увеличиваем page — повторяем ту же страницу
+
+        consecutive_page_failures = 0
 
         found_this_page = 0
         for a in soup.find_all("a", href=True):
@@ -511,6 +560,8 @@ def list_all_slugs(session: requests.Session, limiter: AdaptiveRateLimiter, max_
         if found_this_page == 0:
             print("[i] Новых игроков не найдено — похоже, дошли до конца списка.", file=sys.stderr)
             break
+
+        page += 1
 
     return results
 
