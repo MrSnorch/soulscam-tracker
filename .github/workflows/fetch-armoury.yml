@@ -8,17 +8,23 @@ name: Fetch Armoury data
 # player counts) and fetch-forum.yml (Steam forum scraping) - a failed or
 # slow armoury scrape shouldn't affect either of those.
 #
-# Sharded across 5 parallel runners to keep each run fast:
-#   1. list         - lists all ~2000 players once, uploads the list as an
-#                     artifact.
-#   2. scrape       - matrix of 5 runners, each downloads the list and
-#                     scrapes its own 400-player slice, uploads its own
-#                     shard result.
-#   3. merge        - downloads all 5 shard results, merges them into the
-#                     accumulating known-players database in
-#                     docs/armoury/*.json (existing players are updated,
-#                     never dropped - see merge_shards.py), commits and
-#                     pushes.
+# Sharded across N parallel runners (N computed from the actual player list
+# size, ~15 shards at current ~6000 players / 400 per shard) to keep each run
+# fast:
+#   1. list         - lists all players once, uploads the list as an
+#                     artifact, and computes how many 400-player shards are
+#                     needed to cover the WHOLE list (previously hardcoded to
+#                     5 shards / 2000 players, which silently stopped covering
+#                     the rest of the list once the player base grew past
+#                     that - see the shard-count computation below).
+#   2. scrape       - matrix of N runners (N from the list job), each
+#                     downloads the list and scrapes its own 400-player
+#                     slice, uploads its own shard result.
+#   3. merge        - downloads all shard results (however many there were),
+#                     merges them into the accumulating known-players
+#                     database in docs/armoury/*.json (existing players are
+#                     updated, never dropped - see merge_shards.py), commits
+#                     and pushes.
 #   4. trigger-next - on success, sleeps until an hour has passed since
 #                     this run started, then kicks off the next run via
 #                     workflow_dispatch (using GH_PAT, since the default
@@ -82,12 +88,28 @@ jobs:
       - name: List all players
         run: python scripts/armoury/list_players.py -o players_list.json
 
+      - name: Compute shard count from actual player list size
+        id: shards
+        run: |
+          COUNT=$(python3 -c "import json; print(len(json.load(open('players_list.json'))))")
+          SHARD_SIZE=${{ env.SHARD_SIZE }}
+          # ceil division, so a partially-filled last shard still gets its own runner
+          NUM_SHARDS=$(( (COUNT + SHARD_SIZE - 1) / SHARD_SIZE ))
+          echo "Player list has $COUNT entries -> $NUM_SHARDS shards of $SHARD_SIZE"
+          # matrix.shard needs a JSON array [0, 1, ..., NUM_SHARDS-1]
+          MATRIX=$(python3 -c "import json; print(json.dumps(list(range($NUM_SHARDS))))")
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "num_shards=$NUM_SHARDS" >> "$GITHUB_OUTPUT"
+
       - name: Upload player list
         uses: actions/upload-artifact@v4
         with:
           name: armoury-players-list
           path: players_list.json
           retention-days: 1
+    outputs:
+      shard_matrix: ${{ steps.shards.outputs.matrix }}
+      num_shards: ${{ steps.shards.outputs.num_shards }}
 
   scrape:
     needs: list
@@ -98,7 +120,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4]
+        shard: ${{ fromJson(needs.list.outputs.shard_matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -132,7 +154,7 @@ jobs:
           retention-days: 1
 
   merge:
-    needs: scrape
+    needs: [list, scrape]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -153,7 +175,18 @@ jobs:
           merge-multiple: true
 
       - name: Merge shards into dashboard data
-        run: python scripts/armoury/merge_shards.py shard_0.json shard_1.json shard_2.json shard_3.json shard_4.json
+        run: |
+          # Collect whichever shard_*.json files actually got downloaded,
+          # instead of hardcoding shard_0..shard_4 - the shard count is now
+          # dynamic (see the "list" job), so a fixed list here would silently
+          # ignore shards beyond whatever number used to be hardcoded.
+          SHARD_FILES=$(ls shard_*.json 2>/dev/null | sort -V)
+          if [ -z "$SHARD_FILES" ]; then
+            echo "::error::No shard_*.json files found to merge."
+            exit 1
+          fi
+          echo "Merging: $SHARD_FILES"
+          python scripts/armoury/merge_shards.py $SHARD_FILES
 
       - name: Commit and push updated data
         if: always()
