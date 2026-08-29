@@ -142,7 +142,7 @@ function renderStats(summary) {
   const grid = document.getElementById('stats-grid');
   grid.innerHTML = `
     <div class="stat">
-      <div class="label">Онлайн сегодня (armoury)</div>
+      <div class="label">Заходили сегодня (armoury)</div>
       <div class="value mono green">${summary.online_today}</div>
       <div class="sub">заходили в игру ${summary.today_date}</div>
     </div>
