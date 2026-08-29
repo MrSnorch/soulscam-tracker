@@ -51,13 +51,15 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           BRANCH="$(git symbolic-ref --short HEAD)"
 
-          # Commit new data every minute while poll.py runs in the background,
-          # so docs/ changes -> Pages redeploys roughly once a minute instead
-          # of once every 5. build-index.py caches parsed hourly data in
+          # Commit new data every 5 minutes while poll.py runs in the background,
+          # so docs/ changes -> Pages redeploys roughly once every 5 minutes
+          # instead of once a minute (frequent pushes were queueing up Pages
+          # deployments and causing them to sit "in progress" for minutes at
+          # a time). build-index.py caches parsed hourly data in
           # docs/.recent-cache.json and only re-reads "live" hours/days, so
-          # it stays cheap even run every minute as history grows.
+          # it stays cheap even run every few minutes as history grows.
           while kill -0 $POLL_PID 2>/dev/null; do
-            sleep 60
+            sleep 300
             python3 scripts/build-index.py
             git add docs/hourly/ docs/points-by-day/ docs/recent.json docs/points.json docs/points-index.json docs/.recent-cache.json
             git diff --cached --quiet || git commit -m "chore: player count $(date -u +'%Y-%m-%dT%H:%M')"
