@@ -11,21 +11,40 @@ name: Fetch Armoury data
 # Sharded across N parallel runners (N computed from the actual player list
 # size, ~15 shards at current ~6000 players / 400 per shard) to keep each run
 # fast:
-#   1. list         - lists all players once, uploads the list as an
-#                     artifact, and computes how many 400-player shards are
-#                     needed to cover the WHOLE list (previously hardcoded to
-#                     5 shards / 2000 players, which silently stopped covering
-#                     the rest of the list once the player base grew past
-#                     that - see the shard-count computation below).
-#   2. scrape       - matrix of N runners (N from the list job), each
+#   1. find_last_page - quick reconnaissance: finds the last non-empty page
+#                     number of the armoury list (via exponential growth +
+#                     binary search - see find_last_list_page() in
+#                     soulbound_armoury_scraper.py) without downloading and
+#                     parsing every page along the way. Needed before the
+#                     list itself can be sharded, since the total number of
+#                     pages isn't known upfront.
+#   2. scan_list    - matrix of M runners, each parses its own range of list
+#                     pages ([1, last_page] split evenly - see
+#                     scan_list_shard.py) and uploads its own
+#                     list_shard_<i>.json. Splitting the list-collection
+#                     itself (not just the per-player scraping) across
+#                     runners is what keeps this fast as the player base
+#                     keeps growing - a single sequential runner previously
+#                     hit its own job timeout partway through the list once
+#                     it grew past ~250 pages.
+#   3. merge_list   - downloads all list_shard_*.json, merges+dedupes them
+#                     into players_list.json (same format list_players.py
+#                     used to produce directly, so scrape_shard.py below is
+#                     unchanged), uploads it as an artifact, and computes how
+#                     many 400-player shards are needed to cover the WHOLE
+#                     list (previously hardcoded to 5 shards / 2000 players,
+#                     which silently stopped covering the rest of the list
+#                     once the player base grew past that - see the
+#                     shard-count computation below).
+#   4. scrape       - matrix of N runners (N from merge_list), each
 #                     downloads the list and scrapes its own 400-player
 #                     slice, uploads its own shard result.
-#   3. merge        - downloads all shard results (however many there were),
+#   5. merge        - downloads all shard results (however many there were),
 #                     merges them into the accumulating known-players
 #                     database in docs/armoury/*.json (existing players are
 #                     updated, never dropped - see merge_shards.py), commits
 #                     and pushes.
-#   4. trigger-next - on success, sleeps until an hour has passed since
+#   6. trigger-next - on success, sleeps until an hour has passed since
 #                     this run started, then kicks off the next run via
 #                     workflow_dispatch (using GH_PAT, since the default
 #                     GITHUB_TOKEN is deliberately blocked from triggering
@@ -37,10 +56,11 @@ name: Fetch Armoury data
 #                     fallback in case a run fails before reaching this
 #                     job.
 #
-# Each shard runner gets the same safe fixed starting delay (see
-# scrape_shard.py) rather than sharing/adapting one rate limiter across
-# processes - 5 parallel runners land on different GitHub Actions IPs, so
-# there's nothing meaningful to coordinate between them.
+# Each shard runner (both scan_list and scrape) gets the same safe fixed
+# starting delay (see scan_list_shard.py / scrape_shard.py) rather than
+# sharing/adapting one rate limiter across processes - parallel runners
+# land on different GitHub Actions IPs, so there's nothing meaningful to
+# coordinate between them.
 
 on:
   schedule:
@@ -56,11 +76,12 @@ concurrency:
 
 env:
   SHARD_SIZE: 400
+  LIST_PAGES_PER_SHARD: 20
 
 jobs:
-  list:
+  find_last_page:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       PYTHONUNBUFFERED: "1"
     steps:
@@ -85,8 +106,95 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4 --break-system-packages
 
-      - name: List all players
-        run: python scripts/armoury/list_players.py -o players_list.json
+      - name: Find last list page
+        run: python scripts/armoury/find_last_page.py -o last_page.txt
+
+      - name: Compute list-scan matrix from page count
+        id: pages
+        run: |
+          LAST_PAGE=$(cat last_page.txt)
+          PAGES_PER_SHARD=${{ env.LIST_PAGES_PER_SHARD }}
+          NUM_LIST_SHARDS=$(( (LAST_PAGE + PAGES_PER_SHARD - 1) / PAGES_PER_SHARD ))
+          echo "List has $LAST_PAGE pages -> $NUM_LIST_SHARDS list-scan shards of $PAGES_PER_SHARD pages"
+          MATRIX=$(python3 -c "import json; print(json.dumps(list(range($NUM_LIST_SHARDS))))")
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "last_page=$LAST_PAGE" >> "$GITHUB_OUTPUT"
+    outputs:
+      list_matrix: ${{ steps.pages.outputs.matrix }}
+      last_page: ${{ steps.pages.outputs.last_page }}
+
+  scan_list:
+    needs: find_last_page
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONUNBUFFERED: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        list_shard: ${{ fromJson(needs.find_last_page.outputs.list_matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 --break-system-packages
+
+      - name: Scan this page range
+        run: |
+          PAGES_PER_SHARD=${{ env.LIST_PAGES_PER_SHARD }}
+          LAST_PAGE=${{ needs.find_last_page.outputs.last_page }}
+          START=$(( ${{ matrix.list_shard }} * PAGES_PER_SHARD + 1 ))
+          END=$(( START + PAGES_PER_SHARD - 1 ))
+          if [ "$END" -gt "$LAST_PAGE" ]; then
+            END=$LAST_PAGE
+          fi
+          python scripts/armoury/scan_list_shard.py \
+            --start-page "$START" --end-page "$END" \
+            -o "list_shard_${{ matrix.list_shard }}.json"
+
+      - name: Upload list shard result
+        uses: actions/upload-artifact@v4
+        with:
+          name: armoury-list-shard-${{ matrix.list_shard }}
+          path: list_shard_${{ matrix.list_shard }}.json
+          retention-days: 1
+
+  merge_list:
+    needs: scan_list
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download all list shard results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: armoury-list-shard-*
+          merge-multiple: true
+
+      - name: Merge list shards into players_list.json
+        run: |
+          LIST_SHARD_FILES=$(ls list_shard_*.json 2>/dev/null | sort -V)
+          if [ -z "$LIST_SHARD_FILES" ]; then
+            echo "::error::No list_shard_*.json files found to merge."
+            exit 1
+          fi
+          echo "Merging: $LIST_SHARD_FILES"
+          python scripts/armoury/merge_list_shards.py $LIST_SHARD_FILES -o players_list.json
 
       - name: Compute shard count from actual player list size
         id: shards
@@ -112,7 +220,7 @@ jobs:
       num_shards: ${{ steps.shards.outputs.num_shards }}
 
   scrape:
-    needs: list
+    needs: merge_list
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -120,7 +228,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJson(needs.list.outputs.shard_matrix) }}
+        shard: ${{ fromJson(needs.merge_list.outputs.shard_matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -154,7 +262,7 @@ jobs:
           retention-days: 1
 
   merge:
-    needs: [list, scrape]
+    needs: [merge_list, scrape]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
