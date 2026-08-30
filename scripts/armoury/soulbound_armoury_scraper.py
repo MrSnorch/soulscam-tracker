@@ -428,6 +428,140 @@ def scrape_player(
     return parse_player_page(soup, slug, region, url)
 
 
+def parse_slugs_from_list_page(soup: BeautifulSoup) -> list[tuple[str, str]]:
+    """Достаёт все пары (region, slug) со страницы общего списка armoury."""
+    pairs: list[tuple[str, str]] = []
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        m = re.search(r"/armoury/([a-z0-9]+)/([a-z0-9\-]+)/?$", href)
+        if m:
+            pairs.append((m.group(1), m.group(2)))
+    return pairs
+
+
+def list_page_url(page: int) -> str:
+    return f"{ARMOURY_URL}/" if page == 1 else f"{ARMOURY_URL}/?sb_page={page}"
+
+
+def fetch_list_page_with_retry(
+    session: requests.Session,
+    page: int,
+    limiter: AdaptiveRateLimiter,
+    max_consecutive_page_failures: int = 10,
+) -> Optional[BeautifulSoup]:
+    """
+    Получает одну страницу общего списка armoury, переживая временные сбои
+    сайта. soup is None здесь означает "сайт лежит уже слишком долго для
+    этой страницы" (после max_consecutive_page_failures попыток) — а НЕ
+    конец списка, за это должен отвечать вызывающий код (0 новых слагов).
+    """
+    consecutive_failures = 0
+    while True:
+        soup = fetch(session, list_page_url(page), limiter)
+        if soup is not None:
+            return soup
+        consecutive_failures += 1
+        if consecutive_failures >= max_consecutive_page_failures:
+            print(
+                f"[!] Страница {page} не отвечает {consecutive_failures} раз подряд — сдаюсь.",
+                file=sys.stderr,
+            )
+            return None
+        print(
+            f"[!] Страница {page} не получена, жду 5s и пробую снова "
+            f"(попытка {consecutive_failures}/{max_consecutive_page_failures})...",
+            file=sys.stderr,
+        )
+        time.sleep(5)
+
+
+def find_last_list_page(
+    session: requests.Session,
+    limiter: AdaptiveRateLimiter,
+    hint: Optional[int] = None,
+) -> int:
+    """
+    Разведка: находит номер последней непустой страницы общего списка
+    armoury без скачивания и парсинга всех страниц по пути — только
+    проверяет, пуста страница или нет (0 новых слагов = "здесь список
+    закончился"). Использует экспоненциальный рост от точки старта, затем
+    бинарный поиск в найденном интервале (первая пустая, последняя
+    непустая), поэтому нужно порядка log2(N) запросов, а не N.
+
+    hint — примерная оценка последней страницы с прошлого запуска (если
+    есть), с которой стоит начать расти, вместо 1 — сильно сокращает число
+    запросов, если размер списка не менялся драматически.
+    """
+    def page_is_empty(page: int) -> bool:
+        soup = fetch_list_page_with_retry(session, page, limiter)
+        if soup is None:
+            # Сайт не даёт получить эту страницу вообще - считаем это как
+            # "не пустая", чтобы разведка не приняла временный сбой за
+            # конец списка и не занизила last_page.
+            return False
+        return len(parse_slugs_from_list_page(soup)) == 0
+
+    start = max(1, hint) if hint else 1
+
+    # Страница 1 гарантированно не пуста (иначе сайт целиком пуст - тогда
+    # возвращаем 1 и вызывающий код разберётся, что данных нет).
+    if page_is_empty(1):
+        return 1
+
+    low = 1  # последняя ИЗВЕСТНАЯ непустая страница
+    high: Optional[int] = None  # первая ИЗВЕСТНАЯ пустая страница
+
+    probe = start if start > 1 else 2
+    step = max(1, start - 1) if start > 1 else 1
+    while True:
+        if page_is_empty(probe):
+            high = probe
+            break
+        low = probe
+        step *= 2
+        probe = low + step
+        if probe > 100000:  # sanity guard - список armoury такого размера не бывает
+            high = probe
+            break
+
+    # Бинарный поиск точной границы в (low, high]
+    while high - low > 1:
+        mid = (low + high) // 2
+        if page_is_empty(mid):
+            high = mid
+        else:
+            low = mid
+
+    print(f"[i] Разведка: последняя непустая страница списка = {low}", file=sys.stderr)
+    return low
+
+
+def scan_list_pages(
+    session: requests.Session,
+    limiter: AdaptiveRateLimiter,
+    start_page: int,
+    end_page: int,
+) -> list[tuple[str, str]]:
+    """
+    Скачивает и парсит диапазон страниц общего списка [start_page, end_page]
+    (включительно с обеих сторон) и возвращает все найденные (region, slug).
+    Используется job'ом матрицы, разбирающим свой диапазон страниц
+    параллельно с остальными - границы диапазона уже известны заранее
+    из find_last_list_page(), поэтому здесь не нужно решать, где кончается
+    список: просто читаем свой кусок целиком.
+    """
+    results: list[tuple[str, str]] = []
+    for page in range(start_page, end_page + 1):
+        soup = fetch_list_page_with_retry(session, page, limiter)
+        if soup is None:
+            print(f"[!] Пропускаю страницу {page} - не удалось получить.", file=sys.stderr)
+            continue
+        pairs = parse_slugs_from_list_page(soup)
+        print(f"[i] Страница {page}: {len(pairs)} записей", file=sys.stderr)
+        results.extend(pairs)
+    return results
+
+
 def list_region_slugs(session: requests.Session, region: str, limiter: AdaptiveRateLimiter, max_pages: int = 50) -> list[str]:
     """
     Собирает slug'и игроков одного региона со страницы списка армоури.
