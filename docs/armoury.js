@@ -51,9 +51,7 @@ function renderOnlineHistoryChart(history) {
   });
 
   const dots = points.map(p => `
-    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--green)">
-      <title>${escapeHTML(p.h.date)}: ${p.h.online} онлайн из ${p.h.total}</title>
-    </circle>
+    <circle data-tooltip="${escapeHTML(p.h.date)}: ${p.h.online} онлайн из ${p.h.total}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--green)"/>
   `).join('');
 
   svg.innerHTML = `
@@ -98,9 +96,7 @@ function renderRetentionChart(history) {
   });
 
   const dots = points.map(p => `
-    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--green)">
-      <title>${escapeHTML(p.h.date)}: ${p.h.pct}% (${p.h.seen} из ${p.h.total})</title>
-    </circle>
+    <circle data-tooltip="${escapeHTML(p.h.date)}: ${p.h.pct}% (${p.h.seen} из ${p.h.total})" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="var(--green)"/>
   `).join('');
 
   svg.innerHTML = `
@@ -145,9 +141,7 @@ function renderLastSeenChart(players) {
     const x = padL + i * (plotW / entries.length);
     const barH = (e.count / maxVal) * plotH;
     const y = padT + plotH - barH;
-    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="var(--green)" opacity="0.75">
-      <title>${escapeHTML(e.date)}: ${e.count} игроков</title>
-    </rect>`;
+    bars += `<rect data-tooltip="${escapeHTML(e.date)}: ${e.count} игроков" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="var(--green)" opacity="0.75"/>`;
   });
 
   const labelEvery = Math.max(1, Math.ceil(entries.length / 8));
@@ -439,6 +433,28 @@ function initPlayerHistoryModal() {
   });
 }
 
+// Generic hover tooltip for any bar/dot chart: elements set data-tooltip,
+// this single delegated listener shows a fixed div near the cursor.
+function initChartTooltip() {
+  const tip = document.getElementById('chart-tooltip');
+  document.addEventListener('mousemove', e => {
+    const el = e.target.closest('[data-tooltip]');
+    if (!el) {
+      tip.style.display = 'none';
+      return;
+    }
+    tip.textContent = el.dataset.tooltip;
+    tip.style.display = '';
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top = (e.clientY + 14) + 'px';
+  });
+  document.addEventListener('mouseout', e => {
+    if (!e.relatedTarget || !e.relatedTarget.closest('[data-tooltip]')) {
+      tip.style.display = 'none';
+    }
+  });
+}
+
 async function init() {
   let summary, players, duplicates;
   try {
@@ -485,6 +501,7 @@ async function init() {
 
   initTabs();
   initPlayerHistoryModal();
+  initChartTooltip();
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('content').style.display = '';
