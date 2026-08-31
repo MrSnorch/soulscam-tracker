@@ -114,6 +114,60 @@ function renderRetentionChart(history) {
   `;
 }
 
+// Bar chart of all known players grouped by their last_seen date (in-game
+// last login, from armoury), not to be confused with online-history.json
+// which counts scraper visits per day. Computed client-side from state.players.
+function renderLastSeenChart(players) {
+  const svg = document.getElementById('last-seen-chart');
+  const counts = new Map();
+  players.forEach(p => {
+    if (!p.last_seen) return;
+    counts.set(p.last_seen, (counts.get(p.last_seen) || 0) + 1);
+  });
+  const entries = [...counts.entries()]
+    .map(([date, count]) => ({ date, count, ts: Date.parse(date) || 0 }))
+    .filter(e => e.ts)
+    .sort((a, b) => a.ts - b.ts);
+
+  if (!entries.length) {
+    svg.innerHTML = `<text x="10" y="20" fill="var(--text-dim)" font-family="var(--mono)" font-size="12">Нет данных.</text>`;
+    return;
+  }
+
+  const W = 700, H = 220, padL = 36, padR = 10, padB = 40, padT = 10;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxVal = Math.max(...entries.map(e => e.count), 1);
+  const barGap = 2;
+  const barW = Math.max((plotW / entries.length) - barGap, 1);
+
+  let bars = '';
+  entries.forEach((e, i) => {
+    const x = padL + i * (plotW / entries.length);
+    const barH = (e.count / maxVal) * plotH;
+    const y = padT + plotH - barH;
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="var(--green)" opacity="0.75">
+      <title>${escapeHTML(e.date)}: ${e.count} игроков</title>
+    </rect>`;
+  });
+
+  const labelEvery = Math.max(1, Math.ceil(entries.length / 8));
+  let labels = '';
+  entries.forEach((e, i) => {
+    if (i % labelEvery === 0 || i === entries.length - 1) {
+      const x = padL + i * (plotW / entries.length) + barW / 2;
+      labels += `<text x="${x.toFixed(1)}" y="${H - 6}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5" text-anchor="middle">${escapeHTML(e.date.slice(0, -6))}</text>`;
+    }
+  });
+
+  svg.innerHTML = `
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <text x="4" y="${padT + 8}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5">${maxVal}</text>
+    ${bars}
+    ${labels}
+  `;
+}
+
 function renderByRegionChart(byRegion) {
   const svg = document.getElementById('by-region-chart');
   const entries = Object.entries(byRegion || {}).sort((a, b) => b[1] - a[1]);
@@ -409,6 +463,7 @@ async function init() {
   renderPlayersTable();
   renderMissingTable();
   renderDuplicates();
+  renderLastSeenChart(state.players);
 
   // Графики — из отдельных файлов, которые появляются только начиная с
   // первого прогона обновлённого merge_shards.py. Их отсутствие (старый
