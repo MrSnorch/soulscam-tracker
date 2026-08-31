@@ -14,13 +14,22 @@ let state = {
   players: [],
   duplicates: [],
   todayDate: null,
-  // Per-table state (players / missing), each with its own sort/search/page
-  // so switching tabs doesn't reset the other table's view.
+  regions: [],
+  activeRegion: null,
+  // Per-table state (players / missing / guests / byregion), each with its
+  // own sort/search/page so switching tabs doesn't reset other tables' view.
   tables: {
     players: { sortKey: 'last_seen', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
     missing: { sortKey: 'last_seen_scrape', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
+    guests: { sortKey: 'last_seen', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
+    byregion: { sortKey: 'last_seen', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
   },
 };
+
+const GUEST_NAME_RE = /^guest[_-]/i;
+function isGuest(p) {
+  return GUEST_NAME_RE.test(p.name || '');
+}
 
 function renderOnlineHistoryChart(history) {
   const svg = document.getElementById('online-history-chart');
@@ -338,8 +347,154 @@ function renderDuplicates() {
   `).join('');
 }
 
+// ---------- Guests (guest_XXXXXX auto-generated accounts) ----------
+
+function renderGuestsStats() {
+  const guests = state.players.filter(isGuest);
+  const pct = state.players.length ? ((guests.length / state.players.length) * 100).toFixed(1) : '0';
+  document.getElementById('guests-stats').innerHTML = `
+    <div class="stat">
+      <div class="label">Гостевых аккаунтов</div>
+      <div class="value mono green">${guests.length}</div>
+      <div class="sub">из ${state.players.length} всего (${pct}%)</div>
+    </div>
+  `;
+}
+
+// Bar chart of guest accounts grouped by first_seen date (когда скрапер
+// впервые их заметил), same rendering approach as renderLastSeenChart.
+function renderGuestsHistoryChart() {
+  const svg = document.getElementById('guests-history-chart');
+  const guests = state.players.filter(isGuest);
+  const counts = new Map();
+  guests.forEach(p => {
+    if (!p.first_seen) return;
+    counts.set(p.first_seen, (counts.get(p.first_seen) || 0) + 1);
+  });
+  const entries = [...counts.entries()]
+    .map(([date, count]) => ({ date, count, ts: Date.parse(date) || 0 }))
+    .filter(e => e.ts)
+    .sort((a, b) => a.ts - b.ts);
+
+  if (!entries.length) {
+    svg.innerHTML = `<text x="10" y="20" fill="var(--text-dim)" font-family="var(--mono)" font-size="12">Нет данных.</text>`;
+    return;
+  }
+
+  const W = 700, H = 220, padL = 36, padR = 10, padB = 24, padT = 10;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxVal = Math.max(...entries.map(e => e.count), 1);
+  const barGap = 2;
+  const barW = Math.max((plotW / entries.length) - barGap, 1);
+
+  let bars = '';
+  entries.forEach((e, i) => {
+    const x = padL + i * (plotW / entries.length);
+    const barH = (e.count / maxVal) * plotH;
+    const y = padT + plotH - barH;
+    bars += `<rect data-tooltip="${escapeHTML(e.date)}: ${e.count} гостей" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="var(--green)" opacity="0.75"/>`;
+  });
+
+  const labelEvery = Math.max(1, Math.ceil(entries.length / 8));
+  let labels = '';
+  entries.forEach((e, i) => {
+    if (i % labelEvery !== 0 && i !== entries.length - 1) return;
+    const x = padL + i * (plotW / entries.length) + barW / 2;
+    const d = new Date(e.ts);
+    const label = String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
+    labels += `<text x="${x.toFixed(1)}" y="${H - 6}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5" text-anchor="middle">${escapeHTML(label)}</text>`;
+  });
+
+  svg.innerHTML = `
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <text x="4" y="${padT + 8}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5">${maxVal}</text>
+    ${bars}
+    ${labels}
+  `;
+}
+
+function renderGuestsTable() {
+  const guests = state.players.filter(isGuest);
+  renderTable('guests', guests, 'guests-tbody', 'guests-table', playerRowTemplate);
+}
+
+// ---------- By server (sub-tabs inside one panel) ----------
+
+function byRegionRowTemplate(p) {
+  const missing = state.todayDate && p.last_seen_scrape !== state.todayDate;
+  const isNew = !missing && state.todayDate && p.first_seen === state.todayDate;
+  const rowClass = missing ? 'missing-today' : (isNew ? 'new-today' : '');
+  return `
+    <tr class="${rowClass}">
+      <td class="name-cell"><a href="#" class="player-link" data-slug="${escapeHTML(p.slug)}">${escapeHTML(p.name || p.slug)}</a></td>
+      <td class="mono">${escapeHTML(p.level || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.first_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_seen_scrape || '—')}</td>
+    </tr>
+  `;
+}
+
+function renderByRegionTable() {
+  const rows = state.activeRegion
+    ? state.players.filter(p => p.region === state.activeRegion)
+    : [];
+  renderTable('byregion', rows, 'byregion-tbody', 'byregion-table', byRegionRowTemplate);
+}
+
+function renderRegionSubTabs() {
+  const container = document.getElementById('region-sub-switcher');
+  container.innerHTML = state.regions.map(r => `
+    <button type="button" class="tab-btn${r === state.activeRegion ? ' active' : ''}" data-region="${escapeHTML(r)}">${escapeHTML(r)}</button>
+  `).join('');
+  container.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.activeRegion = btn.dataset.region;
+      state.tables.byregion.page = 0;
+      container.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderByRegionTable();
+    });
+  });
+}
+
+// ---------- By last-seen date (summary list + click-to-expand detail) ----------
+
+function renderByDateSummary() {
+  const counts = new Map();
+  state.players.forEach(p => {
+    if (!p.last_seen) return;
+    counts.set(p.last_seen, (counts.get(p.last_seen) || 0) + 1);
+  });
+  const entries = [...counts.entries()]
+    .map(([date, count]) => ({ date, count, ts: Date.parse(date) || 0 }))
+    .sort((a, b) => b.ts - a.ts);
+
+  document.getElementById('bydate-summary-tbody').innerHTML = entries.map(e => `
+    <tr>
+      <td><a href="#" class="date-link" data-date="${escapeHTML(e.date)}">${escapeHTML(e.date)}</a></td>
+      <td class="mono">${e.count}</td>
+    </tr>
+  `).join('');
+}
+
+function showByDateDetail(date) {
+  const rows = state.players.filter(p => p.last_seen === date);
+  document.getElementById('bydate-detail-title').textContent = `${date} — ${rows.length} игроков`;
+  document.getElementById('bydate-detail-tbody').innerHTML = sortRows(rows, 'name', 'asc').map(p => `
+    <tr>
+      <td class="name-cell"><a href="#" class="player-link" data-slug="${escapeHTML(p.slug)}">${escapeHTML(p.name || p.slug)}</a></td>
+      <td class="mono">${escapeHTML(p.region)}</td>
+      <td class="mono">${escapeHTML(p.level || '—')}</td>
+      <td class="mono">${escapeHTML(p.first_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_seen_scrape || '—')}</td>
+    </tr>
+  `).join('');
+  document.getElementById('bydate-detail').style.display = '';
+}
+
 function switchTab(tabName) {
-  document.querySelectorAll('.tab-btn').forEach(b => {
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tabName);
   });
   document.querySelectorAll('.tab-panel').forEach(p => {
@@ -348,7 +503,7 @@ function switchTab(tabName) {
 }
 
 function initTabs() {
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 }
@@ -475,12 +630,20 @@ async function init() {
   state.players = players;
   state.duplicates = duplicates;
   state.todayDate = summary.today_date;
+  state.regions = [...new Set(players.map(p => p.region).filter(Boolean))].sort();
+  state.activeRegion = state.regions[0] || null;
 
   renderStats(summary);
   renderPlayersTable();
   renderMissingTable();
   renderDuplicates();
   renderLastSeenChart(state.players);
+  renderGuestsStats();
+  renderGuestsHistoryChart();
+  renderGuestsTable();
+  renderRegionSubTabs();
+  renderByRegionTable();
+  renderByDateSummary();
 
   // Графики — из отдельных файлов, которые появляются только начиная с
   // первого прогона обновлённого merge_shards.py. Их отсутствие (старый
@@ -497,8 +660,17 @@ async function init() {
 
   wireTableControls('players', 'players-table', renderPlayersTable);
   wireTableControls('missing', 'missing-table', renderMissingTable);
+  wireTableControls('guests', 'guests-table', renderGuestsTable);
+  wireTableControls('byregion', 'byregion-table', renderByRegionTable);
 
   document.getElementById('show-same-region-dupes').addEventListener('change', renderDuplicates);
+
+  document.addEventListener('click', e => {
+    const link = e.target.closest('.date-link');
+    if (!link) return;
+    e.preventDefault();
+    showByDateDetail(link.dataset.date);
+  });
 
   initTabs();
   initPlayerHistoryModal();
