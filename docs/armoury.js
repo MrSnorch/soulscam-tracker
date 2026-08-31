@@ -144,13 +144,19 @@ function renderLastSeenChart(players) {
     bars += `<rect data-tooltip="${escapeHTML(e.date)}: ${e.count} игроков" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="var(--green)" opacity="0.75"/>`;
   });
 
-  const labelEvery = Math.max(1, Math.ceil(entries.length / 8));
+  const labelEvery = Math.max(1, Math.ceil(entries.length / 12));
   let labels = '';
+  let prevMonth = null;
   entries.forEach((e, i) => {
-    if (i % labelEvery === 0 || i === entries.length - 1) {
-      const x = padL + i * (plotW / entries.length) + barW / 2;
-      labels += `<text x="${x.toFixed(1)}" y="${H - 6}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5" text-anchor="middle">${escapeHTML(e.date.slice(0, -6))}</text>`;
-    }
+    if (i % labelEvery !== 0 && i !== entries.length - 1) return;
+    const x = padL + i * (plotW / entries.length) + barW / 2;
+    const d = new Date(e.ts);
+    const month = d.getMonth();
+    const short = month !== prevMonth
+      ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+      : String(d.getDate());
+    prevMonth = month;
+    labels += `<text x="${x.toFixed(1)}" y="${H - 8}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5" text-anchor="end" transform="rotate(-40 ${x.toFixed(1)} ${H - 8})">${escapeHTML(short)}</text>`;
   });
 
   svg.innerHTML = `
@@ -444,7 +450,7 @@ function initChartTooltip() {
       return;
     }
     tip.textContent = el.dataset.tooltip;
-    tip.style.display = '';
+    tip.style.display = 'block';
     tip.style.left = (e.clientX + 14) + 'px';
     tip.style.top = (e.clientY + 14) + 'px';
   });
