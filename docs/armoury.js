@@ -172,6 +172,90 @@ function renderLastSeenChart(players) {
   `;
 }
 
+const REGION_COLORS = {
+  us: '#5ee6b0', euro: '#5eb8e6', euro3: '#e6c95e',
+  asia: '#e65e8f', usa3: '#9d7ee6', sam: '#e6935e',
+};
+const FALLBACK_REGION_COLORS = ['#5ee6b0', '#5eb8e6', '#e6c95e', '#e65e8f', '#9d7ee6', '#e6935e', '#7ee6c9'];
+function regionColor(region, index) {
+  return REGION_COLORS[region] || FALLBACK_REGION_COLORS[index % FALLBACK_REGION_COLORS.length];
+}
+
+// Stacked bar chart: same last_seen buckets as renderLastSeenChart, but
+// each bar is split into per-region segments.
+function renderLastSeenByRegionChart(players) {
+  const svg = document.getElementById('last-seen-by-region-chart');
+  const regions = [...new Set(players.map(p => p.region).filter(Boolean))].sort();
+
+  // date -> region -> count
+  const byDate = new Map();
+  players.forEach(p => {
+    if (!p.last_seen || !p.region) return;
+    if (!byDate.has(p.last_seen)) byDate.set(p.last_seen, new Map());
+    const m = byDate.get(p.last_seen);
+    m.set(p.region, (m.get(p.region) || 0) + 1);
+  });
+
+  const entries = [...byDate.entries()]
+    .map(([date, regionMap]) => ({
+      date,
+      ts: Date.parse(date) || 0,
+      regionMap,
+      total: [...regionMap.values()].reduce((a, b) => a + b, 0),
+    }))
+    .filter(e => e.ts)
+    .sort((a, b) => a.ts - b.ts);
+
+  if (!entries.length) {
+    svg.innerHTML = `<text x="10" y="20" fill="var(--text-dim)" font-family="var(--mono)" font-size="12">Нет данных.</text>`;
+    return;
+  }
+
+  const W = 700, H = 240, padL = 36, padR = 10, padB = 24, padT = 10;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const maxVal = Math.max(...entries.map(e => e.total), 1);
+  const barGap = 2;
+  const barW = Math.max((plotW / entries.length) - barGap, 1);
+
+  let bars = '';
+  entries.forEach((e, i) => {
+    const x = padL + i * (plotW / entries.length);
+    let yCursor = padT + plotH;
+    regions.forEach((region, ri) => {
+      const count = e.regionMap.get(region) || 0;
+      if (!count) return;
+      const segH = (count / maxVal) * plotH;
+      yCursor -= segH;
+      bars += `<rect data-tooltip="${escapeHTML(e.date)} · ${escapeHTML(region)}: ${count} игроков" x="${x.toFixed(1)}" y="${yCursor.toFixed(1)}" width="${barW.toFixed(1)}" height="${segH.toFixed(1)}" fill="${regionColor(region, ri)}" opacity="0.85"/>`;
+    });
+  });
+
+  const labelEvery = Math.max(1, Math.ceil(entries.length / 8));
+  let labels = '';
+  entries.forEach((e, i) => {
+    if (i % labelEvery !== 0 && i !== entries.length - 1) return;
+    const x = padL + i * (plotW / entries.length) + barW / 2;
+    const d = new Date(e.ts);
+    const label = String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0');
+    labels += `<text x="${x.toFixed(1)}" y="${H - 6}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5" text-anchor="middle">${escapeHTML(label)}</text>`;
+  });
+
+  svg.innerHTML = `
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="var(--border)"/>
+    <text x="4" y="${padT + 8}" fill="var(--text-dim)" font-family="var(--mono)" font-size="9.5">${maxVal}</text>
+    ${bars}
+    ${labels}
+  `;
+
+  document.getElementById('last-seen-by-region-legend').innerHTML = regions.map((r, ri) => `
+    <span style="display:flex; align-items:center; gap:5px;">
+      <span style="width:10px; height:10px; border-radius:2px; background:${regionColor(r, ri)}; display:inline-block;"></span>
+      ${escapeHTML(r)}
+    </span>
+  `).join('');
+}
+
 function renderByRegionChart(byRegion) {
   const svg = document.getElementById('by-region-chart');
   const entries = Object.entries(byRegion || {}).sort((a, b) => b[1] - a[1]);
@@ -638,6 +722,7 @@ async function init() {
   renderMissingTable();
   renderDuplicates();
   renderLastSeenChart(state.players);
+  renderLastSeenByRegionChart(state.players);
   renderGuestsStats();
   renderGuestsHistoryChart();
   renderGuestsTable();
