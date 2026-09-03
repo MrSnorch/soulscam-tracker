@@ -186,8 +186,38 @@ def flush_hour(hour, points, final=False):
     print(f"Flushed {len(points)} points ({tag}) -> docs/hourly/{hour}.json.gz ({len(merged)} total)", flush=True)
 
 
+def seed_recent_counts_from_disk():
+    """On a fresh process start, _recent_counts is empty, so is_suspicious_zero()
+    can't recognize a 0 that follows healthy numbers - exactly what happened
+    at the start of a run in practice (nulls went straight through unconfirmed
+    because there was no history yet to compare against). Seed it from the
+    most recently flushed points on disk so the very first polls of a new
+    run are protected too."""
+    if not os.path.isdir(HOURLY_DIR):
+        return
+    files = sorted(f for f in os.listdir(HOURLY_DIR) if f.endswith(".json.gz"))
+    counts = []
+    for fname in reversed(files):
+        try:
+            with gzip.open(os.path.join(HOURLY_DIR, fname), "rt") as f:
+                points = json.load(f).get("points", [])
+        except (OSError, json.JSONDecodeError):
+            continue
+        for p in reversed(points):
+            counts.append(p.get("player_count"))
+            if len(counts) >= RECENT_HISTORY_LEN:
+                break
+        if len(counts) >= RECENT_HISTORY_LEN:
+            break
+    counts.reverse()
+    _recent_counts.extend(c for c in counts if c is not None)
+    if _recent_counts:
+        print(f"INFO: seeded recent-history buffer from disk: {_recent_counts}", file=sys.stderr)
+
+
 def main():
     print(f"Starting poll loop: interval={POLL_INTERVAL_SEC}s, run_duration={RUN_DURATION_SEC}s", flush=True)
+    seed_recent_counts_from_disk()
     start = time.time()
     buffer = {}  # hour_key -> list of {ts, player_count} not yet flushed
     current_hour = None
