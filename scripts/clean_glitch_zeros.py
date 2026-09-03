@@ -71,10 +71,12 @@ def clean_points(points):
     sides (within MAX_NEIGHBOR_GAP_SEC of the run's edges) by clearly
     nonzero readings is treated as an API glitch, not a real drop to
     zero - a real crash to zero doesn't un-crash a few minutes later on
-    its own. Each 0 in such a run is replaced with the last known-good
-    (nonzero) count that preceded it (forward-fill), rather than deleted,
-    so the timeline keeps its normal point spacing instead of gaining
-    gaps.
+    its own. Each 0 in such a run is replaced with a value linearly
+    interpolated between the last known-good reading before the run and
+    the first known-good reading after it (weighted by each point's own
+    timestamp), rather than deleted or forward-filled, so the timeline
+    keeps its normal point spacing and follows the trend between the two
+    real readings instead of flattening it.
 
     A 0 that isn't bounded like this (leading/trailing run with no
     healthy neighbor close by, or the very first/last points overall) is
@@ -112,8 +114,17 @@ def clean_points(points):
         )
 
         if prev_ok and next_ok:
-            fill_value = prev_point["player_count"]
+            prev_count = prev_point["player_count"]
+            next_count = next_point["player_count"]
+            prev_ts = datetime.fromisoformat(prev_point["ts"])
+            next_ts = datetime.fromisoformat(next_point["ts"])
+            span = (next_ts - prev_ts).total_seconds()
             for k in range(i, j):
+                if span > 0:
+                    frac = (datetime.fromisoformat(pts[k]["ts"]) - prev_ts).total_seconds() / span
+                else:
+                    frac = 0.5
+                fill_value = round(prev_count + (next_count - prev_count) * frac)
                 result[k]["player_count"] = fill_value
                 changed.append({"ts": pts[k]["ts"], "from": 0, "to": fill_value})
 
