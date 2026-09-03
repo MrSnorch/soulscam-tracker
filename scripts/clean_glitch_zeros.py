@@ -38,7 +38,14 @@ HOURLY_DIR = os.path.join(os.path.dirname(__file__), "..", "docs", "hourly")
 # both nonzero. This deliberately does not touch a 0 that sits next to
 # another 0, or one with no nonzero neighbor close by in time - those
 # look like a real (possibly sustained) drop, not a one-poll blip.
-MAX_NEIGHBOR_GAP_SEC = 180
+#
+# Set well above the 60s poll interval: fetch_player_count() itself can
+# take up to ~20s across its retry backoff (delays of 0/5/15s), and a
+# 180s cap was observed in practice to miss a run whose nearest healthy
+# neighbor was 182s away - a false negative caused by a real glitch that
+# happened to line up with normal request jitter, not a case that needed
+# to be excluded.
+MAX_NEIGHBOR_GAP_SEC = 300
 
 # Skip the current UTC hour and the one before it - poll.py may be
 # actively appending to those exact hourly files right now (it flushes
@@ -139,48 +146,72 @@ def main():
     ap.add_argument("--skip-rebuild", action="store_true", help="don't run build-index.py afterward")
     args = ap.parse_args()
 
-    total_removed = 0
-    touched_files = 0
     live_hours = live_hour_keys()
     skipped_live = 0
 
+    # Load every non-live hourly file into one combined, time-sorted stream
+    # of points before cleaning - a glitch run can straddle an hour
+    # boundary (e.g. 4 zeros at the end of hour N, 12 more at the start of
+    # hour N+1), and cleaning each file in isolation would see a run like
+    # that as having no healthy neighbor on one side, missing it entirely.
+    all_points = []  # each: dict with the point's fields plus "_hour"
+    file_data = {}   # hour -> parsed json object (for writing back)
     for path in sorted(glob.glob(os.path.join(HOURLY_DIR, "*.json.gz"))):
         hour = os.path.basename(path).removesuffix(".json.gz")
         if hour in live_hours:
             skipped_live += 1
             continue
-
         with gzip.open(path, "rt") as f:
             data = json.load(f)
-        points = data.get("points", [])
-        if not points:
-            continue
+        file_data[hour] = data
+        for p in data.get("points", []):
+            tagged = dict(p)
+            tagged["_hour"] = hour
+            all_points.append(tagged)
 
-        cleaned, removed = clean_points(points)
-        if not removed:
-            continue
+    if not all_points:
+        print("No non-live hourly files with points found.")
+        return
 
-        touched_files += 1
-        total_removed += len(removed)
-        print(f"{os.path.basename(path)}: removing {len(removed)} glitch zero(s)")
-        for r in removed:
-            print(f"  - {r['ts']} player_count=0")
+    cleaned, removed = clean_points(all_points)
 
-        if not args.dry_run:
-            data["points"] = cleaned
+    if not removed:
+        print("No glitch zeros found.")
+        if skipped_live:
+            print(f"Skipped {skipped_live} file(s) for the current/previous UTC hour: {sorted(live_hours)}")
+        return
+
+    print(f"Found {len(removed)} glitch zero point(s):")
+    for r in removed:
+        print(f"  - {r['ts']} player_count=0 -> {r['to']}")
+
+    if args.dry_run:
+        print()
+        print(f"DRY RUN: would fix {len(removed)} glitch zero point(s).")
+        print("Re-run without --dry-run to apply.")
+        return
+
+    # Regroup cleaned points back by their original file's hour and
+    # rewrite only the files that actually changed.
+    by_hour = {}
+    for p in cleaned:
+        by_hour.setdefault(p["_hour"], []).append({k: v for k, v in p.items() if k != "_hour"})
+
+    touched_files = 0
+    for hour, data in file_data.items():
+        new_points = by_hour.get(hour, [])
+        if new_points != data.get("points", []):
+            data["points"] = new_points
+            path = os.path.join(HOURLY_DIR, f"{hour}.json.gz")
             write_gzip_json(path, data)
+            touched_files += 1
 
     print()
     if skipped_live:
         print(f"Skipped {skipped_live} file(s) for the current/previous UTC hour (may be actively written by the poller): {sorted(live_hours)}")
-    if args.dry_run:
-        print(f"DRY RUN: would remove {total_removed} glitch zero point(s) across {touched_files} file(s).")
-        print("Re-run without --dry-run to apply.")
-        return
+    print(f"Fixed {len(removed)} glitch zero point(s) across {touched_files} file(s).")
 
-    print(f"Removed {total_removed} glitch zero point(s) across {touched_files} file(s).")
-
-    if total_removed and not args.skip_rebuild:
+    if not args.skip_rebuild:
         print("Rebuilding recent.json / points.json / points-by-day/ from cleaned hourly files...")
         build_index = os.path.join(os.path.dirname(__file__), "build-index.py")
         subprocess.run([sys.executable, build_index], check=True)
