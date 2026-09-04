@@ -18,7 +18,13 @@ Usage:
 
 After removing points, run build-index.py again (this script does that
 automatically unless --skip-rebuild is passed) so recent.json,
-points.json, and points-by-day/*.json.gz reflect the cleaned data.
+points.json, and points-by-day/*.json.gz reflect the cleaned data. Any
+hour/day this script actually changes is also evicted from
+build-index.py's own caches (.recent-cache.json, points-index.json)
+first, since build-index.py otherwise trusts cached data for anything
+outside the current UTC hour and the last couple of days - without
+this, a fix to an older hourly file wouldn't show up in the aggregated
+files at all.
 """
 
 import argparse
@@ -32,6 +38,8 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 HOURLY_DIR = os.path.join(os.path.dirname(__file__), "..", "docs", "hourly")
+RECENT_CACHE_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", ".recent-cache.json")
+POINTS_INDEX_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "points-index.json")
 
 # A 0 is only considered a glitch if both its immediate neighbors (by
 # time, not just adjacent in the file) are within this many seconds and
@@ -140,6 +148,44 @@ def clean_points(points):
     return result, changed
 
 
+def invalidate_caches(touched_hours):
+    """build-index.py trusts its own caches for anything that isn't the
+    current/previous UTC hour or one of the last two days - a rewritten
+    hourly .gz file on disk isn't enough on its own to make it re-read
+    a day/hour it now considers old. Force it to by removing exactly
+    the hours/days this run actually changed from those caches, so
+    build-index.py's normal "not live -> trust the cache" fast path is
+    bypassed only for what changed, not for everything.
+    """
+    if not touched_hours:
+        return
+
+    if os.path.exists(RECENT_CACHE_PATH):
+        try:
+            with open(RECENT_CACHE_PATH) as f:
+                cache = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            cache = {}
+        removed_hours = [h for h in touched_hours if cache.pop(h, None) is not None]
+        if removed_hours:
+            with open(RECENT_CACHE_PATH, "w") as f:
+                json.dump(cache, f)
+            print(f"Invalidated {len(removed_hours)} hour(s) in .recent-cache.json so build-index.py re-reads them.")
+
+    touched_days = {h[:10] for h in touched_hours}
+    if os.path.exists(POINTS_INDEX_PATH):
+        try:
+            with open(POINTS_INDEX_PATH) as f:
+                index = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            index = []
+        new_index = [d for d in index if d.get("day") not in touched_days]
+        if len(new_index) != len(index):
+            with open(POINTS_INDEX_PATH, "w") as f:
+                json.dump(new_index, f)
+            print(f"Invalidated {len(index) - len(new_index)} day(s) in points-index.json so build-index.py rebuilds their points-by-day file.")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true", help="report what would be removed, don't write anything")
@@ -198,6 +244,7 @@ def main():
         by_hour.setdefault(p["_hour"], []).append({k: v for k, v in p.items() if k != "_hour"})
 
     touched_files = 0
+    touched_hours = set()
     for hour, data in file_data.items():
         new_points = by_hour.get(hour, [])
         if new_points != data.get("points", []):
@@ -205,6 +252,9 @@ def main():
             path = os.path.join(HOURLY_DIR, f"{hour}.json.gz")
             write_gzip_json(path, data)
             touched_files += 1
+            touched_hours.add(hour)
+
+    invalidate_caches(touched_hours)
 
     print()
     if skipped_live:
