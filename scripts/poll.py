@@ -186,8 +186,50 @@ def flush_hour(hour, points, final=False):
     print(f"Flushed {len(points)} points ({tag}) -> docs/hourly/{hour}.json.gz ({len(merged)} total)", flush=True)
 
 
+def seed_recent_counts_from_disk():
+    """On a fresh process start, _recent_counts is empty, so is_suspicious_zero()
+    can't recognize a 0 that follows healthy numbers - exactly what happened
+    at the start of a run in practice (nulls went straight through unconfirmed
+    because there was no history yet to compare against). Seed it from the
+    most recently flushed points on disk so the very first polls of a new
+    run are protected too.
+
+    Only nonzero points are used to seed. If the previous run happened to
+    be killed mid-glitch, the last points on disk can themselves be a run
+    of 0s; seeding with those would make is_suspicious_zero() see "no
+    nonzero in recent history" and treat every subsequent 0 as
+    unsuspicious, permanently disabling the confirmation guard for the
+    rest of the run (it never gets a chance to become suspicious again,
+    since accepted 0s keep re-poisoning the history) - the exact bug this
+    guarded against in the first place, just re-introduced via the seed.
+    """
+    if not os.path.isdir(HOURLY_DIR):
+        return
+    files = sorted(f for f in os.listdir(HOURLY_DIR) if f.endswith(".json.gz"))
+    counts = []
+    for fname in reversed(files):
+        try:
+            with gzip.open(os.path.join(HOURLY_DIR, fname), "rt") as f:
+                points = json.load(f).get("points", [])
+        except (OSError, json.JSONDecodeError):
+            continue
+        for p in reversed(points):
+            c = p.get("player_count")
+            if c:  # skip zeros/None - only real, nonzero history is useful here
+                counts.append(c)
+            if len(counts) >= RECENT_HISTORY_LEN:
+                break
+        if len(counts) >= RECENT_HISTORY_LEN:
+            break
+    counts.reverse()
+    _recent_counts.extend(counts)
+    if _recent_counts:
+        print(f"INFO: seeded recent-history buffer from disk: {_recent_counts}", file=sys.stderr)
+
+
 def main():
     print(f"Starting poll loop: interval={POLL_INTERVAL_SEC}s, run_duration={RUN_DURATION_SEC}s", flush=True)
+    seed_recent_counts_from_disk()
     start = time.time()
     buffer = {}  # hour_key -> list of {ts, player_count} not yet flushed
     current_hour = None
