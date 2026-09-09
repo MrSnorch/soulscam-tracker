@@ -227,12 +227,17 @@ class PlayerData:
     name: Optional[str] = None
     level: Optional[str] = None
     last_updated: Optional[str] = None
-    last_seen: Optional[str] = None
     skills_count: Optional[str] = None
     achievements_count: Optional[str] = None
     achievement_points: Optional[str] = None
     equipment: dict = field(default_factory=dict)
     skills: dict = field(default_factory=dict)
+    # Список ачивок в порядке отдачи сайтом (обычно — от последней полученной
+    # к самой старой): [{"name": ..., "date": "September 8, 2026"}, ...]
+    achievements: list = field(default_factory=list)
+    # Дандж-рекорды: [{"dungeon": ..., "mode": "Solo"/"Party", "score": ...,
+    # "global_rank": ..., "server_rank": ..., "rooms": ...}, ...]
+    dungeon_records: list = field(default_factory=list)
     url: str = ""
 
 
@@ -342,74 +347,125 @@ def fetch(
 
 
 def parse_player_page(soup: BeautifulSoup, slug: str, region: str, url: str) -> PlayerData:
+    """
+    Парсит страницу игрока по новой (сентябрь 2026) семантической разметке
+    сайта (классы sb-*). Старой текстовой "Last seen in game <date>" на
+    сайте больше нет вообще — сайт отдаёт только "Last updated <date>"
+    (когда данные последний раз пересчитаны на их стороне, не то же самое,
+    что реальный визит игрока). Поэтому здесь last_seen не парсится —
+    "играл ли сегодня" вычисляется отдельно, сравнением полного снапшота
+    (уровень/экипировка/скиллы/ачивки/дандж-рекорды) с предыдущим сохранённым
+    в merge_shards.py.
+    """
     data = PlayerData(slug=slug, region=region, url=url)
 
-    # Имя — обычно единственный <h1>
+    # Имя — <h1 class="sb-h1 sb-h1--character">
     h1 = soup.find("h1")
     if h1:
         data.name = h1.get_text(strip=True)
 
-    # Уровень + регион ("Level 68 US")
-    level_block = soup.find(string=re.compile(r"Level\s+\d+"))
-    if level_block:
-        m = re.search(r"Level\s+(\d+)", level_block)
+    # Уровень — <span class="sb-identity__level">Level 73</span>
+    level_el = soup.find(class_="sb-identity__level")
+    if level_el:
+        m = re.search(r"Level\s+(\d+)", level_el.get_text(" ", strip=True))
         if m:
             data.level = m.group(1)
 
-    # "Last updated <date> Last seen in game <date>"
-    text_all = soup.get_text(" ", strip=True)
-    m_updated = re.search(
-        r"Last updated\s+([A-Za-z]+ \d{1,2},\s*\d{4})", text_all
-    )
-    if m_updated:
-        data.last_updated = m_updated.group(1)
+    # "Last updated <date>" — <p class="sb-meta">
+    meta_el = soup.find(class_="sb-meta")
+    if meta_el:
+        m_updated = re.search(
+            r"Last updated\s+([A-Za-z]+ \d{1,2},\s*\d{4})",
+            meta_el.get_text(" ", strip=True),
+        )
+        if m_updated:
+            data.last_updated = m_updated.group(1)
 
-    m_seen = re.search(
-        r"Last seen in game\s+([A-Za-z]+ \d{1,2},\s*\d{4})", text_all
-    )
-    if m_seen:
-        data.last_seen = m_seen.group(1)
-
-    # Skills N
-    m_skills = re.search(r"Skills\s+(\d+)", text_all)
-    if m_skills:
-        data.skills_count = m_skills.group(1)
-
-    # Achievements N achievements / points
-    m_ach = re.search(r"Achievements\s+(\d+)\s+achievements", text_all)
-    if m_ach:
-        data.achievements_count = m_ach.group(1)
-
-    m_points = re.search(r"([\d,]+)\s+Achievement points", text_all)
-    if m_points:
-        data.achievement_points = m_points.group(1).replace(",", "")
-
-    # Экипировка: элементы списка вида "HeadNecrotic Warrior Crown"
-    # Ищем все <li> под секцией Equipment по слоту
-    equipment_slots = [
-        "Head", "Chest", "Back", "Belt", "Feet",
-        "Weapon", "Neck", "Ring 1", "Ring 2",
-    ]
-    for li in soup.find_all("li"):
-        li_text = li.get_text(" ", strip=True)
-        for slot in equipment_slots:
-            if li_text.startswith(slot) and slot not in data.equipment:
-                item_name = li_text[len(slot):].strip()
-                if item_name and item_name != "—":
-                    data.equipment[slot] = item_name
-
-    # Скиллы: img alt/следующий текст с уровнем скилла, например "Crafting84"
-    skill_names = [
-        "Crafting", "Farming", "Cooking", "Strength", "Chemistry",
-        "Foraging", "Hacking", "Mining", "Knowledge", "Dexterity",
-        "Fishing", "Technology", "Gearforging", "Marksmanship",
-    ]
-    for li in soup.find_all("li"):
-        li_text = li.get_text(" ", strip=True)
-        for skill in skill_names:
-            m = re.match(rf"^{skill}\s*(\d+)$", li_text.replace(" ", ""))
+    # Skills N — <h2 class="sb-h2">Skills <span class="sb-badge sb-badge--count">14</span></h2>
+    skills_heading = soup.find(id="sb-skills-heading")
+    if skills_heading:
+        badge = skills_heading.find(class_="sb-badge")
+        if badge:
+            m = re.search(r"\d+", badge.get_text(strip=True))
             if m:
-                data.skills[skill] = m.group(1)
+                data.skills_count = m.group(0)
+
+    # Achievements N achievements + points
+    achievements_heading = soup.find(id="sb-achievements-heading")
+    achievements_section = achievements_heading.find_parent("section") if achievements_heading else None
+    if achievements_heading:
+        badge = achievements_heading.find(class_="sb-badge")
+        if badge:
+            m = re.search(r"\d+", badge.get_text(strip=True))
+            if m:
+                data.achievements_count = m.group(0)
+    if achievements_section:
+        points_el = achievements_section.find(class_="sb-stat__value")
+        if points_el:
+            data.achievement_points = points_el.get_text(strip=True).replace(",", "")
+
+    # Экипировка: <li class="sb-slot ..."><span class="sb-slot__label">Head</span>
+    #   <span class="sb-slot__item"><span class="sb-slot__name">...</span></span></li>
+    for slot_li in soup.find_all(class_="sb-slot"):
+        label_el = slot_li.find(class_="sb-slot__label")
+        name_el = slot_li.find(class_="sb-slot__name")
+        if label_el and name_el:
+            label = label_el.get_text(strip=True)
+            name = name_el.get_text(strip=True)
+            if name and name != "—":
+                data.equipment[label] = name
+
+    # Скиллы: <li class="sb-skill"><span class="sb-skill__name">Crafting</span>
+    #   <span class="sb-skill__level">94</span></li>
+    for skill_li in soup.find_all(class_="sb-skill"):
+        name_el = skill_li.find(class_="sb-skill__name")
+        level_el2 = skill_li.find(class_="sb-skill__level")
+        if name_el and level_el2:
+            data.skills[name_el.get_text(strip=True)] = level_el2.get_text(strip=True)
+
+    # Ачивки: <li class="sb-achievement"><span class="sb-achievement__name">...</span>
+    #   <span class="sb-achievement__date">September 8, 2026</span></li>
+    for ach_li in soup.find_all(class_="sb-achievement"):
+        name_el = ach_li.find(class_="sb-achievement__name")
+        date_el = ach_li.find(class_="sb-achievement__date")
+        if name_el:
+            data.achievements.append({
+                "name": name_el.get_text(strip=True),
+                "date": date_el.get_text(strip=True) if date_el else None,
+            })
+
+    # Дандж-рекорды: <table class="sb-board sb-board--records"> со строками
+    # Dungeon | Mode | Score | Global rank | Server rank | Rooms
+    records_table = soup.find(class_="sb-board--records")
+    if records_table:
+        tbody = records_table.find("tbody")
+        if tbody:
+            for tr in tbody.find_all("tr"):
+                cells = tr.find_all("td")
+                if len(cells) < 6:
+                    continue
+                dungeon = cells[0].get_text(strip=True)
+                mode = cells[1].get_text(strip=True)
+                score = cells[2].get_text(strip=True)
+
+                def _rank(cell):
+                    n_el = cell.find(class_="sb-rank__n")
+                    of_el = cell.find(class_="sb-rank__of")
+                    n = n_el.get_text(strip=True) if n_el else cell.get_text(" ", strip=True)
+                    of = of_el.get_text(strip=True) if of_el else None
+                    return f"{n} {of}".strip() if of else n
+
+                global_rank = _rank(cells[3])
+                server_rank = _rank(cells[4])
+                rooms = cells[5].get_text(" ", strip=True)
+                data.dungeon_records.append({
+                    "dungeon": dungeon,
+                    "mode": mode,
+                    "score": score,
+                    "global_rank": global_rank,
+                    "server_rank": server_rank,
+                    "rooms": rooms,
+                })
 
     return data
 
@@ -840,8 +896,9 @@ def main():
 
     fieldnames = [
         "slug", "region", "name", "level",
-        "last_updated", "last_seen",
+        "last_updated",
         "skills_count", "achievements_count", "achievement_points",
+        "latest_achievement", "latest_achievement_date",
         "url",
     ] + [f"equip:{e}" for e in all_equip] + [f"skill:{s}" for s in all_skills]
 
@@ -849,12 +906,15 @@ def main():
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for r in results:
+            latest_ach = r.achievements[0] if r.achievements else {}
             row = {
                 "slug": r.slug, "region": r.region, "name": r.name, "level": r.level,
-                "last_updated": r.last_updated, "last_seen": r.last_seen,
+                "last_updated": r.last_updated,
                 "skills_count": r.skills_count,
                 "achievements_count": r.achievements_count,
                 "achievement_points": r.achievement_points,
+                "latest_achievement": latest_ach.get("name"),
+                "latest_achievement_date": latest_ach.get("date"),
                 "url": r.url,
             }
             for e in all_equip:

@@ -4,12 +4,18 @@
 пишет результат в docs/armoury/ для дашборда:
 
 - docs/armoury/players.json — по одному объекту на игрока (slug, region,
-  name, level, last_seen, url). Экипировку/скиллы сюда не кладём — они
+  name, level, last_active, url). Экипировку/скиллы сюда не кладём — они
   нужны только для CSV-выгрузки, не для дашборда, и раздувают файл.
 - docs/armoury/summary.json — { generated_at, total_players, online_today,
-  today_date }. online_today = число игроков, у которых last_seen
-  парсится в сегодняшнюю дату (UTC) — единственная имеющаяся у нас метрика
-  "реального" онлайна, отдельная от Steam concurrent players.
+  today_date }. С сентября 2026 сайт не отдаёт "Last seen in game" вообще,
+  поэтому online_today = число игроков, у которых снапшот (level/
+  экипировка/скиллы/ачивки/дандж-рекорды) реально изменился именно в этом
+  прогоне относительно прошлого сохранённого — единственная имеющаяся у
+  нас метрика "реального" онлайна, отдельная от Steam concurrent players.
+  Этот скрипт (нешардированный, однопроходный путь) сравнивать не с чем
+  внутри одного запуска, так что здесь online_today всегда 0 — используйте
+  merge_shards.py (шардированный пайплайн), который ведёт накопительную
+  базу и умеет сравнивать с прошлым днём.
 - docs/armoury/duplicates.json — группы игроков с одинаковым именем
   (без учёта регистра) на разных серверах/регионах.
 - docs/armoury/online-history.json — по одной точке {date, online, total}
@@ -76,7 +82,15 @@ def main():
                 "region": p.region,
                 "name": p.name,
                 "level": p.level,
-                "last_seen": p.last_seen,
+                "last_updated": p.last_updated,
+                "skills_count": p.skills_count,
+                "achievements_count": p.achievements_count,
+                "achievement_points": p.achievement_points,
+                "equipment": p.equipment,
+                "skills": p.skills,
+                "achievements": p.achievements,
+                "dungeon_records": p.dungeon_records,
+                "last_active": None,  # нет базы для сравнения в этом однопроходном пути
                 "url": p.url,
             })
 
@@ -91,7 +105,7 @@ def main():
         json.dump(players, f, ensure_ascii=False, separators=(",", ":"))
 
     today = datetime.now(timezone.utc).date()
-    online_today = sum(1 for p in players if parse_date(p["last_seen"]) == today)
+    online_today = 0  # нет прошлого снапшота для сравнения в этом пути — см. докстринг
 
     summary = {
         "generated_at": datetime.now(timezone.utc).isoformat(),

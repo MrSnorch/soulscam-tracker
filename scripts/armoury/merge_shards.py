@@ -3,31 +3,42 @@
 Job 3 шардированного пайплайна: собирает все shard_*.json от матрицы job'ов
 (scrape_shard.py) и обновляет накопительную базу известных игроков в
 docs/armoury/ — та же логика вывода, что раньше была в build_armoury_data.py
-(теперь только сборка, без самого скрапинга):
+(теперь только сборка, без самого скрапинга).
 
+С сентября 2026 сайт больше не отдаёт "Last seen in game" вообще (только
+"Last updated <дата>", которая означает лишь момент пересчёта данных на
+стороне сайта, а не реальный визит игрока). Поэтому активность теперь
+вычисляется сравнением ПОЛНОГО снапшота игрока (level, экипировка, скиллы,
+ачивки, дандж-рекорды — см. armoury_common.SNAPSHOT_FIELDS) с прошлым
+сохранённым: если хоть что-то изменилось — значит играл. Метрика:
+
+- last_active — дата (UTC), когда снапшот игрока в последний раз реально
+  менялся (при первом появлении игрока — дата, когда его увидели впервые).
+- is_active_today — bool, True если снапшот изменился именно в этом прогоне
+  (т.е. last_active == сегодня).
+
+Выходные файлы:
 - docs/armoury/players.json — НАКОПИТЕЛЬНАЯ база: каждый игрок, увиденный
   хотя бы одним прогоном, остаётся здесь навсегда, даже если сайт перестал
   его отдавать (удалён/скрыт/недоступен в моменте). Ключ — slug (постоянный
-  и уникальный, в отличие от name). У игроков из текущего скрейпа
-  name/level/last_seen/url обновляются и last_seen_scrape = сегодня; у
-  игроков, не встреченных в этом прогоне, все поля остаются как были
-  зафиксированы в последний раз, когда их видели. first_seen у уже
-  известных игроков не трогается.
+  и уникальный, в отличие от name). У игроков из текущего скрейпа все поля
+  снапшота обновляются, last_seen_scrape = сегодня, last_active/
+  is_active_today пересчитываются; у игроков, не встреченных в этом
+  прогоне, все поля остаются как были зафиксированы в последний раз, когда
+  их видели. first_seen у уже известных игроков не трогается.
 - docs/armoury/summary.json — { generated_at, total_players_known,
-  total_players_seen_today, online_today, today_date }.
-  total_players_known — размер всей накопленной базы, total_players_seen_today —
-  сколько из них реально ответил сайт сегодняшним скрейпом (online_today —
-  подмножество этого по дате last_seen на самой странице игрока).
+  total_players_seen_today, online_today, today_date }. online_today теперь
+  = число игроков с is_active_today == True (реальное изменение снапшота
+  сегодня), а не по старому текстовому last_seen.
 - docs/armoury/duplicates.json — группы игроков с одинаковым именем на
   разных серверах/регионах (по всей накопленной базе).
 - docs/armoury/online-history.json — по одной точке в день за 90 дней,
   источник графика тренда. Точка за день пишется только если сайт реально
-  обновил данные в этот день (есть хотя бы один игрок с last_seen ==
-  сегодня) — иначе на сайте просто отдаётся вчерашний слепок ("Last
-  updated <вчера>" у всех игроков), и писать за сегодня online_today как
-  фактическое число было бы искажением графика; в этом случае за сегодня
-  остаётся дыра, прогон при этом не пропускается — players.json/summary.json
-  всё равно обновляются как обычно.
+  дал хоть одно новое изменение снапшота сегодня (online_today > 0) —
+  иначе на сайте просто отдаётся вчерашний слепок у всех, и писать
+  online_today=0 как факт было бы искажением графика; в этом случае за
+  сегодня остаётся дыра, прогон при этом не пропускается —
+  players.json/summary.json всё равно обновляются как обычно.
 - docs/armoury/new-players-history.json — по одной точке в день за 90 дней:
   { date, count } — сколько новых slug'ов впервые попало в накопительную
   базу (first_seen == этот день) за конкретный календарный день. В отличие
@@ -42,13 +53,12 @@ docs/armoury/ — та же логика вывода, что раньше бы�
   мёртвые" - пишется всегда, даже 0%, по тем же соображениям, что и
   new-players-history.
 - docs/armoury/history/<slug>.json — история изменений одного игрока:
-  список { date, level, last_seen } с одной новой записью только когда
-  level или last_seen реально изменились относительно последней
-  сохранённой записи (не пишется на каждый прогон - иначе на 1999+
-  игроков это тысячи файлов, растущих каждый час без всякой новой
-  информации). Отдельный файл на игрока, а не поле в players.json,
-  чтобы не раздувать основной файл, который целиком читается на каждой
-  загрузке страницы.
+  список { date, level, last_active } с одной новой записью только когда
+  снапшот реально изменился относительно последней сохранённой записи (не
+  пишется на каждый прогон - иначе на 1999+ игроков это тысячи файлов,
+  растущих каждый час без всякой новой информации). Отдельный файл на
+  игрока, а не поле в players.json, чтобы не раздувать основной файл,
+  который целиком читается на каждой загрузке страницы.
 - docs/armoury/by-region.json — распределение по серверам (по всей
   накопленной базе).
 
@@ -64,7 +74,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
-from armoury_common import parse_date
+from armoury_common import parse_date, snapshot_changed
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "armoury")
 PLAYERS_PATH = os.path.join(OUT_DIR, "players.json")
@@ -84,9 +94,9 @@ def load_known_players():
     return {p["slug"]: p for p in existing if "slug" in p and "first_seen" in p}
 
 
-def update_player_history(slug, level, last_seen, today_iso):
+def update_player_history(slug, level, last_active, today_iso):
     """Дописывает docs/armoury/history/<slug>.json новой записью
-    {date, level, last_seen}, но только если level или last_seen реально
+    {date, level, last_active}, но только если level или last_active реально
     изменились относительно последней сохранённой записи - иначе на
     1999+ игроков история росла бы на файл в час без всякой новой
     информации. Файл создаётся при первом реальном изменении, не при
@@ -100,10 +110,10 @@ def update_player_history(slug, level, last_seen, today_iso):
         history = []
 
     last = history[-1] if history else None
-    if last and last["level"] == level and last["last_seen"] == last_seen:
+    if last and last.get("level") == level and last.get("last_active") == last_active:
         return  # ничего не изменилось - не пишем
 
-    history.append({"date": today_iso, "level": level, "last_seen": last_seen})
+    history.append({"date": today_iso, "level": level, "last_active": last_active})
     os.makedirs(HISTORY_DIR, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, separators=(",", ":"))
@@ -132,12 +142,30 @@ def main():
         slug = p["slug"]
         existing = known.get(slug)
         first_seen = existing["first_seen"] if existing else today_iso
+        changed = snapshot_changed(existing, p)
+        if changed:
+            last_active = today_iso
+        else:
+            # снапшот не изменился - активность остаётся на прошлом
+            # зафиксированном значении (или сегодня, если это первый раз,
+            # когда мы вообще видим игрока)
+            last_active = existing.get("last_active", today_iso) if existing else today_iso
         known[slug] = {
             **p,
             "first_seen": first_seen,
             "last_seen_scrape": today_iso,
+            "last_active": last_active,
+            "is_active_today": last_active == today_iso,
         }
-        update_player_history(slug, p.get("level"), p.get("last_seen"), today_iso)
+        update_player_history(slug, p.get("level"), last_active, today_iso)
+
+    # Игроки, не встреченные в этом прогоне (сайт не отдал их сегодня) -
+    # is_active_today не может оставаться True со вчера, раз мы сегодня их
+    # даже не проверяли.
+    scraped_slugs = {p["slug"] for p in scraped}
+    for slug, p in known.items():
+        if slug not in scraped_slugs:
+            p["is_active_today"] = False
 
     players = sorted(known.values(), key=lambda p: p["slug"])
 
@@ -145,7 +173,7 @@ def main():
         json.dump(players, f, ensure_ascii=False, separators=(",", ":"))
 
     today = datetime.now(timezone.utc).date()
-    online_today = sum(1 for p in players if parse_date(p["last_seen"]) == today)
+    online_today = sum(1 for p in players if p.get("is_active_today"))
     seen_today = sum(1 for p in players if p["last_seen_scrape"] == today_iso)
     new_today = sum(1 for p in players if p["first_seen"] == today_iso)
 
@@ -167,12 +195,11 @@ def main():
     except (OSError, json.JSONDecodeError):
         history = []
     if online_today > 0:
-        # Сайт реально обновил хотя бы чей-то last_seen сегодняшней датой —
-        # значит данные свежие, точку можно писать. Если online_today == 0,
-        # это значит сайт не обновлялся (last_seen у всех датирован вчера
-        # или раньше — та же ситуация, что и "Last updated August 23" на
-        # самом сайте, когда уже 24-е) - в этом случае за сегодня в графике
-        # остаётся дыра, а не ложный ноль.
+        # Хотя бы у одного игрока снапшот реально изменился сегодня —
+        # значит сайт дал свежие данные, точку можно писать. Если
+        # online_today == 0, значит ни у кого снапшот не поменялся (та же
+        # ситуация, что и "Last updated <вчера>" у всех на самом сайте) -
+        # в этом случае за сегодня в графике остаётся дыра, а не ложный ноль.
         history = [h for h in history if h["date"] != summary["today_date"]]
         history.append({"date": summary["today_date"], "online": online_today, "total": len(players)})
         history.sort(key=lambda h: h["date"])
@@ -180,7 +207,7 @@ def main():
         with open(history_path, "w", encoding="utf-8") as f:
             json.dump(history, f, ensure_ascii=False, separators=(",", ":"))
     else:
-        print(f"[i] online_today=0 — сайт, похоже, не обновлял last_seen сегодня ({today_iso}), точку в историю не пишу.", file=sys.stderr)
+        print(f"[i] online_today=0 — ни у кого снапшот не изменился сегодня ({today_iso}), точку в историю не пишу.", file=sys.stderr)
 
     new_history_path = os.path.join(OUT_DIR, "new-players-history.json")
     try:
@@ -220,6 +247,15 @@ def main():
     with open(os.path.join(OUT_DIR, "by-region.json"), "w", encoding="utf-8") as f:
         json.dump(dict(sorted(by_region.items(), key=lambda kv: -kv[1])), f, ensure_ascii=False, separators=(",", ":"))
 
+    # Компактная проекция игрока для duplicates.json — полные снапшоты
+    # (equipment/skills/achievements/dungeon_records) там не нужны и заметно
+    # раздули бы файл, который целиком читается при каждой загрузке страницы.
+    def _dupe_entry(p):
+        return {
+            "slug": p["slug"], "region": p["region"], "level": p.get("level"),
+            "last_active": p.get("last_active"), "url": p.get("url"),
+        }
+
     by_name = defaultdict(list)
     for p in players:
         if p["name"]:
@@ -227,7 +263,7 @@ def main():
     duplicates = [
         {
             "name": group[0]["name"],
-            "players": group,
+            "players": [_dupe_entry(p) for p in group],
             "cross_region": len({p["region"] for p in group}) > 1,
         }
         for group in by_name.values()

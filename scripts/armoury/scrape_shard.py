@@ -63,7 +63,14 @@ def main():
                 "region": p.region,
                 "name": p.name,
                 "level": p.level,
-                "last_seen": p.last_seen,
+                "last_updated": p.last_updated,
+                "skills_count": p.skills_count,
+                "achievements_count": p.achievements_count,
+                "achievement_points": p.achievement_points,
+                "equipment": p.equipment,
+                "skills": p.skills,
+                "achievements": p.achievements,
+                "dungeon_records": p.dungeon_records,
                 "url": p.url,
             })
 
