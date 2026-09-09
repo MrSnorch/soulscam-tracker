@@ -6,19 +6,43 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: fetch-armoury
+  cancel-in-progress: false
+
 jobs:
   fix:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - run: python scripts/armoury/fix_first_scan.py
+
       - name: Commit and push
         run: |
           git config user.name "one-off-fix-bot"
           git config user.email "actions@users.noreply.github.com"
           git add docs/armoury/players.json docs/armoury/history/
-          git diff --cached --quiet || git commit -m "chore: fix first-scan false is_active_today"
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: fix first-scan false is_active_today"
+
+          for attempt in 1 2 3 4 5; do
+            if git push --quiet; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5), rebasing onto latest and retrying..."
+            git pull --rebase --quiet
+            sleep 2
+          done
+          echo "::error::Failed to push after 5 attempts."
+          exit 1
