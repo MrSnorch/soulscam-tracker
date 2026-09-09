@@ -74,7 +74,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
-from armoury_common import parse_date, snapshot_changed, latest_achievement_date
+from armoury_common import snapshot_changed
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "armoury")
 PLAYERS_PATH = os.path.join(OUT_DIR, "players.json")
@@ -177,43 +177,18 @@ def main():
         if is_returning_after_gap:
             # Полного прошлого снапшота у нас нет (history/ хранит только
             # level+last_active, не equipment/skills/achievements), так что
-            # честно сравнить весь снапшот нельзя. Считаем игрока реально
-            # активным сегодня по двум сигналам:
-            #   1) точная дата последней ачивки новее last_known_active - это
-            #      даёт честную дату визита (не "дату скана");
-            #   2) level изменился с прошлой записи в history - это всё, что
-            #      у нас есть из "прочего снапшота" для этой ветки, но не
-            #      даёт точной даты, только консервативную "сегодня".
+            # честно сравнить весь снапшот нельзя. Единственное, что можно
+            # сравнить — level. Если он изменился с последней записи в
+            # history — засчитываем активность сегодня (дата прогона, не
+            # выдумываем более точную дату — сайт её не даёт).
             last_record = prior_history[-1]
-            last_known_active = parse_date(last_record.get("last_active"))
-            if last_known_active is None:
-                # Старые записи (до сентябрьской смены схемы сайта) хранят
-                # last_seen вместо last_active - там last_active просто
-                # отсутствует. Раз честной даты активности нет, используем
-                # дату самой записи как консервативную границу снизу
-                # (мы точно знаем, что игрок существовал уже тогда), а не
-                # None - иначе "newest_achievement > None" всегда true и
-                # ложное срабатывание на WeapC-подобных кейсах повторится.
-                try:
-                    last_known_active = datetime.strptime(last_record["date"], "%Y-%m-%d").date()
-                except (KeyError, ValueError):
-                    last_known_active = None
-            newest_achievement = latest_achievement_date(p)
-            achievement_is_new = newest_achievement and (
-                last_known_active is None or newest_achievement > last_known_active
-            )
             level_changed = (
                 last_record.get("level") is not None
                 and p.get("level") is not None
                 and str(last_record.get("level")) != str(p.get("level"))
             )
-            changed_today = bool(achievement_is_new or level_changed)
-            if achievement_is_new:
-                # Точная дата - предпочитаем её дате скана.
-                last_active = newest_achievement.isoformat()
-            elif level_changed:
-                # Level изменился, но без новой ачивки на эту дату - точной
-                # даты нет, используем дату скана как консервативную оценку.
+            changed_today = bool(level_changed)
+            if level_changed:
                 last_active = today_iso
             else:
                 last_active = last_record.get("last_active") or last_record.get("date") or today_iso
@@ -221,21 +196,16 @@ def main():
             changed = snapshot_changed(existing, p)
             changed_today = changed
             if changed:
-                # Снапшот реально изменился - игрок точно играл. Предпочитаем
-                # точную дату последней ачивки сайта (achievements[].date),
-                # если она есть и не старше того, что мы уже знали - это даёт
-                # честную дату визита, а не просто "дату скана". Если ачивок
-                # нет или их дата не новее прежней (изменился, например,
-                # только dungeon_records score или equipment, без новых
-                # ачивок), у нас нет точной даты - используем дату скана
-                # (today_iso) как консервативную оценку "играл не позже этого".
-                prev_last_active = existing.get("last_active") if existing else None
-                prev_date = parse_date(prev_last_active) if prev_last_active else None
-                newest_achievement = latest_achievement_date(p)
-                if newest_achievement and (prev_date is None or newest_achievement > prev_date):
-                    last_active = newest_achievement.isoformat()
-                else:
-                    last_active = today_iso
+                # Снапшот реально изменился в этом прогоне - фиксируем дату
+                # ПРОГОНА, а не пытаемся угадать точную дату визита: сайт не
+                # отдаёт "last seen in game" ни в каком виде (см.
+                # soulbound_armoury_scraper.py), только "Last updated"
+                # (пересчёт на стороне сайта, не факт визита). Дата ачивки
+                # тоже не факт "когда играл сегодня" - это дата получения
+                # конкретной ачивки, а не последнего входа. last_active
+                # здесь = "когда мы в последний раз ЗАМЕТИЛИ изменение",
+                # не более того.
+                last_active = today_iso
             else:
                 # снапшот не изменился - активность остаётся на прошлом
                 # зафиксированном значении (или сегодня, если это первый раз,
