@@ -74,7 +74,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
-from armoury_common import parse_date, snapshot_changed
+from armoury_common import parse_date, snapshot_changed, latest_achievement_date
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "armoury")
 PLAYERS_PATH = os.path.join(OUT_DIR, "players.json")
@@ -94,6 +94,19 @@ def load_known_players():
     return {p["slug"]: p for p in existing if "slug" in p and "first_seen" in p}
 
 
+def load_player_history(slug):
+    """Читает docs/armoury/history/<slug>.json целиком (список записей
+    {date, level, last_active}), [] если файла ещё нет. Используется, чтобы
+    отличить "игрок правда новый" от "игрок уже был известен, но выпал из
+    players.json на несколько прогонов" - см. merge() выше."""
+    path = os.path.join(HISTORY_DIR, f"{slug}.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
 def update_player_history(slug, level, last_active, today_iso):
     """Дописывает docs/armoury/history/<slug>.json новой записью
     {date, level, last_active}, но только если level или last_active реально
@@ -110,7 +123,13 @@ def update_player_history(slug, level, last_active, today_iso):
         history = []
 
     last = history[-1] if history else None
-    if last and last.get("level") == level and last.get("last_active") == last_active:
+    # last.get("last_active") может отсутствовать в записях, сделанных до
+    # сентябрьской смены схемы сайта (там было "last_seen" вместо
+    # "last_active") - такие старые записи не сравниваем по last_active,
+    # чтобы не ловить ложное "изменение" на первой сверке после миграции.
+    if last and last.get("level") == level and (
+        "last_active" not in last or last.get("last_active") == last_active
+    ):
         return  # ничего не изменилось - не пишем
 
     history.append({"date": today_iso, "level": level, "last_active": last_active})
@@ -141,15 +160,55 @@ def main():
     for p in scraped:
         slug = p["slug"]
         existing = known.get(slug)
+        prior_history = load_player_history(slug)  # [] если файла ещё нет
+        # Если игрок отсутствует в текущей накопительной базе (existing is
+        # None), это может значить либо что он правда новый, либо что он
+        # ранее уже был известен, но выпал из недавних прогонов (не
+        # докачался шард / пропущена страница списка) и сегодня "нашёлся"
+        # снова. snapshot_changed(None, p) всегда возвращает True и ложно
+        # помечает такого игрока активным сегодня, даже если его снапшот не
+        # менялся месяцами - см. кейс WeapC (разрыв в history/, last_active
+        # скакнул на сегодня, хотя последняя ачивка - за август). Наличие
+        # файла истории - надёжный признак "мы его уже видели раньше", даже
+        # если он выпал из players.json.
         first_seen = existing["first_seen"] if existing else today_iso
-        changed = snapshot_changed(existing, p)
-        if changed:
-            last_active = today_iso
+        is_returning_after_gap = existing is None and bool(prior_history)
+
+        if is_returning_after_gap:
+            # Полного прошлого снапшота у нас нет (history/ хранит только
+            # level+last_active, не equipment/skills/achievements), так что
+            # честно сравнить снапшоты нельзя. Вместо ложного "активен
+            # сегодня" сравниваем по дате последней ачивки в новых данных:
+            # только если она позже последней зафиксированной в history,
+            # засчитываем реальную активность сегодня.
+            last_record = prior_history[-1]
+            last_known_active = parse_date(last_record.get("last_active"))
+            if last_known_active is None:
+                # Старые записи (до сентябрьской смены схемы сайта) хранят
+                # last_seen вместо last_active - там last_active просто
+                # отсутствует. Раз честной даты активности нет, используем
+                # дату самой записи как консервативную границу снизу
+                # (мы точно знаем, что игрок существовал уже тогда), а не
+                # None - иначе "newest_achievement > None" всегда true и
+                # ложное срабатывание на WeapC-подобных кейсах повторится.
+                try:
+                    last_known_active = datetime.strptime(last_record["date"], "%Y-%m-%d").date()
+                except (KeyError, ValueError):
+                    last_known_active = None
+            newest_achievement = latest_achievement_date(p)
+            if newest_achievement and (last_known_active is None or newest_achievement > last_known_active):
+                last_active = today_iso
+            else:
+                last_active = last_record.get("last_active") or last_record.get("date") or today_iso
         else:
-            # снапшот не изменился - активность остаётся на прошлом
-            # зафиксированном значении (или сегодня, если это первый раз,
-            # когда мы вообще видим игрока)
-            last_active = existing.get("last_active", today_iso) if existing else today_iso
+            changed = snapshot_changed(existing, p)
+            if changed:
+                last_active = today_iso
+            else:
+                # снапшот не изменился - активность остаётся на прошлом
+                # зафиксированном значении (или сегодня, если это первый раз,
+                # когда мы вообще видим игрока)
+                last_active = existing.get("last_active", today_iso) if existing else today_iso
         known[slug] = {
             **p,
             "first_seen": first_seen,
