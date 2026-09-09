@@ -19,10 +19,10 @@ let state = {
   // Per-table state (players / missing / guests / byregion), each with its
   // own sort/search/page so switching tabs doesn't reset other tables' view.
   tables: {
-    players: { sortKey: 'last_seen', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
+    players: { sortKey: 'last_active', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
     missing: { sortKey: 'last_seen_scrape', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
-    guests: { sortKey: 'last_seen', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
-    byregion: { sortKey: 'last_seen', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
+    guests: { sortKey: 'last_active', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
+    byregion: { sortKey: 'last_active', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
   },
 };
 
@@ -119,15 +119,17 @@ function renderRetentionChart(history) {
   `;
 }
 
-// Bar chart of all known players grouped by their last_seen date (in-game
-// last login, from armoury), not to be confused with online-history.json
+// Bar chart of all known players grouped by their last_active date (the
+// last day their snapshot — level/equipment/skills/achievements/dungeon
+// records — was seen to actually change; the site itself no longer exposes
+// an in-game "last seen" date), not to be confused with online-history.json
 // which counts scraper visits per day. Computed client-side from state.players.
 function renderLastSeenChart(players) {
   const svg = document.getElementById('last-seen-chart');
   const counts = new Map();
   players.forEach(p => {
-    if (!p.last_seen) return;
-    counts.set(p.last_seen, (counts.get(p.last_seen) || 0) + 1);
+    if (!p.last_active) return;
+    counts.set(p.last_active, (counts.get(p.last_active) || 0) + 1);
   });
   const entries = [...counts.entries()]
     .map(([date, count]) => ({ date, count, ts: Date.parse(date) || 0 }))
@@ -181,7 +183,7 @@ function regionColor(region, index) {
   return REGION_COLORS[region] || FALLBACK_REGION_COLORS[index % FALLBACK_REGION_COLORS.length];
 }
 
-// Stacked bar chart: same last_seen buckets as renderLastSeenChart, but
+// Stacked bar chart: same last_active buckets as renderLastSeenChart, but
 // each bar is split into per-region segments.
 function renderLastSeenByRegionChart(players) {
   const svg = document.getElementById('last-seen-by-region-chart');
@@ -190,9 +192,9 @@ function renderLastSeenByRegionChart(players) {
   // date -> region -> count
   const byDate = new Map();
   players.forEach(p => {
-    if (!p.last_seen || !p.region) return;
-    if (!byDate.has(p.last_seen)) byDate.set(p.last_seen, new Map());
-    const m = byDate.get(p.last_seen);
+    if (!p.last_active || !p.region) return;
+    if (!byDate.has(p.last_active)) byDate.set(p.last_active, new Map());
+    const m = byDate.get(p.last_active);
     m.set(p.region, (m.get(p.region) || 0) + 1);
   });
 
@@ -284,9 +286,9 @@ function renderStats(summary) {
   const grid = document.getElementById('stats-grid');
   grid.innerHTML = `
     <div class="stat">
-      <div class="label">Заходили сегодня (armoury)</div>
+      <div class="label">Активны сегодня (armoury)</div>
       <div class="value mono green">${summary.online_today}</div>
-      <div class="sub">заходили в игру ${summary.today_date}</div>
+      <div class="sub">снапшот изменился ${summary.today_date}</div>
     </div>
     <div class="stat">
       <div class="label">Известно всего (накопительная база)</div>
@@ -314,7 +316,7 @@ function sortRows(list, sortKey, sortDir) {
       av = Number(av) || 0;
       bv = Number(bv) || 0;
     }
-    if (sortKey === 'last_seen' || sortKey === 'first_seen' || sortKey === 'last_seen_scrape') {
+    if (sortKey === 'last_active' || sortKey === 'first_seen' || sortKey === 'last_seen_scrape') {
       av = av ? Date.parse(av) || 0 : 0;
       bv = bv ? Date.parse(bv) || 0 : 0;
     }
@@ -366,7 +368,7 @@ function playerRowTemplate(p) {
       <td class="name-cell"><a href="#" class="player-link" data-slug="${escapeHTML(p.slug)}">${escapeHTML(p.name || p.slug)}</a></td>
       <td class="mono">${escapeHTML(p.region)}</td>
       <td class="mono">${escapeHTML(p.level || '—')}</td>
-      <td class="mono">${escapeHTML(p.last_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_active || '—')}</td>
       <td class="mono">${escapeHTML(p.first_seen || '—')}</td>
       <td class="mono">${escapeHTML(p.last_seen_scrape || '—')}</td>
     </tr>
@@ -379,7 +381,7 @@ function missingRowTemplate(p) {
       <td class="name-cell"><a href="#" class="player-link" data-slug="${escapeHTML(p.slug)}">${escapeHTML(p.name || p.slug)}</a></td>
       <td class="mono">${escapeHTML(p.region)}</td>
       <td class="mono">${escapeHTML(p.level || '—')}</td>
-      <td class="mono">${escapeHTML(p.last_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_active || '—')}</td>
       <td class="mono">${escapeHTML(p.last_seen_scrape || '—')}</td>
     </tr>
   `;
@@ -420,7 +422,7 @@ function renderDuplicates() {
               <tr>
                 <td class="mono">${escapeHTML(p.region)}</td>
                 <td class="mono">${escapeHTML(p.level || '—')}</td>
-                <td class="mono">${escapeHTML(p.last_seen || '—')}</td>
+                <td class="mono">${escapeHTML(p.last_active || '—')}</td>
                 <td><a href="${escapeHTML(p.url)}" target="_blank" rel="noopener">${escapeHTML(p.slug)}</a></td>
               </tr>
             `).join('')}
@@ -513,7 +515,7 @@ function byRegionRowTemplate(p) {
     <tr class="${rowClass}">
       <td class="name-cell"><a href="#" class="player-link" data-slug="${escapeHTML(p.slug)}">${escapeHTML(p.name || p.slug)}</a></td>
       <td class="mono">${escapeHTML(p.level || '—')}</td>
-      <td class="mono">${escapeHTML(p.last_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_active || '—')}</td>
       <td class="mono">${escapeHTML(p.first_seen || '—')}</td>
       <td class="mono">${escapeHTML(p.last_seen_scrape || '—')}</td>
     </tr>
@@ -547,8 +549,8 @@ function renderRegionSubTabs() {
 function renderByDateSummary() {
   const counts = new Map();
   state.players.forEach(p => {
-    if (!p.last_seen) return;
-    counts.set(p.last_seen, (counts.get(p.last_seen) || 0) + 1);
+    if (!p.last_active) return;
+    counts.set(p.last_active, (counts.get(p.last_active) || 0) + 1);
   });
   const entries = [...counts.entries()]
     .map(([date, count]) => ({ date, count, ts: Date.parse(date) || 0 }))
@@ -563,7 +565,7 @@ function renderByDateSummary() {
 }
 
 function showByDateDetail(date) {
-  const rows = state.players.filter(p => p.last_seen === date);
+  const rows = state.players.filter(p => p.last_active === date);
   document.getElementById('bydate-detail-title').textContent = `${date} — ${rows.length} игроков`;
   document.getElementById('bydate-detail-tbody').innerHTML = sortRows(rows, 'name', 'asc').map(p => `
     <tr>
@@ -627,33 +629,81 @@ function wireTableControls(tableKey, tableId, renderFn) {
   });
 }
 
-// Player history modal - fetched lazily per-slug on click, not preloaded,
-// since most players will never be clicked and docs/armoury/history/<slug>.json
-// only exists for players who've actually changed at least once (see
-// merge_shards.py) - many clicks will legitimately find nothing yet.
+// Player history modal - shows the player's current full snapshot
+// (equipment/skills/achievements/dungeon records, already in state.players)
+// plus the level/last_active change log fetched lazily per-slug on click.
+// docs/armoury/history/<slug>.json only exists for players who've actually
+// changed at least once (see merge_shards.py) - many clicks will
+// legitimately find no history yet, even though the snapshot itself renders.
+function renderPlayerSnapshot(p) {
+  if (!p) return '';
+  const equipRows = Object.entries(p.equipment || {});
+  const skillRows = Object.entries(p.skills || {});
+  const achievements = (p.achievements || []).slice(0, 15);
+  const dungeonRecords = p.dungeon_records || [];
+
+  const equipHTML = equipRows.length
+    ? `<div class="snapshot-block"><h4>Экипировка</h4><ul class="snapshot-list">${
+        equipRows.map(([slot, name]) => `<li><span class="dim">${escapeHTML(slot)}:</span> ${escapeHTML(name)}</li>`).join('')
+      }</ul></div>`
+    : '';
+
+  const skillsHTML = skillRows.length
+    ? `<div class="snapshot-block"><h4>Скиллы (${skillRows.length})</h4><ul class="snapshot-list">${
+        skillRows.map(([name, lvl]) => `<li>${escapeHTML(name)}: <span class="mono">${escapeHTML(lvl)}</span></li>`).join('')
+      }</ul></div>`
+    : '';
+
+  const achHTML = achievements.length
+    ? `<div class="snapshot-block"><h4>Последние ачивки${p.achievements_count ? ` (из ${escapeHTML(p.achievements_count)})` : ''}</h4><ul class="snapshot-list">${
+        achievements.map(a => `<li>${escapeHTML(a.name)} <span class="dim">— ${escapeHTML(a.date || '—')}</span></li>`).join('')
+      }</ul></div>`
+    : '';
+
+  const dungeonHTML = dungeonRecords.length
+    ? `<div class="snapshot-block"><h4>Дандж-рекорды</h4><ul class="snapshot-list">${
+        dungeonRecords.map(d => `<li>${escapeHTML(d.dungeon)} (${escapeHTML(d.mode)}): <span class="mono">${escapeHTML(d.score)}</span> <span class="dim">— глобально ${escapeHTML(d.global_rank)}, на сервере ${escapeHTML(d.server_rank)}</span></li>`).join('')
+      }</ul></div>`
+    : '';
+
+  return `
+    <div class="snapshot-summary">
+      уровень <span class="mono">${escapeHTML(p.level || '—')}</span> ·
+      очки ачивок <span class="mono">${escapeHTML(p.achievement_points || '—')}</span> ·
+      последнее изменение снапшота: <span class="mono">${escapeHTML(p.last_active || '—')}</span> ·
+      обновлено сайтом: <span class="mono">${escapeHTML(p.last_updated || '—')}</span>
+    </div>
+    ${equipHTML}${skillsHTML}${achHTML}${dungeonHTML}
+  `;
+}
+
 function openPlayerHistory(slug, displayName) {
   const modal = document.getElementById('player-history-modal');
   const title = document.getElementById('player-history-title');
   const body = document.getElementById('player-history-body');
   title.textContent = displayName || slug;
-  body.textContent = 'Загружаю…';
+
+  const player = state.players.find(p => p.slug === slug);
+  const snapshotHTML = renderPlayerSnapshot(player);
+  body.innerHTML = `${snapshotHTML}<h4>История изменений</h4><div id="player-history-log">Загружаю…</div>`;
   modal.style.display = 'flex';
 
+  const logEl = document.getElementById('player-history-log');
   loadJSON(`armoury/history/${encodeURIComponent(slug)}.json`)
     .then(history => {
       if (!history.length) {
-        body.innerHTML = '<div class="empty">История изменений пока не зафиксирована.</div>';
+        logEl.innerHTML = '<div class="empty">История изменений пока не зафиксирована.</div>';
         return;
       }
-      body.innerHTML = [...history].reverse().map(h => `
+      logEl.innerHTML = [...history].reverse().map(h => `
         <div class="history-row">
           <span class="hdate">${escapeHTML(h.date)}</span>
-          <span>уровень ${escapeHTML(h.level || '—')}, последний вход: ${escapeHTML(h.last_seen || '—')}</span>
+          <span>уровень ${escapeHTML(h.level || '—')}, активен: ${escapeHTML(h.last_active || '—')}</span>
         </div>
       `).join('');
     })
     .catch(() => {
-      body.innerHTML = '<div class="empty">Изменений уровня или даты входа с момента первого появления не зафиксировано.</div>';
+      logEl.innerHTML = '<div class="empty">Изменений уровня или даты активности с момента первого появления не зафиксировано.</div>';
     });
 }
 
