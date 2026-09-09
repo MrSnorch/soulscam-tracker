@@ -26,10 +26,26 @@ def parse_date(s):
         return None
 
 
+def _dungeon_records_scores_only(records):
+    """dungeon_records хранит вместе со score ещё global_rank/server_rank/
+    rooms. Ранги "дышат" каждый день из-за чужой активности на лидерборде -
+    сравнивать их наравне со score нельзя, иначе игрок ложно считается
+    активным просто потому, что кто-то другой сыграл и подвинул таблицу.
+    Оставляем для сравнения только dungeon+mode+score."""
+    if not records:
+        return records
+    return [
+        {"dungeon": r.get("dungeon"), "mode": r.get("mode"), "score": r.get("score")}
+        for r in records
+    ]
+
+
 def player_snapshot(p: dict) -> dict:
     """Извлекает только поля снапшота из записи игрока (dict), в стабильном
     порядке — для сравнения "изменилось ли что-то с прошлого раза"."""
-    return {k: p.get(k) for k in SNAPSHOT_FIELDS}
+    snap = {k: p.get(k) for k in SNAPSHOT_FIELDS}
+    snap["dungeon_records"] = _dungeon_records_scores_only(snap.get("dungeon_records"))
+    return snap
 
 
 def snapshot_changed(old: dict | None, new: dict) -> bool:
