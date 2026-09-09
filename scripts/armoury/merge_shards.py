@@ -174,6 +174,8 @@ def main():
         first_seen = existing["first_seen"] if existing else today_iso
         is_returning_after_gap = existing is None and bool(prior_history)
 
+        is_new_player = existing is None and not prior_history
+
         if is_returning_after_gap:
             # Полного прошлого снапшота у нас нет (history/ хранит только
             # level+last_active, не equipment/skills/achievements), так что
@@ -218,7 +220,13 @@ def main():
                 last_active = last_record.get("last_active") or last_record.get("date") or today_iso
         else:
             changed = snapshot_changed(existing, p)
-            changed_today = changed
+            # Игрок, впервые попавший в базу (existing=None, истории нет
+            # тоже), - это НЕ активность, это просто первое обнаружение.
+            # snapshot_changed(None, p) всегда True (сравнивать не с чем),
+            # но это не значит, что игрок "играл сегодня" - мы его просто
+            # раньше не сканировали. Активным сегодня считаем только того,
+            # кто уже был в базе и у кого что-то реально поменялось.
+            changed_today = changed and not is_new_player
             if changed:
                 # Снапшот реально изменился в этом прогоне. Предпочитаем
                 # точную дату последней ачивки сайта (achievements[].date) -
