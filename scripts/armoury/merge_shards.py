@@ -177,10 +177,13 @@ def main():
         if is_returning_after_gap:
             # Полного прошлого снапшота у нас нет (history/ хранит только
             # level+last_active, не equipment/skills/achievements), так что
-            # честно сравнить снапшоты нельзя. Вместо ложного "активен
-            # сегодня" сравниваем по дате последней ачивки в новых данных:
-            # только если она позже последней зафиксированной в history,
-            # засчитываем реальную активность сегодня.
+            # честно сравнить весь снапшот нельзя. Считаем игрока реально
+            # активным сегодня по двум сигналам:
+            #   1) точная дата последней ачивки новее last_known_active - это
+            #      даёт честную дату визита (не "дату скана");
+            #   2) level изменился с прошлой записи в history - это всё, что
+            #      у нас есть из "прочего снапшота" для этой ветки, но не
+            #      даёт точной даты, только консервативную "сегодня".
             last_record = prior_history[-1]
             last_known_active = parse_date(last_record.get("last_active"))
             if last_known_active is None:
@@ -196,14 +199,43 @@ def main():
                 except (KeyError, ValueError):
                     last_known_active = None
             newest_achievement = latest_achievement_date(p)
-            if newest_achievement and (last_known_active is None or newest_achievement > last_known_active):
+            achievement_is_new = newest_achievement and (
+                last_known_active is None or newest_achievement > last_known_active
+            )
+            level_changed = (
+                last_record.get("level") is not None
+                and p.get("level") is not None
+                and str(last_record.get("level")) != str(p.get("level"))
+            )
+            changed_today = bool(achievement_is_new or level_changed)
+            if achievement_is_new:
+                # Точная дата - предпочитаем её дате скана.
+                last_active = newest_achievement.isoformat()
+            elif level_changed:
+                # Level изменился, но без новой ачивки на эту дату - точной
+                # даты нет, используем дату скана как консервативную оценку.
                 last_active = today_iso
             else:
                 last_active = last_record.get("last_active") or last_record.get("date") or today_iso
         else:
             changed = snapshot_changed(existing, p)
+            changed_today = changed
             if changed:
-                last_active = today_iso
+                # Снапшот реально изменился - игрок точно играл. Предпочитаем
+                # точную дату последней ачивки сайта (achievements[].date),
+                # если она есть и не старше того, что мы уже знали - это даёт
+                # честную дату визита, а не просто "дату скана". Если ачивок
+                # нет или их дата не новее прежней (изменился, например,
+                # только dungeon_records score или equipment, без новых
+                # ачивок), у нас нет точной даты - используем дату скана
+                # (today_iso) как консервативную оценку "играл не позже этого".
+                prev_last_active = existing.get("last_active") if existing else None
+                prev_date = parse_date(prev_last_active) if prev_last_active else None
+                newest_achievement = latest_achievement_date(p)
+                if newest_achievement and (prev_date is None or newest_achievement > prev_date):
+                    last_active = newest_achievement.isoformat()
+                else:
+                    last_active = today_iso
             else:
                 # снапшот не изменился - активность остаётся на прошлом
                 # зафиксированном значении (или сегодня, если это первый раз,
@@ -214,7 +246,11 @@ def main():
             "first_seen": first_seen,
             "last_seen_scrape": today_iso,
             "last_active": last_active,
-            "is_active_today": last_active == today_iso,
+            # "активен сегодня" = снапшот реально изменился в ЭТОМ прогоне,
+            # а не буквально last_active == today_iso - last_active теперь
+            # может быть точной (более ранней) датой ачивки, даже когда
+            # изменение зафиксировано именно сегодня.
+            "is_active_today": bool(changed_today),
         }
         update_player_history(slug, p.get("level"), last_active, today_iso)
 
