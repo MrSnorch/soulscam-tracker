@@ -17,7 +17,7 @@ history/<slug>.json трогает так же - убирает ложный "а
 import json
 import os
 
-OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "docs", "armoury")
+OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "armoury")
 PLAYERS_PATH = os.path.join(OUT_DIR, "players.json")
 HISTORY_DIR = os.path.join(OUT_DIR, "history")
 
