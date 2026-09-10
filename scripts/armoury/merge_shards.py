@@ -72,6 +72,7 @@ import os
 import sys
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 import requests
@@ -81,6 +82,7 @@ from armoury_common import parse_date, snapshot_changed, latest_achievement_date
 from soulbound_armoury_scraper import AdaptiveRateLimiter, scrape_player
 
 RECONFIRM_DELAY_SECONDS = 0.5
+RECONFIRM_MAX_WORKERS = 16
 
 
 def reconfirm_snapshot(p: dict) -> dict | None:
@@ -182,10 +184,34 @@ def main():
 
     os.makedirs(OUT_DIR, exist_ok=True)
 
-    scraped = []
+    scraped_raw = []
     for path in args.shards:
         with open(path, "r", encoding="utf-8") as f:
-            scraped.extend(json.load(f))
+            scraped_raw.extend(json.load(f))
+
+    # Дедупликация по slug: shard_*.json файлы (от scrape_shard.py) режут
+    # players_list.json на диапазоны [--start, --end) по ИНДЕКСУ - если
+    # список между запуском scrape_shard.py для разных шардов сместился
+    # (список слегка меняется каждый час: новые игроки добавляются, порядок
+    # на сайте не гарантированно стабилен), соседние шарды могут случайно
+    # захватить одного и того же игрока дважды. merge_list_shards.py уже
+    # дедуплицирует ВХОДНОЙ список по этой же причине - здесь та же защита
+    # нужна для ВЫХОДА скрапинга. Без неё один и тот же игрок обрабатывается
+    # дважды за один прогон merge_shards.py, и вторая итерация сравнивает
+    # его уже с результатом первой (не с prior-day базой) - reconfirm тогда
+    # "подтверждает" ложное изменение, потому что оба снимка внутри одного
+    # прогона совпадают друг с другом, а не потому что игрок правда играл.
+    # Сохраняем последнее вхождение (более поздний шард увидел его позже -
+    # не то чтобы это было важно, данные должны быть идентичны).
+    seen_slugs = {}
+    dupes = 0
+    for p in scraped_raw:
+        if p["slug"] in seen_slugs:
+            dupes += 1
+        seen_slugs[p["slug"]] = p
+    scraped = list(seen_slugs.values())
+    if dupes:
+        print(f"[!] Обнаружено {dupes} дублей slug между шардами - дедуплицировано (осталось {len(scraped)} уникальных).", file=sys.stderr)
 
     if not scraped:
         print("[!] Все шарды пусты — базу не трогаю.", file=sys.stderr)
@@ -194,6 +220,35 @@ def main():
     today_iso = datetime.now(timezone.utc).date().isoformat()
 
     known = load_known_players()
+
+    # Реконфирмация параллельно, а не по одному в основном цикле: сайт
+    # отдаёт нестабильные снимки страницы (level/skills/equipment мигают
+    # между двумя состояниями от запроса к запросу - подтверждено вручную),
+    # поэтому каждого кандидата на "changed" нужно перепроверить вторым
+    # запросом ДО того, как решать, реальное это изменение или нет. При
+    # последовательных запросах (даже по 0.5с) это легко уходит за 149
+    # кандидатов в единицы минут только на сетевые round-trips - здесь
+    # делаем первый проход БЕЗ сети (кто вообще кандидат), затем бьём
+    # реконфирмацию на пул потоков сразу для всех кандидатов.
+    candidates = []
+    for p in scraped:
+        slug = p["slug"]
+        existing = known.get(slug)
+        if existing is not None and snapshot_changed(existing, p):
+            candidates.append(p)
+    print(f"[reconfirm] {len(candidates)} кандидатов на изменение снапшота - перепроверяю параллельно...", file=sys.stderr)
+    reconfirmed_by_slug = {}
+    if candidates:
+        with ThreadPoolExecutor(max_workers=RECONFIRM_MAX_WORKERS) as executor:
+            futures = {executor.submit(reconfirm_snapshot, p): p["slug"] for p in candidates}
+            for future in as_completed(futures):
+                slug = futures[future]
+                try:
+                    reconfirmed_by_slug[slug] = future.result()
+                except Exception as e:
+                    print(f"[reconfirm] {slug}: ошибка при реконфирмации ({e}) - трактую как не подтверждено", file=sys.stderr)
+                    reconfirmed_by_slug[slug] = None
+
     debug_log = []  # DEBUG: какое конкретно поле триггернуло changed=True для каждого игрока
     for p in scraped:
         slug = p["slug"]
@@ -275,12 +330,11 @@ def main():
             # СОВПАДАЕТ с первым - т.е. подтверждён дважды подряд, а не
             # просто мигнул один раз.
             if changed and existing is not None:
-                print(f"[reconfirm] {slug}: снапшот изменился, перепроверяю...", file=sys.stderr)
-                reconfirmed = reconfirm_snapshot(p)
+                reconfirmed = reconfirmed_by_slug.get(slug)
                 if reconfirmed is not None and snapshot_changed(existing, reconfirmed) and player_snapshot(reconfirmed) == player_snapshot(p):
                     print(f"[reconfirm] {slug}: подтверждено повторным запросом - изменение реальное", file=sys.stderr)
                 else:
-                    print(f"[reconfirm] {slug}: НЕ подтвердилось (reconfirmed={'None (сайт не ответил)' if reconfirmed is None else 'другой снимок'}) - откатываю к known", file=sys.stderr)
+                    print(f"[reconfirm] {slug}: НЕ подтвердилось (reconfirmed={'None (сайт не ответил/ошибка)' if reconfirmed is None else 'другой снимок'}) - откатываю к known", file=sys.stderr)
                     p = {**p, **existing}  # откатываем снапшот-поля к прежним известным значениям
                     changed = False
             # DEBUG: если снапшот изменился и это НЕ новый игрок, записываем
