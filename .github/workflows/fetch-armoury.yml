@@ -264,7 +264,7 @@ jobs:
   merge:
     needs: [merge_list, scrape]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:
@@ -275,6 +275,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Install dependencies
+        # merge_shards.py теперь может делать точечный повторный скан
+        # (reconfirm_snapshot) для игроков с изменённым снапшотом - сайт
+        # отдаёт нестабильные снимки страниц, и без реконфирмации это
+        # ложно раздувало "активны сегодня" (level мигал между двумя
+        # значениями от прогона к прогону - см. debug-active-log.json).
+        run: pip install requests beautifulsoup4 --break-system-packages
 
       - name: Download all shard results
         uses: actions/download-artifact@v4
