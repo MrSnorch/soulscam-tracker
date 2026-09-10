@@ -186,7 +186,15 @@ def main():
             #   2) level изменился с последней записи в history - факт есть,
             #      но точной даты нет, используем дату скана.
             last_record = prior_history[-1]
-            last_known_active = parse_date(last_record.get("last_active"))
+            # Тот же баг форматов, что и ниже: last_active в history тоже
+            # хранится в ISO (YYYY-MM-DD), а не в формате сайта - parse_date
+            # молча вернёт None. Парсим ISO вручную.
+            last_known_active = None
+            if last_record.get("last_active"):
+                try:
+                    last_known_active = datetime.strptime(last_record["last_active"], "%Y-%m-%d").date()
+                except ValueError:
+                    last_known_active = None
             if last_known_active is None:
                 # Старые записи (до сентябрьской смены схемы сайта) хранят
                 # last_seen вместо last_active - там last_active просто
@@ -237,8 +245,21 @@ def main():
                 # даты нет вообще (сайт не отдаёт "last seen in game" ни в
                 # каком виде - см. soulbound_armoury_scraper.py) - используем
                 # дату скана как консервативную оценку "играл не позже этого".
+                # Внимание: last_active хранится в ISO-формате (YYYY-MM-DD,
+                # см. .isoformat() ниже), а НЕ в формате сайта "%B %d, %Y" -
+                # parse_date() ожидает именно формат сайта и на ISO-строке
+                # молча вернёт None (см. armoury_common.parse_date). Из-за
+                # этого prev_date всегда получался None, и любая уже
+                # известная дата ачивки бесконечно "переоткрывалась" как
+                # новая на каждом прогоне - вот откуда ложные is_active_today
+                # у одних и тех же игроков день за днём. Парсим ISO вручную.
                 prev_last_active = existing.get("last_active") if existing else None
-                prev_date = parse_date(prev_last_active) if prev_last_active else None
+                prev_date = None
+                if prev_last_active:
+                    try:
+                        prev_date = datetime.strptime(prev_last_active, "%Y-%m-%d").date()
+                    except ValueError:
+                        prev_date = None
                 newest_achievement = latest_achievement_date(p)
                 if newest_achievement and (prev_date is None or newest_achievement > prev_date):
                     last_active = newest_achievement.isoformat()
