@@ -74,7 +74,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
-from armoury_common import parse_date, snapshot_changed, latest_achievement_date
+from armoury_common import parse_date, snapshot_changed, latest_achievement_date, player_snapshot
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "armoury")
 PLAYERS_PATH = os.path.join(OUT_DIR, "players.json")
@@ -157,6 +157,7 @@ def main():
     today_iso = datetime.now(timezone.utc).date().isoformat()
 
     known = load_known_players()
+    debug_log = []  # DEBUG: какое конкретно поле триггернуло changed=True для каждого игрока
     for p in scraped:
         slug = p["slug"]
         existing = known.get(slug)
@@ -228,6 +229,18 @@ def main():
                 last_active = last_record.get("last_active") or last_record.get("date") or today_iso
         else:
             changed = snapshot_changed(existing, p)
+            # DEBUG: если снапшот изменился и это НЕ новый игрок, записываем
+            # точно какое поле отличается - чтобы понять природу ложных
+            # срабатываний (временно, для диагностики).
+            if changed and existing is not None:
+                so, sn = player_snapshot(existing), player_snapshot(p)
+                diff_fields = [k for k in so if so.get(k) != sn.get(k)]
+                debug_log.append({
+                    "slug": slug,
+                    "diff_fields": diff_fields,
+                    "old": {k: so.get(k) for k in diff_fields},
+                    "new": {k: sn.get(k) for k in diff_fields},
+                })
             # Игрок, впервые попавший в базу (existing=None, истории нет
             # тоже), - это НЕ активность, это просто первое обнаружение.
             # snapshot_changed(None, p) всегда True (сравнивать не с чем),
@@ -311,6 +324,13 @@ def main():
     }
     with open(os.path.join(OUT_DIR, "summary.json"), "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
+
+    # DEBUG: временный лог причин is_active_today - какое конкретно поле
+    # снапшота отличалось для каждого игрока, у которого changed=True (не
+    # новый игрок). Убрать, когда диагностика больше не нужна.
+    with open(os.path.join(OUT_DIR, "debug-active-log.json"), "w", encoding="utf-8") as f:
+        json.dump(debug_log, f, ensure_ascii=False, indent=2)
+    print(f"[debug] записано {len(debug_log)} причин в docs/armoury/debug-active-log.json", file=sys.stderr)
 
     history_path = os.path.join(OUT_DIR, "online-history.json")
     try:
