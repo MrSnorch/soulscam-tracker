@@ -282,6 +282,22 @@ jobs:
           pattern: armoury-shard-*
           merge-multiple: true
 
+      - name: Pull latest data before merging
+        # checkout выше могло случиться заметно раньше этого шага (пока
+        # скачивались артефакты со всех шардов) - за это время main мог уйти
+        # вперёд (например, предыдущий прогон fetch-armoury.yml как раз
+        # дописывал свой коммит). merge_shards.py сравнивает новый скан с
+        # docs/armoury/players.json НА ДИСКЕ прямо сейчас - если этот файл
+        # устарел, is_active_today/last_active вычислятся против неверной
+        # точки отсчёта, и последующий git pull --rebase при отклонённом
+        # push просто перенесёт уже неверно посчитанный коммит поверх
+        # свежей истории, не пересчитав ничего. Подтягиваем main здесь, до
+        # вычисления, а не только post-hoc на retry после push.
+        run: |
+          git config user.name "armoury-watch-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git pull --rebase --quiet || true
+
       - name: Merge shards into dashboard data
         run: |
           # Collect whichever shard_*.json files actually got downloaded,
