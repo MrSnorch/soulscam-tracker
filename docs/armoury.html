@@ -166,6 +166,7 @@
         <button class="tab-btn" data-tab="guests" id="tab-btn-guests">Гости</button>
         <button class="tab-btn" data-tab="byregion" id="tab-btn-byregion">По серверам</button>
         <button class="tab-btn" data-tab="bydate" id="tab-btn-bydate">По датам</button>
+        <button class="tab-btn" data-tab="debug-active" id="tab-btn-debug-active">Дебаг: активны сегодня</button>
       </div>
 
       <div class="tab-panel active" data-tab="players" id="players-panel">
@@ -318,6 +319,42 @@
               <tbody id="bydate-detail-tbody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="debug-active" id="debug-active-panel">
+        <p class="desc">
+          Для каждого игрока с <code>is_active_today: true</code> — причина, по которой он попал в счётчик
+          «Активны сегодня». <b>Новый в базе</b>: игрок увиден сканером впервые сегодня (<code>first_seen ==
+          сегодня</code>) — сравнивать снапшот не с чем, поэтому засчитан активным автоматически.
+          <b>Новая ачивка</b>: снапшот изменился, и найдена ачивка с датой, задавшей <code>last_active</code>.
+          <b>Снапшот изменился (без ачивки)</b>: что-то другое поменялось (уровень/экип/скиллы/дандж-рекорды),
+          точной даты нет — использована дата сегодняшнего скана. Это чисто фронтовая реконструкция причины по
+          уже готовым полям <code>players.json</code> — бэкенд не трогает.
+        </p>
+        <div class="field" style="max-width:320px; margin-bottom:12px;">
+          <label>Поиск по нику</label>
+          <input type="text" id="debug-active-search" placeholder="ник...">
+        </div>
+        <div class="table-scroll">
+          <table class="reviews armoury" id="debug-active-table">
+            <thead>
+              <tr>
+                <th data-sort="name">Ник</th>
+                <th data-sort="region">Сервер</th>
+                <th data-sort="level">Уровень</th>
+                <th data-sort="first_seen">Впервые замечен</th>
+                <th data-sort="last_active">last_active</th>
+                <th>Причина</th>
+              </tr>
+            </thead>
+            <tbody id="debug-active-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="debug-active-pagination" style="display:flex; align-items:center; gap:10px; margin-top:12px; font-size:13px; color:var(--text-dim);">
+          <button type="button" id="debug-active-page-prev" class="page-btn">&larr; назад</button>
+          <span id="debug-active-page-info">&mdash;</span>
+          <button type="button" id="debug-active-page-next" class="page-btn">вперёд &rarr;</button>
         </div>
       </div>
     </section>
