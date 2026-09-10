@@ -80,10 +80,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 from armoury_common import parse_date, snapshot_changed, latest_achievement_date, player_snapshot
 from soulbound_armoury_scraper import AdaptiveRateLimiter, scrape_player
 
-RECONFIRM_DELAY_SECONDS = 3
+RECONFIRM_DELAY_SECONDS = 0.5
 
 
-def reconfirm_snapshot(p: dict) -> dict:
+def reconfirm_snapshot(p: dict) -> dict | None:
     """Сайт отдаёт нестабильные снимки страницы игрока - level/skills/
     equipment/achievements могут "мигать" между двумя состояниями от запроса
     к запросу (подтверждено вручную: у одних и тех же 149 игроков level
@@ -93,15 +93,17 @@ def reconfirm_snapshot(p: dict) -> dict:
     Прежде чем считать снапшот реально изменившимся, перезапрашиваем
     страницу этого конкретного игрока ещё раз и возвращаем свежий снимок.
     Вызывать только для кандидатов на "changed", не для всех - иначе это
-    удвоило бы весь объём скрапинга."""
+    удвоило бы весь объём скрапинга. Возвращает None при сетевой неудаче -
+    вызывающий код должен трактовать это как "не подтверждено", а НЕ как
+    совпадение (иначе любая временная сетевая ошибка ложно проходила бы
+    как реальное изменение - именно так вела себя предыдущая версия этой
+    функции, возвращая p при fresh=None)."""
     session = requests.Session()
     limiter = AdaptiveRateLimiter(start_delay=0.05, min_delay=0.02)
     time.sleep(RECONFIRM_DELAY_SECONDS)
     fresh = scrape_player(session, p["region"], p["slug"], limiter)
     if fresh is None:
-        # Сайт не ответил на повторный запрос - не можем подтвердить
-        # изменение, откатываемся к тому, что уже было в первом скане.
-        return p
+        return None
     return {
         "slug": fresh.slug, "region": fresh.region, "name": fresh.name,
         "level": fresh.level, "last_updated": fresh.last_updated,
@@ -273,11 +275,12 @@ def main():
             # СОВПАДАЕТ с первым - т.е. подтверждён дважды подряд, а не
             # просто мигнул один раз.
             if changed and existing is not None:
+                print(f"[reconfirm] {slug}: снапшот изменился, перепроверяю...", file=sys.stderr)
                 reconfirmed = reconfirm_snapshot(p)
-                if snapshot_changed(existing, reconfirmed) and player_snapshot(reconfirmed) == player_snapshot(p):
-                    pass  # оба снимка согласны - изменение реальное, используем p как есть
+                if reconfirmed is not None and snapshot_changed(existing, reconfirmed) and player_snapshot(reconfirmed) == player_snapshot(p):
+                    print(f"[reconfirm] {slug}: подтверждено повторным запросом - изменение реальное", file=sys.stderr)
                 else:
-                    print(f"[reconfirm] {slug}: изменение НЕ подтвердилось повторным запросом - откатываю к known", file=sys.stderr)
+                    print(f"[reconfirm] {slug}: НЕ подтвердилось (reconfirmed={'None (сайт не ответил)' if reconfirmed is None else 'другой снимок'}) - откатываю к known", file=sys.stderr)
                     p = {**p, **existing}  # откатываем снапшот-поля к прежним известным значениям
                     changed = False
             # DEBUG: если снапшот изменился и это НЕ новый игрок, записываем
