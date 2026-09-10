@@ -332,9 +332,12 @@
           точной даты нет — использована дата сегодняшнего скана. Это чисто фронтовая реконструкция причины по
           уже готовым полям <code>players.json</code> — бэкенд не трогает.
         </p>
-        <div class="field" style="max-width:320px; margin-bottom:12px;">
-          <label>Поиск по нику</label>
-          <input type="text" id="debug-active-search" placeholder="ник...">
+        <div class="field" style="max-width:320px; margin-bottom:12px; display:flex; gap:10px; align-items:flex-end;">
+          <div style="flex:1;">
+            <label>Поиск по нику</label>
+            <input type="text" id="debug-active-search" placeholder="ник...">
+          </div>
+          <button type="button" id="debug-active-export" class="page-btn">Скачать CSV</button>
         </div>
         <div class="table-scroll">
           <table class="reviews armoury" id="debug-active-table">
