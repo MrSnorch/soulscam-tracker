@@ -23,6 +23,7 @@ let state = {
     missing: { sortKey: 'last_seen_scrape', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
     guests: { sortKey: 'last_active', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
     byregion: { sortKey: 'last_active', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
+    'debug-active': { sortKey: 'first_seen', sortDir: 'desc', search: '', page: 0, pageSize: 500 },
   },
 };
 
@@ -398,6 +399,58 @@ function renderMissingTable() {
   renderTable('missing', missingRows, 'missing-tbody', 'missing-table', missingRowTemplate);
 }
 
+// Реконструирует НА ФРОНТЕ причину, по которой конкретный игрок попал в
+// is_active_today - без обращения к бэкенду, только по полям, которые уже
+// лежат в players.json (first_seen, last_active, last_seen_scrape). Это
+// эвристика для отображения, а не источник истины - точная причина
+// вычисляется один раз внутри merge_shards.py на сервере; здесь мы просто
+//    восстанавливаем наиболее вероятное объяснение по итоговым данным.
+function activeReason(p) {
+  if (!state.todayDate) return { code: 'unknown', label: '—' };
+  const isNewToday = p.first_seen === state.todayDate;
+  if (isNewToday) {
+    return {
+      code: 'new',
+      label: 'Новый в базе (first_seen = сегодня)',
+    };
+  }
+  if (p.last_active === state.todayDate) {
+    // last_active == сегодня и это не новый игрок: либо не нашлось ачивки
+    // новее прежней (снапшот менялся, но без свежей ачивки - level/экип/
+    //    скиллы/дандж), либо у него действительно ачивка датирована сегодня.
+    return {
+      code: 'changed-no-fresh-achievement-or-today-achievement',
+      label: 'Снапшот изменился сегодня (ачивка сегодня либо другое поле без даты)',
+    };
+  }
+  // last_active есть и он РАНЬШЕ сегодня, но игрок всё равно не новый —
+  // значит is_active_today проставлен из-за найденной ачивки с этой более
+  // ранней датой (снапшот менялся сегодня, но точная дата — дата ачивки).
+  return {
+    code: 'changed-fresh-achievement',
+    label: `Найдена ачивка с датой ${escapeHTML(p.last_active || '—')} (взята как last_active)`,
+  };
+}
+
+function debugActiveRowTemplate(p) {
+  const reason = activeReason(p);
+  return `
+    <tr>
+      <td class="name-cell"><a href="#" class="player-link" data-slug="${escapeHTML(p.slug)}">${escapeHTML(p.name || p.slug)}</a></td>
+      <td class="mono">${escapeHTML(p.region)}</td>
+      <td class="mono">${escapeHTML(p.level || '—')}</td>
+      <td class="mono">${escapeHTML(p.first_seen || '—')}</td>
+      <td class="mono">${escapeHTML(p.last_active || '—')}</td>
+      <td>${reason.label}</td>
+    </tr>
+  `;
+}
+
+function renderDebugActiveTable() {
+  const rows = state.players.filter(p => p.is_active_today);
+  renderTable('debug-active', rows, 'debug-active-tbody', 'debug-active-table', debugActiveRowTemplate);
+}
+
 function renderDuplicates() {
   const includeSameRegion = document.getElementById('show-same-region-dupes').checked;
   const groups = state.duplicates.filter(g => includeSameRegion || g.cross_region);
@@ -770,6 +823,7 @@ async function init() {
   renderStats(summary);
   renderPlayersTable();
   renderMissingTable();
+  renderDebugActiveTable();
   renderDuplicates();
   renderLastSeenChart(state.players);
   renderLastSeenByRegionChart(state.players);
@@ -795,6 +849,7 @@ async function init() {
 
   wireTableControls('players', 'players-table', renderPlayersTable);
   wireTableControls('missing', 'missing-table', renderMissingTable);
+  wireTableControls('debug-active', 'debug-active-table', renderDebugActiveTable);
   wireTableControls('guests', 'guests-table', renderGuestsTable);
   wireTableControls('byregion', 'byregion-table', renderByRegionTable);
 
