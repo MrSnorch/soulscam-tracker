@@ -1,22 +1,7 @@
 {
-  "generated_at": "2026-09-20T15:15:09Z",
+  "generated_at": "2026-09-21T02:33:07Z",
   "appid": "4369490",
   "top_suspicious": [
-    {
-      "recommendationid": "231007798",
-      "steamid": "76561198044464136",
-      "profile_url": "https://steamcommunity.com/profiles/76561198044464136",
-      "suspicion_score": 60,
-      "suspicion_reasons": [
-        "positive_under_30min",
-        "prolific_reviewer_few_games",
-        "posted_during_review_burst"
-      ],
-      "voted_up": true,
-      "playtime_at_review_minutes": 15,
-      "timestamp_created": 1784669674,
-      "review_excerpt": "Game honestly is genuinely cool reviews are from a niche community offended they pivoted to not being an NFT game anymore... lol enough said there. And its an indie MMO so server issues make sense on "
-    },
     {
       "recommendationid": "230985563",
       "steamid": "76561198038870645",
@@ -106,6 +91,20 @@
       "playtime_at_review_minutes": 22,
       "timestamp_created": 1784681171,
       "review_excerpt": "I have no idea about the devs, the nfts etc. I have gone like years without getting hooked to an RPG, this is the first RPG I've been hooked too.\n\nThe voice overs, the mechanics, the graphics, the int"
+    },
+    {
+      "recommendationid": "231007798",
+      "steamid": "76561198044464136",
+      "profile_url": "https://steamcommunity.com/profiles/76561198044464136",
+      "suspicion_score": 40,
+      "suspicion_reasons": [
+        "positive_under_30min",
+        "posted_during_review_burst"
+      ],
+      "voted_up": true,
+      "playtime_at_review_minutes": 15,
+      "timestamp_created": 1784669674,
+      "review_excerpt": "Game honestly is genuinely cool reviews are from a niche community offended they pivoted to not being an NFT game anymore... lol enough said there. And its an indie MMO so server issues make sense on "
     },
     {
       "recommendationid": "231005238",
