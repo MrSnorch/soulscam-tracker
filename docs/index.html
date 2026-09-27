@@ -739,8 +739,14 @@ const I18N = {
     'compare.presetMonthAgoToday': 'Месяц назад vs сегодня',
     'compare.presetFirstVsLast': 'Первый vs последний день',
     'compare.presetThisWeekVsLast': 'Прошлая неделя vs эта',
+    'compare.preset2WeeksAgoVsLast': 'Позапрошлая vs прошлая неделя',
+    'compare.preset4WeeksAgoVsThis': '4 недели назад vs эта',
+    'compare.preset8WeeksAgoVsThis': '8 недель назад vs эта',
     'compare.presetFirstVsLastWeek': 'Первая vs последняя неделя',
     'compare.presetThisMonthVsLast': 'Прошлый месяц vs этот',
+    'compare.preset2MonthsAgoVsLast': 'Позапрошлый vs прошлый месяц',
+    'compare.preset3MonthsAgoVsThis': '3 месяца назад vs этот',
+    'compare.presetYearAgoVsThis': 'Год назад vs этот месяц',
     'compare.presetFirstVsLastMonth': 'Первый vs последний месяц',
     'compare.peak': 'Пик',
     'compare.average': 'Среднее',
@@ -921,8 +927,14 @@ const I18N = {
     'compare.presetMonthAgoToday': 'A month ago vs today',
     'compare.presetFirstVsLast': 'First vs last day',
     'compare.presetThisWeekVsLast': 'Last week vs this week',
+    'compare.preset2WeeksAgoVsLast': '2 weeks ago vs last week',
+    'compare.preset4WeeksAgoVsThis': '4 weeks ago vs this week',
+    'compare.preset8WeeksAgoVsThis': '8 weeks ago vs this week',
     'compare.presetFirstVsLastWeek': 'First vs last week',
     'compare.presetThisMonthVsLast': 'Last month vs this month',
+    'compare.preset2MonthsAgoVsLast': '2 months ago vs last month',
+    'compare.preset3MonthsAgoVsThis': '3 months ago vs this month',
+    'compare.presetYearAgoVsThis': 'A year ago vs this month',
     'compare.presetFirstVsLastMonth': 'First vs last month',
     'compare.peak': 'Peak',
     'compare.average': 'Average',
@@ -1988,16 +2000,45 @@ function renderCompare(historyStore) {
     return g === 'week' ? weekGroups : g === 'month' ? monthGroups : null;
   }
 
+  // Human-readable label for a month key like "2026-09" -> "Сентябрь 2026"
+  // (or "September 2026" in English), rather than making the person parse
+  // digits themselves.
+  function monthLabel(key) {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(Date.UTC(y, m - 1, 1));
+    const locale = getLang() === 'en' ? 'en-US' : 'ru-RU';
+    const name = d.toLocaleDateString(locale, { month: 'long', timeZone: 'UTC' });
+    const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
+    return `${capitalized} ${y}`;
+  }
+
+  // Human-readable label for an ISO week key like "2026-W39" -> the day
+  // range it spans, e.g. "22\u201328 \u0441\u0435\u043d\u0442." (or the
+  // English month abbreviation), so the person reads a date range instead
+  // of decoding a week number.
+  function weekLabel(key, days) {
+    const locale = getLang() === 'en' ? 'en-US' : 'ru-RU';
+    const first = new Date(days[0] + 'T00:00:00Z');
+    const last = new Date(days[days.length - 1] + 'T00:00:00Z');
+    const fmt = d => d.toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const sameMonth = first.getUTCMonth() === last.getUTCMonth() && first.getUTCFullYear() === last.getUTCFullYear();
+    if (sameMonth) {
+      const dayOnly = d => d.toLocaleDateString(locale, { day: 'numeric', timeZone: 'UTC' });
+      return `${dayOnly(first)}\u2013${fmt(last)}`;
+    }
+    return `${fmt(first)} \u2013 ${fmt(last)}`;
+  }
+
   // Returns the list of selectable option keys for the current granularity,
-  // and a display label for each (day keys display as-is; week/month group
-  // keys display as their key plus the day range they span).
+  // and a display label for each (day keys display as-is; months display as
+  // a localized month name, weeks as the date range they span).
   function optionsFor(g) {
     if (g === 'day') return dayKeys.map(d => ({ value: d, label: d }));
     const groups = groupsFor(g);
-    return groups.map(gr => ({
-      value: gr.key,
-      label: gr.days.length > 1 ? `${gr.key} (${gr.days[0]} \u2013 ${gr.days[gr.days.length - 1]})` : `${gr.key} (${gr.days[0]})`
-    }));
+    if (g === 'month') {
+      return groups.map(gr => ({ value: gr.key, label: monthLabel(gr.key) }));
+    }
+    return groups.map(gr => ({ value: gr.key, label: weekLabel(gr.key, gr.days) }));
   }
 
   // Quick presets for the most common comparisons, so the person doesn't
@@ -2028,11 +2069,17 @@ function renderCompare(historyStore) {
     if (g === 'week') {
       return [
         { label: t('compare.presetThisWeekVsLast'), offsetA: 1, offsetB: 0 },
+        { label: t('compare.preset2WeeksAgoVsLast'), offsetA: 2, offsetB: 1 },
+        { label: t('compare.preset4WeeksAgoVsThis'), offsetA: 4, offsetB: 0, clamp: true },
+        { label: t('compare.preset8WeeksAgoVsThis'), offsetA: 8, offsetB: 0, clamp: true },
         { label: t('compare.presetFirstVsLastWeek'), pinFirstLast: true },
       ];
     }
     return [
       { label: t('compare.presetThisMonthVsLast'), offsetA: 1, offsetB: 0 },
+      { label: t('compare.preset2MonthsAgoVsLast'), offsetA: 2, offsetB: 1 },
+      { label: t('compare.preset3MonthsAgoVsThis'), offsetA: 3, offsetB: 0, clamp: true },
+      { label: t('compare.presetYearAgoVsThis'), offsetA: 12, offsetB: 0, clamp: true },
       { label: t('compare.presetFirstVsLastMonth'), pinFirstLast: true },
     ];
   }
