@@ -203,7 +203,7 @@
     margin-bottom: 16px;
     flex-wrap: wrap;
   }
-  select, input[type="date"] {
+  select, input[type="date"], input[type="number"] {
     background: #191c22;
     border: 1px solid var(--line);
     color: var(--text);
@@ -356,6 +356,25 @@
     padding: 2px 0;
   }
   .compare-summary .row .v { color: var(--text); font-family: "SF Mono", "Cascadia Code", Consolas, monospace; }
+  #online-search-results {
+    margin-top: 12px;
+    font-size: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 16px;
+  }
+  #online-search-results:empty { display: none; border: none; padding: 0; }
+  #online-search-results .col-title { font-weight: 600; margin-bottom: 8px; }
+  #online-search-results .row {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    padding: 2px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  #online-search-results .row:last-child { border-bottom: none; }
+  #online-search-results .row .v { color: var(--text); font-family: "SF Mono", "Cascadia Code", Consolas, monospace; }
   .compare-diff {
     grid-column: 1 / -1;
     background: var(--panel);
@@ -622,6 +641,16 @@
   </div>
 
   <div class="panel">
+    <h2 data-i18n="onlineSearch.title">Поиск дня по онлайну</h2>
+    <p class="desc" data-i18n-html="onlineSearch.desc">Найти дни, в которые онлайн хотя бы раз был равен точно указанному числу</p>
+    <div class="controls">
+      <input type="number" id="online-search-input" data-i18n-placeholder="onlineSearch.placeholder" placeholder="напр. 28" step="1" style="width:100px" />
+      <button class="range-btn" id="online-search-btn" data-i18n="onlineSearch.button">Найти</button>
+    </div>
+    <div id="online-search-results"></div>
+  </div>
+
+  <div class="panel">
     <h2 data-i18n="hourly.title">Активность по часам суток</h2>
     <p class="desc" id="hourly-desc" data-i18n-html="hourly.desc">Средний онлайн по часу дня, усреднено за всю собранную историю &mdash; показывает пик-часы</p>
     <div class="controls">
@@ -760,6 +789,17 @@ const I18N = {
     'compare.noData': 'Пока нет данных.',
     'compare.notEnoughWeeks': 'Недостаточно истории для сравнения по неделям.',
     'compare.notEnoughMonths': 'Недостаточно истории для сравнения по месяцам.',
+
+    // Online value search panel
+    'onlineSearch.title': 'Поиск дня по онлайну',
+    'onlineSearch.desc': 'Найти дни, в которые онлайн хотя бы раз был равен точно указанному числу',
+    'onlineSearch.placeholder': 'напр. 28',
+    'onlineSearch.button': 'Найти',
+    'onlineSearch.loading': 'Загрузка истории&hellip;',
+    'onlineSearch.invalid': 'Введите целое число.',
+    'onlineSearch.noMatches': 'Онлайн {value} не встречался ни в один из известных дней.',
+    'onlineSearch.matchesCount': 'Найдено дней: {count}',
+    'onlineSearch.timesLabel': 'раз(а): {times}',
 
     // Hourly activity panel
     'hourly.title': 'Активность по часам суток',
@@ -948,6 +988,17 @@ const I18N = {
     'compare.noData': 'No data yet.',
     'compare.notEnoughWeeks': 'Not enough history to compare by week.',
     'compare.notEnoughMonths': 'Not enough history to compare by month.',
+
+    // Online value search panel
+    'onlineSearch.title': 'Find a day by online count',
+    'onlineSearch.desc': 'Find days where the online count was exactly equal to a given number at least once',
+    'onlineSearch.placeholder': 'e.g. 28',
+    'onlineSearch.button': 'Search',
+    'onlineSearch.loading': 'Loading history&hellip;',
+    'onlineSearch.invalid': 'Enter a whole number.',
+    'onlineSearch.noMatches': 'Online count {value} never occurred on any known day.',
+    'onlineSearch.matchesCount': 'Matching days: {count}',
+    'onlineSearch.timesLabel': 'time(s): {times}',
 
     'hourly.title': 'Activity by hour of day',
     'hourly.desc': 'Average online by hour of day, averaged over the whole collected history &mdash; shows peak hours',
@@ -2534,6 +2585,80 @@ function checkStaleness(lastTs) {
   banner.style.display = 'flex';
 }
 
+// "Поиск дня по онлайну" panel: scans raw (unbucketed) points across every
+// known day for an exact player_count match, rather than searching day-level
+// aggregates like min/avg/peak. This intentionally loads full history on
+// first use (same approach as the "Всё" range button and loadFullHistory()
+// in renderLive) since an exact-value search has to look at every real
+// sample, not just bucketed/aggregated values.
+function setupOnlineSearch(historyStore) {
+  const input = document.getElementById('online-search-input');
+  const btn = document.getElementById('online-search-btn');
+  const results = document.getElementById('online-search-results');
+
+  let allDaysLoaded = false;
+  let cachedByDay = null; // Map<day, points[]> once loaded
+
+  async function ensureAllDaysLoaded() {
+    if (allDaysLoaded) return;
+    results.innerHTML = '<div id="status">' + t('onlineSearch.loading') + '</div>';
+    const days = historyStore.availableDays;
+    await Promise.all(days.map(d => historyStore.ensureDay(d)));
+    cachedByDay = new Map(days.map(d => [d, historyStore.getCachedDay(d)]));
+    allDaysLoaded = true;
+  }
+
+  function search() {
+    const raw = input.value.trim();
+    const value = Number(raw);
+    if (raw === '' || !Number.isInteger(value)) {
+      results.innerHTML = '<div id="status">' + t('onlineSearch.invalid') + '</div>';
+      return;
+    }
+
+    // Groups every matching timestamp by day so a day with several matching
+    // samples (e.g. the count dipped to the same value more than once)
+    // shows as one entry with all its times, not repeated rows.
+    const matchesByDay = new Map();
+    cachedByDay.forEach((points, day) => {
+      points.forEach(p => {
+        if (p.player_count === value) {
+          if (!matchesByDay.has(day)) matchesByDay.set(day, []);
+          matchesByDay.get(day).push(p.ts);
+        }
+      });
+    });
+
+    if (!matchesByDay.size) {
+      results.innerHTML = '<div id="status">' + t('onlineSearch.noMatches', { value }) + '</div>';
+      return;
+    }
+
+    const days = [...matchesByDay.keys()].sort();
+    const rowsHtml = days.map(day => {
+      const times = matchesByDay.get(day)
+        .sort()
+        .map(ts => new Date(ts).toISOString().slice(11, 16))
+        .join(', ');
+      return `<div class="row"><span>${day}</span><span class="v">${t('onlineSearch.timesLabel', { times })}</span></div>`;
+    }).join('');
+
+    results.innerHTML =
+      `<div class="col-title">${t('onlineSearch.matchesCount', { count: days.length })}</div>` +
+      rowsHtml;
+  }
+
+  async function runSearch() {
+    await ensureAllDaysLoaded();
+    search();
+  }
+
+  btn.addEventListener('click', runSearch);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') runSearch();
+  });
+}
+
 // Reviews panel: driven by docs/reviews/summary-only.json, written by
 // the separate fetch-reviews.yml pipeline (scripts/reviews/*.py). This
 // covers a different signal than the player-count charts above - review
@@ -3176,6 +3301,8 @@ async function init() {
       document.getElementById('compare-chart').innerHTML =
         '<div id="status">' + t('compare.noData') + '</div>';
     }
+
+    setupOnlineSearch(historyStore);
 
     renderReviews(reviewsData, recent);
     renderForumActivity(forumData);
