@@ -242,6 +242,8 @@
   }
   .range-btn:hover { color: var(--text); border-color: var(--muted); }
   .range-btn.active { color: var(--accent); border-color: var(--accent-dim); background: #142320; }
+  .range-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .range-btn:disabled:hover { color: var(--muted); border-color: var(--line); }
   .zoom-reset-btn {
     background: #191c22;
     border: 1px solid var(--line);
@@ -600,15 +602,19 @@
   </div>
 
   <div class="panel">
-    <h2 data-i18n="compare.title">Сравнение дней</h2>
-    <p class="desc" data-i18n-html="compare.desc">Наложение двух дней по часам (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию</p>
+    <h2 data-i18n="compare.title">Сравнение периодов</h2>
+    <p class="desc" id="compare-desc" data-i18n-html="compare.desc">Наложение двух дней по часам (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию</p>
+    <div class="controls">
+      <span class="trend-controls-label" data-i18n="compare.granularity">Период:</span>
+      <div class="range-btns" id="compare-granularity-btns"></div>
+    </div>
     <div class="controls">
       <div class="range-btns" id="compare-preset-btns"></div>
     </div>
     <div class="controls">
-      <span><span class="legend-swatch" style="background:var(--accent)"></span><span data-i18n="compare.dayA">День A:</span></span>
+      <span><span class="legend-swatch" style="background:var(--accent)"></span><span id="compare-label-a" data-i18n="compare.dayA">День A:</span></span>
       <select id="day-a"></select>
-      <span><span class="legend-swatch" style="background:var(--warn)"></span><span data-i18n="compare.dayB">День B:</span></span>
+      <span><span class="legend-swatch" style="background:var(--warn)"></span><span id="compare-label-b" data-i18n="compare.dayB">День B:</span></span>
       <select id="day-b"></select>
     </div>
     <div id="compare-chart"></div>
@@ -712,24 +718,42 @@ const I18N = {
     'overview.spikeSub': 'всплеск активности отзывов',
 
     // Compare panel
-    'compare.title': 'Сравнение дней',
+    'compare.title': 'Сравнение периодов',
     'compare.desc': 'Наложение двух дней по часам (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию',
+    'compare.descWeek': 'Наложение двух недель, усреднено по часу суток (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию',
+    'compare.descMonth': 'Наложение двух месяцев, усреднено по часу суток (0&ndash;23 UTC) &mdash; удобно смотреть тенденцию',
+    'compare.granularity': 'Период:',
+    'compare.byDay': 'День',
+    'compare.byWeek': 'Неделя',
+    'compare.byMonth': 'Месяц',
     'compare.dayA': 'День A:',
     'compare.dayB': 'День B:',
+    'compare.weekA': 'Неделя A:',
+    'compare.weekB': 'Неделя B:',
+    'compare.monthA': 'Месяц A:',
+    'compare.monthB': 'Месяц B:',
     'compare.presetYesterdayToday': 'Вчера vs сегодня',
     'compare.presetDayBeforeToYesterday': 'Позавчера vs вчера',
     'compare.presetWeekAgoToday': 'Неделю назад vs сегодня',
     'compare.preset2WeeksAgoToday': '2 недели назад vs сегодня',
     'compare.presetMonthAgoToday': 'Месяц назад vs сегодня',
     'compare.presetFirstVsLast': 'Первый vs последний день',
+    'compare.presetThisWeekVsLast': 'Прошлая неделя vs эта',
+    'compare.presetFirstVsLastWeek': 'Первая vs последняя неделя',
+    'compare.presetThisMonthVsLast': 'Прошлый месяц vs этот',
+    'compare.presetFirstVsLastMonth': 'Первый vs последний месяц',
     'compare.peak': 'Пик',
     'compare.average': 'Среднее',
     'compare.minimum': 'Минимум',
     'compare.playerHoursPerDay': 'Игро-часов за день',
+    'compare.playerHoursPerPeriod': 'Игро-часов за период',
+    'compare.daysInPeriod': 'Дней в периоде',
     'compare.vsSummary': '{labelB} к {labelA}: среднее {avgDiff} ({avgPct}), пик {peakDiff} ({peakPct}){phLine}',
     'compare.playerHoursDiff': ', игро-часов {phDiff} ({phPct})',
     'compare.loading': 'Загрузка данных&hellip;',
     'compare.noData': 'Пока нет данных.',
+    'compare.notEnoughWeeks': 'Недостаточно истории для сравнения по неделям.',
+    'compare.notEnoughMonths': 'Недостаточно истории для сравнения по месяцам.',
 
     // Hourly activity panel
     'hourly.title': 'Активность по часам суток',
@@ -876,24 +900,42 @@ const I18N = {
     'overview.spikeTooltip': '{count} suspicious',
     'overview.spikeSub': 'review activity spike',
 
-    'compare.title': 'Day comparison',
+    'compare.title': 'Period comparison',
     'compare.desc': 'Overlaying two days by hour (0&ndash;23 UTC) &mdash; handy for spotting trends',
+    'compare.descWeek': 'Overlaying two weeks, averaged by hour of day (0&ndash;23 UTC) &mdash; handy for spotting trends',
+    'compare.descMonth': 'Overlaying two months, averaged by hour of day (0&ndash;23 UTC) &mdash; handy for spotting trends',
+    'compare.granularity': 'Period:',
+    'compare.byDay': 'Day',
+    'compare.byWeek': 'Week',
+    'compare.byMonth': 'Month',
     'compare.dayA': 'Day A:',
     'compare.dayB': 'Day B:',
+    'compare.weekA': 'Week A:',
+    'compare.weekB': 'Week B:',
+    'compare.monthA': 'Month A:',
+    'compare.monthB': 'Month B:',
     'compare.presetYesterdayToday': 'Yesterday vs today',
     'compare.presetDayBeforeToYesterday': 'Day before vs yesterday',
     'compare.presetWeekAgoToday': 'A week ago vs today',
     'compare.preset2WeeksAgoToday': '2 weeks ago vs today',
     'compare.presetMonthAgoToday': 'A month ago vs today',
     'compare.presetFirstVsLast': 'First vs last day',
+    'compare.presetThisWeekVsLast': 'Last week vs this week',
+    'compare.presetFirstVsLastWeek': 'First vs last week',
+    'compare.presetThisMonthVsLast': 'Last month vs this month',
+    'compare.presetFirstVsLastMonth': 'First vs last month',
     'compare.peak': 'Peak',
     'compare.average': 'Average',
     'compare.minimum': 'Minimum',
     'compare.playerHoursPerDay': 'Player-hours per day',
+    'compare.playerHoursPerPeriod': 'Player-hours over period',
+    'compare.daysInPeriod': 'Days in period',
     'compare.vsSummary': '{labelB} vs {labelA}: average {avgDiff} ({avgPct}), peak {peakDiff} ({peakPct}){phLine}',
     'compare.playerHoursDiff': ', player-hours {phDiff} ({phPct})',
     'compare.loading': 'Loading data&hellip;',
     'compare.noData': 'No data yet.',
+    'compare.notEnoughWeeks': 'Not enough history to compare by week.',
+    'compare.notEnoughMonths': 'Not enough history to compare by month.',
 
     'hourly.title': 'Activity by hour of day',
     'hourly.desc': 'Average online by hour of day, averaged over the whole collected history &mdash; shows peak hours',
@@ -1868,87 +1910,187 @@ function bucketDayPoints(points) {
   return slots;
 }
 
+// Buckets all points across a set of days onto a 24-slot hour-of-day grid,
+// averaging across days so weeks/months of different lengths still land on
+// the same comparable x-axis as a single day. Unlike bucketDayPoints (which
+// keeps one value per 5-minute slot for one day), this collapses calendar
+// date entirely and keeps only hour-of-day, since overlaying every raw point
+// from a week or month would be unreadable and isn't apples-to-apples across
+// periods with a different number of days.
+function bucketPeriodPointsByHour(points) {
+  const sums = new Array(24).fill(0);
+  const counts = new Array(24).fill(0);
+  points.forEach(p => {
+    const hour = new Date(p.ts).getUTCHours();
+    sums[hour] += p.player_count;
+    counts[hour] += 1;
+  });
+  return sums.map((s, h) => (counts[h] ? s / counts[h] : null));
+}
+
+// ISO week key like "2026-W07" (Monday-start, ISO-8601 week numbering) for
+// grouping day keys ("YYYY-MM-DD") into weeks.
+function isoWeekKey(dayKey) {
+  const d = new Date(dayKey + 'T00:00:00Z');
+  const dayNum = (d.getUTCDay() + 6) % 7; // 0=Mon..6=Sun
+  d.setUTCDate(d.getUTCDate() - dayNum + 3); // nearest Thursday
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  const week = 1 + Math.round((d - firstThursday) / (7 * 86400000));
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+function monthKey(dayKey) {
+  return dayKey.slice(0, 7); // "YYYY-MM"
+}
+
+// Groups the flat, sorted list of available day keys into periods (weeks or
+// months) via keyFn, returning [{ key, days: [...] }] in chronological order.
+// Only whole groups that actually appear in availableDays are produced - a
+// week or month is only "available" if at least one of its days has data.
+function groupDaysByPeriod(dayKeys, keyFn) {
+  const map = new Map();
+  dayKeys.forEach(day => {
+    const key = keyFn(day);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(day);
+  });
+  return [...map.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([key, days]) => ({ key, days }));
+}
+
 function renderCompare(historyStore) {
   const dayKeys = historyStore.availableDays;
+  const weekGroups = groupDaysByPeriod(dayKeys, isoWeekKey);
+  const monthGroups = groupDaysByPeriod(dayKeys, monthKey);
+
   const selA = document.getElementById('day-a');
   const selB = document.getElementById('day-b');
+  const labelA = document.getElementById('compare-label-a');
+  const labelB = document.getElementById('compare-label-b');
+  const desc = document.getElementById('compare-desc');
   const presetBtns = document.getElementById('compare-preset-btns');
-  selA.innerHTML = dayKeys.map(d => `<option value="${d}">${d}</option>`).join('');
-  selB.innerHTML = dayKeys.map(d => `<option value="${d}">${d}</option>`).join('');
+  const granBtns = document.getElementById('compare-granularity-btns');
 
-  if (dayKeys.length >= 2) {
-    selA.value = dayKeys[dayKeys.length - 2]; // yesterday
-    selB.value = dayKeys[dayKeys.length - 1]; // today
-  } else if (dayKeys.length === 1) {
-    selA.value = dayKeys[0];
-    selB.value = dayKeys[0];
+  const COMPARE_GRAN_KEY = 'soulscam-compare-granularity';
+  let granularity = 'day'; // 'day' | 'week' | 'month'
+  try {
+    const saved = localStorage.getItem(COMPARE_GRAN_KEY);
+    if (saved === 'week' || saved === 'month') granularity = saved;
+  } catch (e) {}
+  // Fall back to day mode if there isn't enough history for the saved
+  // granularity yet (e.g. a fresh deploy defaulting a returning visitor
+  // straight into "week" mode with only 3 days collected).
+  if (granularity === 'week' && weekGroups.length < 2) granularity = 'day';
+  if (granularity === 'month' && monthGroups.length < 2) granularity = 'day';
+
+  function groupsFor(g) {
+    return g === 'week' ? weekGroups : g === 'month' ? monthGroups : null;
+  }
+
+  // Returns the list of selectable option keys for the current granularity,
+  // and a display label for each (day keys display as-is; week/month group
+  // keys display as their key plus the day range they span).
+  function optionsFor(g) {
+    if (g === 'day') return dayKeys.map(d => ({ value: d, label: d }));
+    const groups = groupsFor(g);
+    return groups.map(gr => ({
+      value: gr.key,
+      label: gr.days.length > 1 ? `${gr.key} (${gr.days[0]} \u2013 ${gr.days[gr.days.length - 1]})` : `${gr.key} (${gr.days[0]})`
+    }));
   }
 
   // Quick presets for the most common comparisons, so the person doesn't
-  // have to manually count back days in the dropdowns. Most are offsets
-  // in days before the most recent available day (index dayKeys.length-1).
-  // "Первый vs последний день" instead pins to the two ends of whatever
-  // history exists, regardless of how many days that spans.
+  // have to manually count back periods in the dropdowns. Day presets are
+  // offsets in days before the most recent available day; week/month
+  // presets are offsets in groups before the most recent available group.
+  // "Первый vs последний" instead pins to the two ends of whatever history
+  // exists, regardless of how many periods that spans.
   //
   // clamp: true means the preset stays visible even when there isn't
-  // enough history for its exact offset (e.g. "Месяц назад" with only 10
-  // days collected) - it falls back to the earliest available day instead
-  // of hiding the button, so longer-range presets don't just disappear
-  // early on and only "arrive" once enough history exists. Short-range
-  // presets (yesterday/day-before) aren't clamped since there's no
-  // meaningful fallback for those - hiding them when there's truly no
-  // earlier day is correct.
-  const lastIdx = dayKeys.length - 1;
-  const presets = [
-    { label: t('compare.presetYesterdayToday'), offsetA: 1, offsetB: 0 },
-    { label: t('compare.presetDayBeforeToYesterday'), offsetA: 2, offsetB: 1 },
-    { label: t('compare.presetWeekAgoToday'), offsetA: 7, offsetB: 0, clamp: true },
-    { label: t('compare.preset2WeeksAgoToday'), offsetA: 14, offsetB: 0, clamp: true },
-    { label: t('compare.presetMonthAgoToday'), offsetA: 30, offsetB: 0, clamp: true },
-    { label: t('compare.presetFirstVsLast'), pinFirstLast: true },
-  ];
+  // enough history for its exact offset - it falls back to the earliest
+  // available period instead of hiding the button, so longer-range presets
+  // don't just disappear early on and only "arrive" once enough history
+  // exists. Short-range presets aren't clamped since there's no meaningful
+  // fallback for those - hiding them when there's truly no earlier period
+  // is correct.
+  function presetsFor(g) {
+    if (g === 'day') {
+      return [
+        { label: t('compare.presetYesterdayToday'), offsetA: 1, offsetB: 0 },
+        { label: t('compare.presetDayBeforeToYesterday'), offsetA: 2, offsetB: 1 },
+        { label: t('compare.presetWeekAgoToday'), offsetA: 7, offsetB: 0, clamp: true },
+        { label: t('compare.preset2WeeksAgoToday'), offsetA: 14, offsetB: 0, clamp: true },
+        { label: t('compare.presetMonthAgoToday'), offsetA: 30, offsetB: 0, clamp: true },
+        { label: t('compare.presetFirstVsLast'), pinFirstLast: true },
+      ];
+    }
+    if (g === 'week') {
+      return [
+        { label: t('compare.presetThisWeekVsLast'), offsetA: 1, offsetB: 0 },
+        { label: t('compare.presetFirstVsLastWeek'), pinFirstLast: true },
+      ];
+    }
+    return [
+      { label: t('compare.presetThisMonthVsLast'), offsetA: 1, offsetB: 0 },
+      { label: t('compare.presetFirstVsLastMonth'), pinFirstLast: true },
+    ];
+  }
 
-  function resolveDayIndex(offset) {
+  let presetButtons = [];
+
+  function resolveIndex(keys, offset) {
+    const lastIdx = keys.length - 1;
     const idx = lastIdx - offset;
     return Math.max(0, idx);
   }
 
-  presetBtns.innerHTML = '';
-  const presetButtons = presets
-    .filter(p => {
-      if (p.pinFirstLast) return dayKeys.length >= 2;
-      if (p.clamp) return lastIdx - p.offsetB >= 0 && lastIdx > 0; // need at least 2 distinct days total
-      return lastIdx - p.offsetA >= 0 && lastIdx - p.offsetB >= 0;
-    })
-    .map(p => {
-      const btn = document.createElement('button');
-      btn.className = 'range-btn';
-      btn.textContent = p.label;
-      btn.addEventListener('click', () => {
-        if (p.pinFirstLast) {
-          selA.value = dayKeys[0];
-          selB.value = dayKeys[lastIdx];
-        } else {
-          selA.value = dayKeys[resolveDayIndex(p.offsetA)];
-          selB.value = dayKeys[resolveDayIndex(p.offsetB)];
-        }
-        presetButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        draw();
+  function keysFor(g) {
+    return g === 'day' ? dayKeys : groupsFor(g).map(gr => gr.key);
+  }
+
+  function renderPresets() {
+    const keys = keysFor(granularity);
+    const lastIdx = keys.length - 1;
+    const presets = presetsFor(granularity);
+
+    presetBtns.innerHTML = '';
+    presetButtons = presets
+      .filter(p => {
+        if (p.pinFirstLast) return keys.length >= 2;
+        if (p.clamp) return lastIdx - p.offsetB >= 0 && lastIdx > 0;
+        return lastIdx - p.offsetA >= 0 && lastIdx - p.offsetB >= 0;
+      })
+      .map(p => {
+        const btn = document.createElement('button');
+        btn.className = 'range-btn';
+        btn.textContent = p.label;
+        btn.addEventListener('click', () => {
+          if (p.pinFirstLast) {
+            selA.value = keys[0];
+            selB.value = keys[lastIdx];
+          } else {
+            selA.value = keys[resolveIndex(keys, p.offsetA)];
+            selB.value = keys[resolveIndex(keys, p.offsetB)];
+          }
+          presetButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          draw();
+        });
+        presetBtns.appendChild(btn);
+        return btn;
       });
-      presetBtns.appendChild(btn);
-      return btn;
+
+    // Mark the default selection's matching preset active, if any.
+    const matchingDefault = presets.findIndex(p => {
+      if (p.pinFirstLast) return keys[0] === selA.value && keys[lastIdx] === selB.value;
+      const idxA = p.clamp ? resolveIndex(keys, p.offsetA) : lastIdx - p.offsetA;
+      const idxB = p.clamp ? resolveIndex(keys, p.offsetB) : lastIdx - p.offsetB;
+      return keys[idxA] === selA.value && keys[idxB] === selB.value;
     });
-  // Mark the default selection's matching preset active, if any (usually
-  // "Вчера vs сегодня" since that's what's pre-selected above).
-  const matchingDefault = presets.findIndex(p => {
-    if (p.pinFirstLast) return dayKeys[0] === selA.value && dayKeys[lastIdx] === selB.value;
-    const idxA = p.clamp ? resolveDayIndex(p.offsetA) : lastIdx - p.offsetA;
-    const idxB = p.clamp ? resolveDayIndex(p.offsetB) : lastIdx - p.offsetB;
-    return dayKeys[idxA] === selA.value && dayKeys[idxB] === selB.value;
-  });
-  if (matchingDefault !== -1 && presetButtons[matchingDefault]) {
-    presetButtons[matchingDefault].classList.add('active');
+    if (matchingDefault !== -1 && presetButtons[matchingDefault]) {
+      presetButtons[matchingDefault].classList.add('active');
+    }
   }
 
   // Manually changing a dropdown no longer matches a preset exactly, so
@@ -1957,24 +2099,92 @@ function renderCompare(historyStore) {
     presetButtons.forEach(b => b.classList.remove('active'));
   }
 
+  const GRAN_LABELS = { day: 'compare.byDay', week: 'compare.byWeek', month: 'compare.byMonth' };
+  const GRAN_LABEL_A = { day: 'compare.dayA', week: 'compare.weekA', month: 'compare.monthA' };
+  const GRAN_LABEL_B = { day: 'compare.dayB', week: 'compare.weekB', month: 'compare.monthB' };
+  const GRAN_DESC = { day: 'compare.desc', week: 'compare.descWeek', month: 'compare.descMonth' };
+
+  function renderGranularityButtons() {
+    granBtns.innerHTML = '';
+    ['day', 'week', 'month'].forEach(g => {
+      const disabled = g !== 'day' && groupsFor(g).length < 2;
+      const btn = document.createElement('button');
+      btn.className = 'range-btn' + (g === granularity ? ' active' : '');
+      btn.textContent = t(GRAN_LABELS[g]);
+      if (disabled) {
+        btn.disabled = true;
+        btn.title = t(g === 'week' ? 'compare.notEnoughWeeks' : 'compare.notEnoughMonths');
+      } else {
+        btn.addEventListener('click', () => {
+          if (granularity === g) return;
+          granularity = g;
+          try { localStorage.setItem(COMPARE_GRAN_KEY, g); } catch (e) {}
+          setUpForGranularity();
+        });
+      }
+      granBtns.appendChild(btn);
+    });
+  }
+
+  // (Re)populates the two dropdowns and defaults/presets for whichever
+  // granularity is currently selected, then redraws. Called on first load
+  // and whenever the person switches День/Неделя/Месяц.
+  function setUpForGranularity() {
+    renderGranularityButtons();
+    labelA.setAttribute('data-i18n', GRAN_LABEL_A[granularity]);
+    labelB.setAttribute('data-i18n', GRAN_LABEL_B[granularity]);
+    labelA.textContent = t(GRAN_LABEL_A[granularity]);
+    labelB.textContent = t(GRAN_LABEL_B[granularity]);
+    desc.setAttribute('data-i18n-html', GRAN_DESC[granularity]);
+    desc.innerHTML = t(GRAN_DESC[granularity]);
+
+    const opts = optionsFor(granularity);
+    selA.innerHTML = opts.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+    selB.innerHTML = opts.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+
+    const keys = keysFor(granularity);
+    if (keys.length >= 2) {
+      selA.value = keys[keys.length - 2];
+      selB.value = keys[keys.length - 1];
+    } else if (keys.length === 1) {
+      selA.value = keys[0];
+      selB.value = keys[0];
+    }
+
+    renderPresets();
+    draw();
+  }
+
+  async function loadPeriodPoints(key) {
+    if (granularity === 'day') return historyStore.ensureDay(key);
+    const groups = groupsFor(granularity);
+    const group = groups.find(gr => gr.key === key);
+    if (!group) return [];
+    const perDay = await Promise.all(group.days.map(d => historyStore.ensureDay(d)));
+    return perDay.flat();
+  }
+
   async function draw() {
     const container = document.getElementById('compare-chart');
     container.innerHTML = '<div id="status">' + t('compare.loading') + '</div>';
     const [ptsA, ptsB] = await Promise.all([
-      historyStore.ensureDay(selA.value),
-      historyStore.ensureDay(selB.value)
+      loadPeriodPoints(selA.value),
+      loadPeriodPoints(selB.value)
     ]);
     container.innerHTML = '';
 
-    const a = bucketDayPoints(ptsA);
-    const b = bucketDayPoints(ptsB);
+    const isDay = granularity === 'day';
+    const a = isDay ? bucketDayPoints(ptsA) : bucketPeriodPointsByHour(ptsA);
+    const b = isDay ? bucketDayPoints(ptsB) : bucketPeriodPointsByHour(ptsB);
 
     const maxVal = Math.max(...a.filter(v => v != null), ...b.filter(v => v != null), 1);
     const innerW = W - PAD.left - PAD.right;
     const xForIndex = i => PAD.left + innerW * i / (a.length - 1);
 
     const svg = makeSvg();
-    const xLabels = [0, 6, 12, 18, 23].map(h => ({ x: xForIndex(h * 12), label: `${h}:00` }));
+    const xLabels = isDay
+      ? [0, 6, 12, 18, 23].map(h => ({ x: xForIndex(h * 12), label: `${h}:00` }))
+      : [0, 6, 12, 18, 23].map(h => ({ x: xForIndex(h), label: `${h}:00` }));
     drawGridAndAxes(svg, maxVal, xLabels);
 
     const coordsA = linePath(a, xForIndex, maxVal);
@@ -1988,64 +2198,76 @@ function renderCompare(historyStore) {
     wrap.appendChild(svg);
     container.appendChild(wrap);
 
-    const timeLabel = slot => {
-      const h = Math.floor(slot / 12);
-      const m = (slot % 12) * 5;
-      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-    };
+    const timeLabel = isDay
+      ? slot => {
+          const h = Math.floor(slot / 12);
+          const m = (slot % 12) * 5;
+          return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+      : h => `${String(h).padStart(2, '0')}:00`;
+
+    const optLabelA = optionsFor(granularity).find(o => o.value === selA.value);
+    const optLabelB = optionsFor(granularity).find(o => o.value === selB.value);
 
     attachTooltip(wrap, svg, [
       {
         coords: coordsA,
         color: 'var(--accent)',
-        labelFor: i => ({ value: a[i], name: selA.value, sub: timeLabel(i) + ' UTC' })
+        labelFor: i => ({ value: a[i] != null ? Math.round(a[i]) : a[i], name: selA.value, sub: timeLabel(i) + ' UTC' })
       },
       {
         coords: coordsB,
         color: 'var(--warn)',
-        labelFor: i => ({ value: b[i], name: selB.value, sub: timeLabel(i) + ' UTC' })
+        labelFor: i => ({ value: b[i] != null ? Math.round(b[i]) : b[i], name: selB.value, sub: timeLabel(i) + ' UTC' })
       }
     ], xForIndex, a.length);
 
-    renderCompareSummary(a, b, selA.value, selB.value, ptsA, ptsB);
+    const daysInA = isDay ? 1 : (groupsFor(granularity).find(gr => gr.key === selA.value) || { days: [] }).days.length;
+    const daysInB = isDay ? 1 : (groupsFor(granularity).find(gr => gr.key === selB.value) || { days: [] }).days.length;
+
+    renderCompareSummary(a, b, optLabelA ? optLabelA.value : selA.value, optLabelB ? optLabelB.value : selB.value, ptsA, ptsB, isDay, daysInA, daysInB);
   }
 
   // Integrates player_count over time (trapezoidal rule) to get total
-// "player-hours" for a day - the area under the online-count curve. This
-// is NOT unique players (Steam's public API has no way to know that -
-// it only ever reports a point-in-time count, never player identities or
-// session data), but it's an honestly computable engagement metric: it's
-// what the total would be if the average concurrent count held constant,
-// integrated over real elapsed time between polls. Works from the raw,
-// unbucketed points so gaps in polling don't get silently treated as
-// flat segments the way a bucketed-grid trapezoid would.
-function computePlayerHours(points) {
-  if (points.length < 2) return null;
-  const sorted = [...points].sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0);
-  let hours = 0;
-  for (let i = 1; i < sorted.length; i++) {
-    const dtHours = (new Date(sorted[i].ts) - new Date(sorted[i - 1].ts)) / 3600000;
-    // Skip gaps bigger than 30 min (collector downtime) rather than
-    // integrating a flat line across a period with no real data - that
-    // would overstate player-hours during an outage.
-    if (dtHours > 0.5) continue;
-    const avgCount = (sorted[i].player_count + sorted[i - 1].player_count) / 2;
-    hours += avgCount * dtHours;
+  // "player-hours" for a period - the area under the online-count curve.
+  // This is NOT unique players (Steam's public API has no way to know
+  // that - it only ever reports a point-in-time count, never player
+  // identities or session data), but it's an honestly computable
+  // engagement metric: it's what the total would be if the average
+  // concurrent count held constant, integrated over real elapsed time
+  // between polls. Works from the raw, unbucketed points (concatenated
+  // across every day in the period for week/month mode) so gaps in
+  // polling don't get silently treated as flat segments the way a
+  // bucketed-grid trapezoid would, and so day boundaries within a
+  // week/month don't introduce a spurious flat segment either, since
+  // consecutive days' points are contiguous in time.
+  function computePlayerHours(points) {
+    if (points.length < 2) return null;
+    const sorted = [...points].sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0);
+    let hours = 0;
+    for (let i = 1; i < sorted.length; i++) {
+      const dtHours = (new Date(sorted[i].ts) - new Date(sorted[i - 1].ts)) / 3600000;
+      // Skip gaps bigger than 30 min (collector downtime) rather than
+      // integrating a flat line across a period with no real data - that
+      // would overstate player-hours during an outage.
+      if (dtHours > 0.5) continue;
+      const avgCount = (sorted[i].player_count + sorted[i - 1].player_count) / 2;
+      hours += avgCount * dtHours;
+    }
+    return Math.round(hours);
   }
-  return Math.round(hours);
-}
 
-function statsFor(slots) {
+  function statsFor(slots) {
     const vals = slots.filter(v => v != null);
     if (!vals.length) return null;
     return {
-      peak: Math.max(...vals),
+      peak: Math.round(Math.max(...vals)),
       avg: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length),
-      min: Math.min(...vals)
+      min: Math.round(Math.min(...vals))
     };
   }
 
-  function renderCompareSummary(a, b, labelA, labelB, ptsA, ptsB) {
+  function renderCompareSummary(a, b, labelA, labelB, ptsA, ptsB, isDay, daysInA, daysInB) {
     const summary = document.getElementById('compare-summary');
     const statsA = statsFor(a);
     const statsB = statsFor(b);
@@ -2057,14 +2279,16 @@ function statsFor(slots) {
     const phA = computePlayerHours(ptsA);
     const phB = computePlayerHours(ptsB);
     const numLocale = getLang() === 'en' ? 'en-US' : 'ru-RU';
+    const phLabel = isDay ? t('compare.playerHoursPerDay') : t('compare.playerHoursPerPeriod');
 
-    const col = (label, color, stats, playerHours) => `
+    const col = (label, color, stats, playerHours, daysInPeriod) => `
       <div class="col">
         <div class="col-title"><span class="legend-swatch" style="background:${color}"></span>${label}</div>
         <div class="row"><span>${t('compare.peak')}</span><span class="v">${stats.peak}</span></div>
         <div class="row"><span>${t('compare.average')}</span><span class="v">${stats.avg}</span></div>
         <div class="row"><span>${t('compare.minimum')}</span><span class="v">${stats.min}</span></div>
-        <div class="row"><span>${t('compare.playerHoursPerDay')}</span><span class="v">${playerHours != null ? playerHours.toLocaleString(numLocale) : '&mdash;'}</span></div>
+        <div class="row"><span>${phLabel}</span><span class="v">${playerHours != null ? playerHours.toLocaleString(numLocale) : '&mdash;'}</span></div>
+        ${!isDay ? `<div class="row"><span>${t('compare.daysInPeriod')}</span><span class="v">${daysInPeriod}</span></div>` : ''}
       </div>`;
 
     const avgDiff = statsB.avg - statsA.avg;
@@ -2085,8 +2309,8 @@ function statsFor(slots) {
     }
 
     summary.innerHTML =
-      col(labelA, 'var(--accent)', statsA, phA) +
-      col(labelB, 'var(--warn)', statsB, phB) +
+      col(labelA, 'var(--accent)', statsA, phA, daysInA) +
+      col(labelB, 'var(--warn)', statsB, phB, daysInB) +
       `<div class="compare-diff">${t('compare.vsSummary', {
         labelA, labelB,
         avgDiff: `<span class="v ${cls(avgPct)}">${sign(avgDiff)}${avgDiff}</span>`,
@@ -2099,7 +2323,7 @@ function statsFor(slots) {
 
   selA.addEventListener('change', () => { clearPresetActive(); draw(); });
   selB.addEventListener('change', () => { clearPresetActive(); draw(); });
-  draw();
+  setUpForGranularity();
 }
 
 async function loadJSON(path) {
