@@ -56,6 +56,14 @@ name: Fetch Armoury data
 #                     fallback in case a run fails before reaching this
 #                     job.
 #
+# Никаких лимитов по времени на сканирование нет: у всех задач
+# timeout-minutes выставлен в максимум GitHub Actions (360 мин), скан идёт
+# столько, сколько ему нужно. Чтобы при этом сканы не накладывались друг на
+# друга, первая задача (check_running) смотрит через API, нет ли уже другого
+# незавершённого запуска этого workflow, и если есть - весь новый запуск
+# просто пропускается (а не ставится в очередь и не отменяет текущий). Новый
+# скан стартует только когда предыдущий полностью закончился.
+#
 # Each shard runner (both scan_list and scrape) gets the same safe fixed
 # starting delay (see scan_list_shard.py / scrape_shard.py) rather than
 # sharing/adapting one rate limiter across processes - parallel runners
@@ -69,19 +77,77 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
-concurrency:
-  group: fetch-armoury
-  cancel-in-progress: false
+# Блока concurrency здесь намеренно нет: он держал бы группу занятой всё время,
+# пока trigger-next спит до конца часа, и отменял бы лишние запуски в очереди.
+# От наложения сканов защищает задача check_running (она пропускает запуск,
+# если другой скан ещё идёт).
 
 env:
   SHARD_SIZE: 400
   LIST_PAGES_PER_SHARD: 20
 
 jobs:
-  find_last_page:
+  check_running:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+    steps:
+      - name: Skip if another scan is still in progress
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Ищем ДРУГИЕ запуски этого же workflow (не считая текущий), у
+          # которых сам СКАН ещё не закончился. Запуск, который дошёл до
+          # trigger-next (просто спит до конца часа) или уже завершился, -
+          # НЕ считается активным сканом: иначе trigger-next, стартуя
+          # следующий запуск изнутри ещё живого предыдущего, сам бы его и
+          # блокировал, и цепочка запусков оборвалась бы.
+          #
+          # Скан считается идущим, если у запуска есть хотя бы одна
+          # незавершённая задача, кроме trigger-next (или запуск ещё в очереди).
+          BUSY=0
+          for STATUS in queued in_progress waiting pending requested; do
+            RUN_IDS=$(gh api \
+              "repos/${{ github.repository }}/actions/workflows/fetch-armoury.yml/runs?status=$STATUS&per_page=100" \
+              --jq ".workflow_runs[] | select(.id != ${{ github.run_id }}) | .id")
+            for RID in $RUN_IDS; do
+              JOBS=$(gh api --paginate \
+                "repos/${{ github.repository }}/actions/runs/$RID/jobs?per_page=100" \
+                --jq '.jobs[] | "\(.status)|\(.name)"')
+              # Запуск в очереди (задач ещё нет) считается занятым.
+              if [ -z "$JOBS" ]; then
+                echo "Запуск $RID ещё в очереди - считаю занятым."
+                BUSY=$(( BUSY + 1 ))
+                continue
+              fi
+              # Незавершённая задача скана = всё, кроме trigger-next
+              # (matrix-задачи называются "scan_list (0)", "scrape (3)" и т.п.).
+              ACTIVE=$(echo "$JOBS" | grep -v '^completed|' | grep -vc '|trigger-next' || true)
+              if [ "${ACTIVE:-0}" -gt 0 ]; then
+                echo "Запуск $RID ещё сканирует (незавершённых задач скана: $ACTIVE)."
+                BUSY=$(( BUSY + 1 ))
+              else
+                echo "Запуск $RID скан уже закончил (ждёт следующего часа) - не мешает."
+              fi
+            done
+          done
+          if [ "$BUSY" -gt 0 ]; then
+            echo "Другой скан ещё выполняется ($BUSY шт.) - этот запуск пропускаю."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Других активных сканов нет - стартую."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+
+  find_last_page:
+    needs: check_running
+    if: needs.check_running.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
     env:
       PYTHONUNBUFFERED: "1"
     steps:
@@ -126,7 +192,7 @@ jobs:
   scan_list:
     needs: find_last_page
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 360
     env:
       PYTHONUNBUFFERED: "1"
     strategy:
@@ -168,7 +234,7 @@ jobs:
   merge_list:
     needs: scan_list
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 360
     env:
       PYTHONUNBUFFERED: "1"
     steps:
@@ -222,7 +288,7 @@ jobs:
   scrape:
     needs: merge_list
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 360
     env:
       PYTHONUNBUFFERED: "1"
     strategy:
@@ -264,7 +330,7 @@ jobs:
   merge:
     needs: [merge_list, scrape]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 360
     permissions:
       contents: write
     steps:
