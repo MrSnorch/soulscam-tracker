@@ -1,1 +1,253 @@
-[]
+[
+  {
+    "slug": "rajben-2nr7x",
+    "diff_fields": [
+      "achievement_points",
+      "equipment"
+    ],
+    "old": {
+      "achievement_points": "1490",
+      "equipment": {
+        "Head": "Old Pioneer Helm",
+        "Chest": "Farmer's Shawl",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Soulsand Shoes",
+        "Weapon": "Basic Hammer",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Accessory T1 Ring Quest 001"
+      }
+    },
+    "new": {
+      "achievement_points": "900",
+      "equipment": {
+        "Head": "Old Pioneer Helm",
+        "Chest": "Farmer's Shawl",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Soulsand Shoes",
+        "Weapon": "Basic Hammer",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Desert Dweller's Band"
+      }
+    }
+  },
+  {
+    "slug": "tof-cn5hg",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "605"
+    },
+    "new": {
+      "achievement_points": "0"
+    }
+  },
+  {
+    "slug": "bebop-ayyac",
+    "diff_fields": [
+      "equipment"
+    ],
+    "old": {
+      "equipment": {
+        "Head": "Desert Hair Wax",
+        "Chest": "Farmer's Shawl",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Cloth Boots",
+        "Weapon": "Weapon T1 Staff 001 Tutorial",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Accessory T1 Ring Quest 001",
+        "Head (Cosmetic)": "Starter Anime Black",
+        "Chest (Cosmetic)": "Starter Red Shirt"
+      }
+    },
+    "new": {
+      "equipment": {
+        "Head": "Desert Hair Wax",
+        "Chest": "Farmer's Shawl",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Cloth Boots",
+        "Weapon": "Sandstorm Staff",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Desert Dweller's Band",
+        "Head (Cosmetic)": "Starter Anime Black",
+        "Chest (Cosmetic)": "Starter Red Shirt"
+      }
+    }
+  },
+  {
+    "slug": "tgcowboy-srcfm",
+    "diff_fields": [
+      "achievement_points",
+      "equipment"
+    ],
+    "old": {
+      "achievement_points": "1050",
+      "equipment": {
+        "Head": "Nanofibre Lenses",
+        "Chest": "Armor T2 Chest Quest 001",
+        "Back": "Chieftain's Desert Cloak",
+        "Belt": "Sparkthread Belt",
+        "Feet": "Cloth Boots",
+        "Weapon": "Sandstorm Staff",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Accessory T1 Ring Quest 001",
+        "Chest (Cosmetic)": "Crow Worshipper Coat"
+      }
+    },
+    "new": {
+      "achievement_points": "235",
+      "equipment": {
+        "Head": "Nanofibre Lenses",
+        "Chest": "Ambassador's Raiment",
+        "Back": "Chieftain's Desert Cloak",
+        "Belt": "Sparkthread Belt",
+        "Feet": "Cloth Boots",
+        "Weapon": "Sandstorm Staff",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Desert Dweller's Band",
+        "Chest (Cosmetic)": "Crow Worshipper Coat"
+      }
+    }
+  },
+  {
+    "slug": "zenonit-tqd36",
+    "diff_fields": [
+      "achievement_points",
+      "equipment"
+    ],
+    "old": {
+      "achievement_points": "895",
+      "equipment": {
+        "Head": "Old Pioneer Helm",
+        "Chest": "Vraldean San-Poncho",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Old Pioneer Greaves",
+        "Weapon": "Sandstorm Staff",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Accessory T1 Ring Quest 001"
+      }
+    },
+    "new": {
+      "achievement_points": "260",
+      "equipment": {
+        "Head": "Old Pioneer Helm",
+        "Chest": "Vraldean San-Poncho",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Old Pioneer Greaves",
+        "Weapon": "Sandstorm Staff",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Desert Dweller's Band"
+      }
+    }
+  },
+  {
+    "slug": "hollowdeath-fy99x",
+    "diff_fields": [
+      "achievement_points",
+      "equipment"
+    ],
+    "old": {
+      "achievement_points": "770",
+      "equipment": {
+        "Head": "Old Pioneer Helm",
+        "Chest": "Desert Chest",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Old Pioneer Greaves",
+        "Weapon": "Iron Cutlass",
+        "Ring 1": "Accessory T1 Ring Quest 001",
+        "Chest (Cosmetic)": "Crow Worshipper Coat"
+      }
+    },
+    "new": {
+      "achievement_points": "220",
+      "equipment": {
+        "Head": "Old Pioneer Helm",
+        "Chest": "Desert Chest",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Old Pioneer Greaves",
+        "Weapon": "Iron Cutlass",
+        "Ring 1": "Desert Dweller's Band",
+        "Chest (Cosmetic)": "Crow Worshipper Coat"
+      }
+    }
+  },
+  {
+    "slug": "kruxeldivik-p5b02",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "630"
+    },
+    "new": {
+      "achievement_points": "260"
+    }
+  },
+  {
+    "slug": "uakmsun-0jxnv",
+    "diff_fields": [
+      "achievement_points",
+      "equipment"
+    ],
+    "old": {
+      "achievement_points": "225",
+      "equipment": {
+        "Head": "Old Pioneer Helm",
+        "Chest": "Desert Chest",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Old Pioneer Greaves",
+        "Weapon": "Sandstorm Staff",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Accessory T1 Ring Quest 001"
+      }
+    },
+    "new": {
+      "achievement_points": "220",
+      "equipment": {
+        "Head": "Old Pioneer Helm",
+        "Chest": "Desert Chest",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Old Pioneer Greaves",
+        "Weapon": "Sandstorm Staff",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Desert Dweller's Band"
+      }
+    }
+  },
+  {
+    "slug": "demonbane-p6adc",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "190"
+    },
+    "new": {
+      "achievement_points": "70"
+    }
+  },
+  {
+    "slug": "inkery-szrce",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "190"
+    },
+    "new": {
+      "achievement_points": "0"
+    }
+  },
+  {
+    "slug": "wicknuts-5jzre",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "190"
+    },
+    "new": {
+      "achievement_points": "0"
+    }
+  }
+]
