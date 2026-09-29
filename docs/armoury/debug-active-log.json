@@ -1,1 +1,3795 @@
-[]
+[
+  {
+    "slug": "diovani-c1mky",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "28425"
+    },
+    "new": {
+      "achievement_points": "33687"
+    }
+  },
+  {
+    "slug": "redderik-xqjtp",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "32630"
+    },
+    "new": {
+      "achievement_points": "36430"
+    }
+  },
+  {
+    "slug": "nipa-fh5e0",
+    "diff_fields": [
+      "achievement_points",
+      "skills"
+    ],
+    "old": {
+      "achievement_points": "2049",
+      "skills": {
+        "Farming": "93",
+        "Crafting": "89",
+        "Cooking": "83",
+        "Fishing": "77",
+        "Chemistry": "75",
+        "Foraging": "75",
+        "Hacking": "75",
+        "Mining": "75",
+        "Strength": "73",
+        "Knowledge": "71",
+        "Dexterity": "66",
+        "Gearforging": "65",
+        "Marksmanship": "65",
+        "Technology": "65"
+      }
+    },
+    "new": {
+      "achievement_points": "29124",
+      "skills": {
+        "Farming": "93",
+        "Crafting": "90",
+        "Cooking": "83",
+        "Fishing": "77",
+        "Chemistry": "75",
+        "Foraging": "75",
+        "Hacking": "75",
+        "Mining": "75",
+        "Strength": "73",
+        "Knowledge": "71",
+        "Dexterity": "66",
+        "Gearforging": "65",
+        "Marksmanship": "65",
+        "Technology": "65"
+      }
+    }
+  },
+  {
+    "slug": "extermin-kzpy1",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "30987"
+    },
+    "new": {
+      "achievement_points": "33832"
+    }
+  },
+  {
+    "slug": "beatmeat-8e2et",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "27515"
+    },
+    "new": {
+      "achievement_points": "30775"
+    }
+  },
+  {
+    "slug": "dissensia-yhccs",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "8630"
+    },
+    "new": {
+      "achievement_points": "28477"
+    }
+  },
+  {
+    "slug": "regulus-5jq9b",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "23259"
+    },
+    "new": {
+      "achievement_points": "28424"
+    }
+  },
+  {
+    "slug": "smaiippgang-0dz6c",
+    "diff_fields": [
+      "achievement_points",
+      "equipment",
+      "dungeon_records"
+    ],
+    "old": {
+      "achievement_points": "5190",
+      "equipment": {
+        "Head": "Lunar Conduit Crown",
+        "Chest": "Lunar Conduit Robe",
+        "Back": "Necrotic Cape",
+        "Belt": "Stormline Belt",
+        "Feet": "Virelda Warcrest Greaves",
+        "Weapon": "Redeemed Celestial Katana",
+        "Neck": "Viridium Elemental Locket",
+        "Ring 1": "Pyrosphere Ring",
+        "Ring 2": "Neo-Tilus Signet",
+        "Head (Cosmetic)": "Kasa of the Duskbound",
+        "Weapon (Cosmetic)": "Daemonair Battleaxe",
+        "Chest (Cosmetic)": "Chestplate of the Duskbound",
+        "Feet (Cosmetic)": "Armor T6 Feet Necro 002",
+        "Back (Cosmetic)": "Daemonair Wings",
+        "Mount": "Mount Spectra"
+      },
+      "dungeon_records": [
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Solo",
+          "score": "2,947"
+        },
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Party",
+          "score": "2,945"
+        },
+        {
+          "dungeon": "Eastern Reach - Stable",
+          "mode": "Solo",
+          "score": "2,929"
+        },
+        {
+          "dungeon": "Virelda Outskirts",
+          "mode": "Solo",
+          "score": "2,878"
+        },
+        {
+          "dungeon": "Everdune Arena",
+          "mode": "Solo",
+          "score": "2,716"
+        },
+        {
+          "dungeon": "Everdune - Collapsing",
+          "mode": "Solo",
+          "score": "2,536"
+        },
+        {
+          "dungeon": "Everdune - Shattered",
+          "mode": "Solo",
+          "score": "2,525"
+        },
+        {
+          "dungeon": "Eastern Reach - Shattered",
+          "mode": "Solo",
+          "score": "2,479"
+        },
+        {
+          "dungeon": "Farpoint - Fractured",
+          "mode": "Solo",
+          "score": "2,460"
+        },
+        {
+          "dungeon": "Everdune - Abyssal",
+          "mode": "Solo",
+          "score": "2,440"
+        },
+        {
+          "dungeon": "Everdune - Shattered",
+          "mode": "Party",
+          "score": "2,394"
+        },
+        {
+          "dungeon": "Farpoint - Fractured",
+          "mode": "Party",
+          "score": "2,376"
+        },
+        {
+          "dungeon": "Farpoint - Abyssal",
+          "mode": "Party",
+          "score": "2,331"
+        },
+        {
+          "dungeon": "Everdune - Abyssal",
+          "mode": "Party",
+          "score": "2,312"
+        },
+        {
+          "dungeon": "Farpoint - Abyssal",
+          "mode": "Solo",
+          "score": "2,308"
+        },
+        {
+          "dungeon": "Eastern Reach - Shattered",
+          "mode": "Party",
+          "score": "2,300"
+        },
+        {
+          "dungeon": "Farpoint - Shattered",
+          "mode": "Solo",
+          "score": "2,285"
+        },
+        {
+          "dungeon": "Eastern Reach - Collapsing",
+          "mode": "Solo",
+          "score": "2,227"
+        },
+        {
+          "dungeon": "Everdune - Fractured",
+          "mode": "Solo",
+          "score": "2,192"
+        },
+        {
+          "dungeon": "Lunar Plateau - Abyssal",
+          "mode": "Party",
+          "score": "2,187"
+        },
+        {
+          "dungeon": "Farpoint - Shattered",
+          "mode": "Party",
+          "score": "2,182"
+        },
+        {
+          "dungeon": "Eastern Reach - Abyssal",
+          "mode": "Solo",
+          "score": "2,167"
+        },
+        {
+          "dungeon": "Train Defence",
+          "mode": "Solo",
+          "score": "2,157"
+        },
+        {
+          "dungeon": "Lunar Plateau - Collapsing",
+          "mode": "Solo",
+          "score": "2,109"
+        },
+        {
+          "dungeon": "Lunar Plateau - Shattered",
+          "mode": "Party",
+          "score": "2,107"
+        },
+        {
+          "dungeon": "Lunar Plateau - Abyssal",
+          "mode": "Solo",
+          "score": "2,078"
+        },
+        {
+          "dungeon": "Eastern Reach - Fractured",
+          "mode": "Solo",
+          "score": "1,994"
+        },
+        {
+          "dungeon": "Farpoint - Collapsing",
+          "mode": "Solo",
+          "score": "1,700"
+        },
+        {
+          "dungeon": "Arcadia Defence",
+          "mode": "Solo",
+          "score": "1,672"
+        },
+        {
+          "dungeon": "Farpoint - Collapsing",
+          "mode": "Party",
+          "score": "1,648"
+        },
+        {
+          "dungeon": "Eastern Reach - Abyssal",
+          "mode": "Party",
+          "score": "1,581"
+        },
+        {
+          "dungeon": "Arcadia Defence",
+          "mode": "Party",
+          "score": "1,360"
+        },
+        {
+          "dungeon": "Lunar Plateau - Shattered",
+          "mode": "Solo",
+          "score": "1,134"
+        },
+        {
+          "dungeon": "Lunar Plateau - Collapsing",
+          "mode": "Party",
+          "score": "1,116"
+        },
+        {
+          "dungeon": "Operational Continuity",
+          "mode": "Solo",
+          "score": "843"
+        },
+        {
+          "dungeon": "Virelda Arena",
+          "mode": "Solo",
+          "score": "599"
+        }
+      ]
+    },
+    "new": {
+      "achievement_points": "32065",
+      "equipment": {
+        "Head": "Lunar Conduit Crown",
+        "Chest": "Armor T6 Chest Necro 001",
+        "Back": "Necrotic Cape",
+        "Belt": "Embersteel Girdle",
+        "Feet": "Virelda Warcrest Greaves",
+        "Weapon": "Viridium Yoku Staff",
+        "Neck": "Dark Locket of Fiery Wrath",
+        "Ring 1": "Pyrosphere Ring",
+        "Ring 2": "Neo-Tilus Signet",
+        "Head (Cosmetic)": "Kasa of the Duskbound",
+        "Weapon (Cosmetic)": "Daemonair Battleaxe",
+        "Chest (Cosmetic)": "Chestplate of the Duskbound",
+        "Feet (Cosmetic)": "Armor T6 Feet Necro 002",
+        "Back (Cosmetic)": "Daemonair Wings",
+        "Mount": "Mount Spectra"
+      },
+      "dungeon_records": [
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Solo",
+          "score": "2,947"
+        },
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Party",
+          "score": "2,945"
+        },
+        {
+          "dungeon": "Eastern Reach - Stable",
+          "mode": "Solo",
+          "score": "2,929"
+        },
+        {
+          "dungeon": "Virelda Outskirts",
+          "mode": "Solo",
+          "score": "2,878"
+        },
+        {
+          "dungeon": "Everdune Arena",
+          "mode": "Solo",
+          "score": "2,716"
+        },
+        {
+          "dungeon": "Everdune - Collapsing",
+          "mode": "Solo",
+          "score": "2,536"
+        },
+        {
+          "dungeon": "Everdune - Shattered",
+          "mode": "Solo",
+          "score": "2,525"
+        },
+        {
+          "dungeon": "Eastern Reach - Fractured",
+          "mode": "Solo",
+          "score": "2,514"
+        },
+        {
+          "dungeon": "Eastern Reach - Shattered",
+          "mode": "Solo",
+          "score": "2,479"
+        },
+        {
+          "dungeon": "Farpoint - Fractured",
+          "mode": "Solo",
+          "score": "2,460"
+        },
+        {
+          "dungeon": "Everdune - Abyssal",
+          "mode": "Solo",
+          "score": "2,440"
+        },
+        {
+          "dungeon": "Everdune - Shattered",
+          "mode": "Party",
+          "score": "2,394"
+        },
+        {
+          "dungeon": "Farpoint - Fractured",
+          "mode": "Party",
+          "score": "2,376"
+        },
+        {
+          "dungeon": "Farpoint - Abyssal",
+          "mode": "Party",
+          "score": "2,331"
+        },
+        {
+          "dungeon": "Everdune - Abyssal",
+          "mode": "Party",
+          "score": "2,312"
+        },
+        {
+          "dungeon": "Farpoint - Abyssal",
+          "mode": "Solo",
+          "score": "2,308"
+        },
+        {
+          "dungeon": "Eastern Reach - Shattered",
+          "mode": "Party",
+          "score": "2,300"
+        },
+        {
+          "dungeon": "Farpoint - Shattered",
+          "mode": "Solo",
+          "score": "2,285"
+        },
+        {
+          "dungeon": "Eastern Reach - Collapsing",
+          "mode": "Solo",
+          "score": "2,227"
+        },
+        {
+          "dungeon": "Everdune - Fractured",
+          "mode": "Solo",
+          "score": "2,192"
+        },
+        {
+          "dungeon": "Lunar Plateau - Abyssal",
+          "mode": "Party",
+          "score": "2,187"
+        },
+        {
+          "dungeon": "Farpoint - Shattered",
+          "mode": "Party",
+          "score": "2,182"
+        },
+        {
+          "dungeon": "Eastern Reach - Abyssal",
+          "mode": "Solo",
+          "score": "2,167"
+        },
+        {
+          "dungeon": "Train Defence",
+          "mode": "Solo",
+          "score": "2,157"
+        },
+        {
+          "dungeon": "Lunar Plateau - Collapsing",
+          "mode": "Solo",
+          "score": "2,109"
+        },
+        {
+          "dungeon": "Lunar Plateau - Shattered",
+          "mode": "Party",
+          "score": "2,107"
+        },
+        {
+          "dungeon": "Lunar Plateau - Abyssal",
+          "mode": "Solo",
+          "score": "2,078"
+        },
+        {
+          "dungeon": "Farpoint - Collapsing",
+          "mode": "Solo",
+          "score": "1,700"
+        },
+        {
+          "dungeon": "Arcadia Defence",
+          "mode": "Solo",
+          "score": "1,672"
+        },
+        {
+          "dungeon": "Farpoint - Collapsing",
+          "mode": "Party",
+          "score": "1,648"
+        },
+        {
+          "dungeon": "Eastern Reach - Abyssal",
+          "mode": "Party",
+          "score": "1,581"
+        },
+        {
+          "dungeon": "Arcadia Defence",
+          "mode": "Party",
+          "score": "1,360"
+        },
+        {
+          "dungeon": "Lunar Plateau - Shattered",
+          "mode": "Solo",
+          "score": "1,134"
+        },
+        {
+          "dungeon": "Lunar Plateau - Collapsing",
+          "mode": "Party",
+          "score": "1,116"
+        },
+        {
+          "dungeon": "Operational Continuity",
+          "mode": "Solo",
+          "score": "843"
+        },
+        {
+          "dungeon": "Virelda Arena",
+          "mode": "Solo",
+          "score": "599"
+        }
+      ]
+    }
+  },
+  {
+    "slug": "wuedsaufisch-q3mrp",
+    "diff_fields": [
+      "achievement_points",
+      "skills",
+      "dungeon_records"
+    ],
+    "old": {
+      "achievement_points": "19367",
+      "skills": {
+        "Farming": "96",
+        "Crafting": "92",
+        "Cooking": "83",
+        "Chemistry": "75",
+        "Fishing": "75",
+        "Strength": "74",
+        "Dexterity": "72",
+        "Marksmanship": "71",
+        "Knowledge": "66",
+        "Gearforging": "65",
+        "Technology": "63",
+        "Hacking": "58",
+        "Foraging": "54",
+        "Mining": "46"
+      },
+      "dungeon_records": [
+        {
+          "dungeon": "Eastern Reach - Stable",
+          "mode": "Party",
+          "score": "2,954"
+        },
+        {
+          "dungeon": "Eastern Reach - Stable",
+          "mode": "Solo",
+          "score": "2,953"
+        },
+        {
+          "dungeon": "Virelda Outskirts",
+          "mode": "Solo",
+          "score": "2,880"
+        },
+        {
+          "dungeon": "Virelda Outskirts",
+          "mode": "Party",
+          "score": "2,878"
+        },
+        {
+          "dungeon": "Everdune Arena",
+          "mode": "Party",
+          "score": "2,684"
+        },
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Party",
+          "score": "2,653"
+        },
+        {
+          "dungeon": "Everdune - Fractured",
+          "mode": "Party",
+          "score": "2,537"
+        },
+        {
+          "dungeon": "Farpoint - Fractured",
+          "mode": "Party",
+          "score": "2,470"
+        },
+        {
+          "dungeon": "Farpoint - Abyssal",
+          "mode": "Party",
+          "score": "2,434"
+        },
+        {
+          "dungeon": "Eastern Reach - Shattered",
+          "mode": "Party",
+          "score": "2,420"
+        },
+        {
+          "dungeon": "Eastern Reach - Abyssal",
+          "mode": "Party",
+          "score": "2,395"
+        },
+        {
+          "dungeon": "Everdune - Abyssal",
+          "mode": "Party",
+          "score": "2,387"
+        },
+        {
+          "dungeon": "Everdune - Collapsing",
+          "mode": "Party",
+          "score": "2,356"
+        },
+        {
+          "dungeon": "Eastern Reach - Fractured",
+          "mode": "Party",
+          "score": "2,348"
+        },
+        {
+          "dungeon": "Everdune - Shattered",
+          "mode": "Party",
+          "score": "2,325"
+        },
+        {
+          "dungeon": "Lunar Plateau - Collapsing",
+          "mode": "Party",
+          "score": "2,319"
+        },
+        {
+          "dungeon": "Farpoint - Shattered",
+          "mode": "Party",
+          "score": "2,267"
+        },
+        {
+          "dungeon": "Train Defence",
+          "mode": "Party",
+          "score": "2,211"
+        },
+        {
+          "dungeon": "Eastern Reach - Collapsing",
+          "mode": "Party",
+          "score": "2,183"
+        },
+        {
+          "dungeon": "Farpoint - Collapsing",
+          "mode": "Party",
+          "score": "2,095"
+        },
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Solo",
+          "score": "2,062"
+        },
+        {
+          "dungeon": "Farpoint - Fractured",
+          "mode": "Solo",
+          "score": "2,054"
+        },
+        {
+          "dungeon": "Lunar Plateau - Abyssal",
+          "mode": "Party",
+          "score": "2,007"
+        },
+        {
+          "dungeon": "Lunar Plateau - Shattered",
+          "mode": "Party",
+          "score": "1,952"
+        },
+        {
+          "dungeon": "Everdune - Fractured",
+          "mode": "Solo",
+          "score": "1,750"
+        },
+        {
+          "dungeon": "Arcadia Defence",
+          "mode": "Party",
+          "score": "1,527"
+        },
+        {
+          "dungeon": "Virelda Arena",
+          "mode": "Party",
+          "score": "1,489"
+        },
+        {
+          "dungeon": "Everdune - Collapsing",
+          "mode": "Solo",
+          "score": "732"
+        },
+        {
+          "dungeon": "Virelda Arena",
+          "mode": "Solo",
+          "score": "693"
+        },
+        {
+          "dungeon": "Eastern Reach - Fractured",
+          "mode": "Solo",
+          "score": "180"
+        },
+        {
+          "dungeon": "Lunar Plateau - Collapsing",
+          "mode": "Solo",
+          "score": "8"
+        },
+        {
+          "dungeon": "Everdune - Abyssal",
+          "mode": "Solo",
+          "score": "0"
+        }
+      ]
+    },
+    "new": {
+      "achievement_points": "26522",
+      "skills": {
+        "Farming": "97",
+        "Crafting": "92",
+        "Cooking": "83",
+        "Chemistry": "75",
+        "Fishing": "75",
+        "Strength": "74",
+        "Dexterity": "72",
+        "Marksmanship": "71",
+        "Knowledge": "66",
+        "Gearforging": "65",
+        "Technology": "63",
+        "Hacking": "58",
+        "Foraging": "54",
+        "Mining": "46"
+      },
+      "dungeon_records": [
+        {
+          "dungeon": "Eastern Reach - Stable",
+          "mode": "Party",
+          "score": "2,954"
+        },
+        {
+          "dungeon": "Eastern Reach - Stable",
+          "mode": "Solo",
+          "score": "2,953"
+        },
+        {
+          "dungeon": "Virelda Outskirts",
+          "mode": "Solo",
+          "score": "2,880"
+        },
+        {
+          "dungeon": "Virelda Outskirts",
+          "mode": "Party",
+          "score": "2,878"
+        },
+        {
+          "dungeon": "Everdune Arena",
+          "mode": "Party",
+          "score": "2,684"
+        },
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Party",
+          "score": "2,653"
+        },
+        {
+          "dungeon": "Everdune - Fractured",
+          "mode": "Party",
+          "score": "2,537"
+        },
+        {
+          "dungeon": "Farpoint - Fractured",
+          "mode": "Party",
+          "score": "2,470"
+        },
+        {
+          "dungeon": "Farpoint - Abyssal",
+          "mode": "Party",
+          "score": "2,434"
+        },
+        {
+          "dungeon": "Eastern Reach - Shattered",
+          "mode": "Party",
+          "score": "2,420"
+        },
+        {
+          "dungeon": "Eastern Reach - Abyssal",
+          "mode": "Party",
+          "score": "2,395"
+        },
+        {
+          "dungeon": "Everdune - Abyssal",
+          "mode": "Party",
+          "score": "2,387"
+        },
+        {
+          "dungeon": "Everdune - Collapsing",
+          "mode": "Party",
+          "score": "2,356"
+        },
+        {
+          "dungeon": "Eastern Reach - Fractured",
+          "mode": "Party",
+          "score": "2,348"
+        },
+        {
+          "dungeon": "Everdune - Shattered",
+          "mode": "Party",
+          "score": "2,325"
+        },
+        {
+          "dungeon": "Lunar Plateau - Collapsing",
+          "mode": "Party",
+          "score": "2,319"
+        },
+        {
+          "dungeon": "Farpoint - Shattered",
+          "mode": "Party",
+          "score": "2,267"
+        },
+        {
+          "dungeon": "Train Defence",
+          "mode": "Party",
+          "score": "2,211"
+        },
+        {
+          "dungeon": "Eastern Reach - Collapsing",
+          "mode": "Party",
+          "score": "2,183"
+        },
+        {
+          "dungeon": "Farpoint - Collapsing",
+          "mode": "Party",
+          "score": "2,095"
+        },
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Solo",
+          "score": "2,062"
+        },
+        {
+          "dungeon": "Farpoint - Fractured",
+          "mode": "Solo",
+          "score": "2,054"
+        },
+        {
+          "dungeon": "Lunar Plateau - Abyssal",
+          "mode": "Party",
+          "score": "2,007"
+        },
+        {
+          "dungeon": "Lunar Plateau - Shattered",
+          "mode": "Party",
+          "score": "1,952"
+        },
+        {
+          "dungeon": "Virelda Arena",
+          "mode": "Party",
+          "score": "1,781"
+        },
+        {
+          "dungeon": "Everdune - Fractured",
+          "mode": "Solo",
+          "score": "1,750"
+        },
+        {
+          "dungeon": "Arcadia Defence",
+          "mode": "Party",
+          "score": "1,527"
+        },
+        {
+          "dungeon": "Everdune - Collapsing",
+          "mode": "Solo",
+          "score": "732"
+        },
+        {
+          "dungeon": "Virelda Arena",
+          "mode": "Solo",
+          "score": "693"
+        },
+        {
+          "dungeon": "Eastern Reach - Fractured",
+          "mode": "Solo",
+          "score": "180"
+        },
+        {
+          "dungeon": "Lunar Plateau - Collapsing",
+          "mode": "Solo",
+          "score": "8"
+        },
+        {
+          "dungeon": "Everdune - Abyssal",
+          "mode": "Solo",
+          "score": "0"
+        }
+      ]
+    }
+  },
+  {
+    "slug": "gethsemane-b67pm",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "24442"
+    },
+    "new": {
+      "achievement_points": "27477"
+    }
+  },
+  {
+    "slug": "ptina-y67w7",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "32186"
+    },
+    "new": {
+      "achievement_points": "35971"
+    }
+  },
+  {
+    "slug": "rawgary-3tt33",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "28684"
+    },
+    "new": {
+      "achievement_points": "34590"
+    }
+  },
+  {
+    "slug": "axelerator-pbz8h",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "29945"
+    },
+    "new": {
+      "achievement_points": "34120"
+    }
+  },
+  {
+    "slug": "battleform-69prn",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "28295"
+    },
+    "new": {
+      "achievement_points": "32280"
+    }
+  },
+  {
+    "slug": "sullemunk-00dc1",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "30130"
+    },
+    "new": {
+      "achievement_points": "33042"
+    }
+  },
+  {
+    "slug": "cicatrix-jyx62",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "21695"
+    },
+    "new": {
+      "achievement_points": "26600"
+    }
+  },
+  {
+    "slug": "jester-4gj84",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "27572"
+    },
+    "new": {
+      "achievement_points": "30822"
+    }
+  },
+  {
+    "slug": "smoevuh-vds37",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "26013"
+    },
+    "new": {
+      "achievement_points": "29453"
+    }
+  },
+  {
+    "slug": "daytona-c3reg",
+    "diff_fields": [
+      "achievement_points"
+    ],
+    "old": {
+      "achievement_points": "26255"
+    },
+    "new": {
+      "achievement_points": "28750"
+    }
+  },
+  {
+    "slug": "lenon-rnm6e",
+    "diff_fields": [
+      "achievements_count",
+      "achievement_points",
+      "equipment",
+      "skills",
+      "achievements"
+    ],
+    "old": {
+      "achievements_count": "333",
+      "achievement_points": "20540",
+      "equipment": {
+        "Head": "Necrotic Warrior Crown",
+        "Chest": "Armor T6 Chest Necro 002",
+        "Back": "Gecko Backpack",
+        "Belt": "Accessory T6 Belt Necro 002",
+        "Feet": "Virelda Warcrest Greaves",
+        "Weapon": "Redeemed Celestial Katana",
+        "Neck": "Accessory T6 Necklace Necro 001",
+        "Ring 1": "Arcadia Signet",
+        "Ring 2": "Ring of Avoidance",
+        "Head (Cosmetic)": "Ferrox Braids",
+        "Weapon (Cosmetic)": "Daemonair Falchion",
+        "Chest (Cosmetic)": "Daemonair Chestplate",
+        "Feet (Cosmetic)": "Daemonair Treads",
+        "Back (Cosmetic)": "Daemonair Wings",
+        "Mount": "Mount Spectra",
+        "Follower": "Daemon Core"
+      },
+      "skills": {
+        "Crafting": "85",
+        "Farming": "85",
+        "Knowledge": "75",
+        "Cooking": "74",
+        "Strength": "67",
+        "Foraging": "66",
+        "Gearforging": "66",
+        "Technology": "66",
+        "Marksmanship": "63",
+        "Dexterity": "62",
+        "Chemistry": "60",
+        "Hacking": "53",
+        "Mining": "53",
+        "Fishing": "47"
+      },
+      "achievements": [
+        {
+          "name": "Mining Journeyman",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft a Voltscale Broadsword",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Collapsing ×10",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft a Erupted Yoku Katana",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Brew 100 Chems",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft 25 weapons",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Encoded Cleaver",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft 10 Viridium Matrix",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Void Truffle",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Voltspore Cleaver",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Voltlite Axe",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Collapsing ×10",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Defeat the Toxic Cactosaur 50 times",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Voidstone Pickaxe",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Brew 250 Vials",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Chieftain's Voltscale Cloak",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Copper Katana",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Astralite Gauntlets",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Old Gloves",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Old Pickaxe",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Voidstone Gauntlets",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Celestial Elemental Locket",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Basalt Encoded Cloak",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 500 Voidstone",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 500 Viridium",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 250 Celestial Vein",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 250 Astralite",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 100 Celestial Vein",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 100 Astralite",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 250 Voidstone",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 250 Viridium",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Gloves",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Craft a piece of the T2 Nanofibre Plated set",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Complete Everdune - Shattered ×10",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Craft 25 armour pieces",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Harvest 250 Void Truffle",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Cook 500 T5 Meals",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "Harvest 250 Starfruit",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Collapsing ×10",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "Craft your first weapon",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "100,000,000 damage with Hammers",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "Brew 100 Chemicals",
+          "date": "September 23, 2026"
+        },
+        {
+          "name": "Defeat Elite Hovertrix 10 times",
+          "date": "September 22, 2026"
+        },
+        {
+          "name": "Complete Lunar Plateau - Shattered ×10",
+          "date": "September 22, 2026"
+        },
+        {
+          "name": "Defeat 50,000 enemies in the Lunar Plateau",
+          "date": "September 22, 2026"
+        },
+        {
+          "name": "100,000,000 damage with Drone",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Viridium Gunners Pendant",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Lunar Hunter: Resurrected Bunny",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Defeat Hovertrix 10 times",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a piece of the T6 Foundation Bulwark set",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Defeat Spectra - Abyssal 25 times",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Craft a Cursed Celestial Sword",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Defeat 25,000 enemies in the Lunar Plateau",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Craft a piece of the T5 Neotilus Trailseeker set",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Craft 10 Voidweave",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Harvest 500 Aubergine",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Harvest 250 Cacao Pod",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "10,000,000 damage with Gleam Twins",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Craft a Celestial Samurai Cloak",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Provide 100,000 shielding with Fortify",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Defeat Spectra - Abyssal 10 times",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Provide 50,000 shielding with Fortify",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Death to Death itself",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Complete All Raids Achievements",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Defeat Spectra - Abyssal",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Viridium Blast Pendant",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Gleam Twins",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Defeat Spectra 5 times",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Provide 10,000 shielding with Fortify",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Defeat Spectra",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Provide 1,000 shielding with Fortify",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Discover the Lunar Plateau",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Grand Tour",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Settling In",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Mine 500 ChronoTerra",
+          "date": "September 6, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Pyrosphere",
+          "date": "August 31, 2026"
+        },
+        {
+          "name": "Defeat 5,000 enemies in Farpoint Rift",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Ice Cube",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "Treasure Hunter",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "Deep Pockets",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "It's Hammer Time",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Chain Lightning",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "Defeat 1,000 enemies in Farpoint Rift",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "Obtain a mount",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Spend 1,000 Gold at vendors",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Spend 5,000 Gold at vendors",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Earn 1,000 Gold",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "En Route",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Farpoint Rift",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Everdune",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover The Foundation",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Arcadia",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Neo-Tilus",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Body and Mind",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "First Steps",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover the South Virelda Caves",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover The Arcadia Bank",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover the Culinary Oasis",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover The Tired Soul",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover the Pioneer's Guild",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Everdune Ruins",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover the Virelda Ouskirts",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover MInamoto",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover West Arcadia",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Teshimi",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Clifftop Pass",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 ChronoTerra",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Snakestone",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Fibre Weave",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Moonlace",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Tritium Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Copper Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Tritium Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 VoltGrass",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Fibre Weave",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Ghostcap",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Iron Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Shinjitsu Zakura",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Coal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Copper Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Coal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 VoltGrass",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Witherleaf",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Witherleaf",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Raw Yokulite",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Witherleaf",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Raw Yokulite",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Starbloom",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Snakestone",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Iron Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 VoltGrass",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Fibre Weave",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Ghostcap",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 5 Yoku Data Nexus",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Hemlock",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Spikeward",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Shinjitsu Zakura",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 5 Starbloom",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Ghostcap",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Yoku Resin",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Moonlace",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Yoku Resin",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Shinjitsu Zakura",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 10 Yoku Data Core",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Spikeward",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Yoku Resin",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Hemlock",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 10 Viridium",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 10 Shinjitsu Zakura",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Starbloom",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Starbloom",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Moonlace",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Hemlock",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Spikeward",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Watermelon",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Cabbage",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Bell Pepper",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Potato",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Lunar Plateau - Collapsing",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Lunar Plateau - Shattered",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Shattered",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Shattered ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune Arena ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Virelda Outskirts",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Lunar Plateau - Abyssal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Arcadia Defence",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Shattered ×50",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Abyssal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Virelda Arena",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune Arena",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Fractured",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Operational Continuity",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Abyssal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Shattered",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Fractured",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Abyssal ×50",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Train Defence",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Collapsing",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Fractured ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Arcadia Arena ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Abyssal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Fractured",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Abyssal ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Abyssal ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Shattered",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Abyssal Raid",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Fractured ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Arcadia Arena",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Shattered ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Collapsing",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Abyssal ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Collapsing",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Abyssal Raid ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Stable",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Slime Rancher",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Basic Buster",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Basic Destroyer",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Scrapclaw in Arcadia Arena 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Lunar Hunter: Nightmare Rodent",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactosaur 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete all Farpoint Mob Achievements",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Lunar Hunter: Flaming Skull",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Elite Scrapclaw 50 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro General 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro General 50 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Toxic Cactosaur 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactosaur 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Lunar Hunter: Nightmare Hunter",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Exterminator: Cactaro",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactosaur 50 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro General 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Exterminator: Bionic Scorpion",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Elite Scrapclaw 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Demolition Expert",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Elite Scrapclaw 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro Knight 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro Knight 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Toxic Cactosaur 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Scrapclaw 50 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro King 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Scrapclaw 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Scrapclaw 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Blue Steel",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Project Management",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Pest Control",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cactus Culling",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Fire Fighter",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Newt No More",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Riddle me this",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Roly Poly",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "The Cat's Pyre",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Basic Beater",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a ChronoMesh Gloves",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 5 Moonweave",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Quantum Cipher",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Cheap Fishing Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Brew 100 Vials",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Steel Pickaxe",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Voltscale Samurai Cloak",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cook 100 T6 Meals",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Elemental Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Viridium Elemental Locket",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Chrono Cipher",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Tritanium Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Midnight Brawler's Chain",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 5 Celestial Shard",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Obsidian Gauntlets",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 5 Astralite Ingot",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Dark Cipher",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 5 Celestial Alloy",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cook 250 Bread",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Celestial Blast Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Sakura Brawler's Chain",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Necklace of Explosions",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Voltspore Striker's Chain",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Astralite Pickaxe",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Brawler's Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Chrono Pickaxe",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Dark Locket of Fiery Wrath",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Wanderer's Encoded Cloak",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Celestial Yoku Gunner's Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Tritanium Elemental Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Celestial Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a KeyLime Hacking Tool",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a ChronoTehc Warden's Locket",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Steelward Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cook 250 Jam Toast",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Voltscale Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Fishing Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Scout's Voltscale Cloak",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Basalt Voltscale Cloak",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Hacking Tool",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cook 50 Cup of Tea",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Gunner's Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Obsidian Pickaxe",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 10 Viridium Alloy",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Dark Cipher mk.II",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 10 Viridium Shard",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Viridium Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Encoded Healer's Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 10 Voidstone Ingot",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Iron-Clad Bunny",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Carrot Top",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Obtain a pet",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Farming Adept",
+          "date": "August 25, 2026"
+        },
+        {
+          "name": "Crafting Adept",
+          "date": "August 16, 2026"
+        },
+        {
+          "name": "Hacking Journeyman",
+          "date": "August 14, 2026"
+        },
+        {
+          "name": "Foraging Journeyman",
+          "date": "August 10, 2026"
+        },
+        {
+          "name": "Gearforging Journeyman",
+          "date": "August 4, 2026"
+        },
+        {
+          "name": "Dexterity Journeyman",
+          "date": "August 2, 2026"
+        },
+        {
+          "name": "Cooking Journeyman",
+          "date": "August 1, 2026"
+        },
+        {
+          "name": "Marksmanship Journeyman",
+          "date": "July 29, 2026"
+        },
+        {
+          "name": "Farming Journeyman",
+          "date": "July 29, 2026"
+        },
+        {
+          "name": "Technology Journeyman",
+          "date": "July 29, 2026"
+        },
+        {
+          "name": "Strength Journeyman",
+          "date": "July 28, 2026"
+        },
+        {
+          "name": "Chemistry Apprentice",
+          "date": "July 27, 2026"
+        },
+        {
+          "name": "Knowledge Journeyman",
+          "date": "July 26, 2026"
+        },
+        {
+          "name": "Master of Motion",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Fishing Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Farming Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "High-Tech Hero",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Hacking Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Deadeye",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Mine Over Matter",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Gearforging Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Cooking Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Marksmanship Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Mining Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Dexterity Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Technology Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Powerhouse",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Crafting Journeyman",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "The Chemist",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Walking Encyclopedia",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Marksman",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Chemistry Initiate",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "You're Fintastic",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Knowledge Apprentice",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Foraging Apprentice",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Strength Apprentice",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Green Thumb",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Hackerman",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "The Chef",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Adept",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Crafting Apprentice",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "The Blacksmith",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "The Handyman",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Super Nerd",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "It's Mine!",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Finders Keepers",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Farming Initiate",
+          "date": "July 21, 2026"
+        },
+        {
+          "name": "2 older achievements",
+          "date": "Not in the current achievement list"
+        }
+      ]
+    },
+    "new": {
+      "achievements_count": "340",
+      "achievement_points": "26880",
+      "equipment": {
+        "Head": "Necrotic Warrior Crown",
+        "Chest": "Armor T6 Chest Necro 002",
+        "Back": "Gecko Backpack",
+        "Belt": "Accessory T6 Belt Necro 002",
+        "Feet": "Virelda Warcrest Greaves",
+        "Weapon": "Redeemed Celestial Katana",
+        "Neck": "Viridium Elemental Locket",
+        "Ring 1": "Arcadia Signet",
+        "Ring 2": "Ring of Avoidance",
+        "Head (Cosmetic)": "Ferrox Braids",
+        "Weapon (Cosmetic)": "Daemonair Falchion",
+        "Chest (Cosmetic)": "Daemonair Chestplate",
+        "Feet (Cosmetic)": "Daemonair Treads",
+        "Back (Cosmetic)": "Daemonair Wings",
+        "Mount": "Mount Spectra",
+        "Follower": "Daemon Core"
+      },
+      "skills": {
+        "Farming": "86",
+        "Crafting": "85",
+        "Cooking": "75",
+        "Knowledge": "75",
+        "Strength": "67",
+        "Foraging": "66",
+        "Gearforging": "66",
+        "Technology": "66",
+        "Marksmanship": "63",
+        "Dexterity": "62",
+        "Chemistry": "60",
+        "Mining": "54",
+        "Hacking": "53",
+        "Fishing": "49"
+      },
+      "achievements": [
+        {
+          "name": "Harvest 500 Raspberry",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a Viridium Greatsword",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Brew 100 Stims",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a Erupted Viridium Greatsword",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Cooking Adept",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Harvest 500 Wheat",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Harvest 500 Tomato",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Mining Journeyman",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft a Voltscale Broadsword",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Collapsing ×10",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft a Erupted Yoku Katana",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Brew 100 Chems",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft 25 weapons",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Encoded Cleaver",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft 10 Viridium Matrix",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Void Truffle",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Voltspore Cleaver",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Voltlite Axe",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Collapsing ×10",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Defeat the Toxic Cactosaur 50 times",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Voidstone Pickaxe",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Brew 250 Vials",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Chieftain's Voltscale Cloak",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Copper Katana",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Astralite Gauntlets",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Old Gloves",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Old Pickaxe",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Voidstone Gauntlets",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Celestial Elemental Locket",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Craft a Basalt Encoded Cloak",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 500 Voidstone",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 500 Viridium",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 250 Celestial Vein",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 250 Astralite",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 100 Celestial Vein",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 100 Astralite",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 250 Voidstone",
+          "date": "September 27, 2026"
+        },
+        {
+          "name": "Mine 250 Viridium",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Gloves",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Craft a piece of the T2 Nanofibre Plated set",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Complete Everdune - Shattered ×10",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Craft 25 armour pieces",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Harvest 250 Void Truffle",
+          "date": "September 26, 2026"
+        },
+        {
+          "name": "Cook 500 T5 Meals",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "Harvest 250 Starfruit",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Collapsing ×10",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "Craft your first weapon",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "100,000,000 damage with Hammers",
+          "date": "September 25, 2026"
+        },
+        {
+          "name": "Brew 100 Chemicals",
+          "date": "September 23, 2026"
+        },
+        {
+          "name": "Defeat Elite Hovertrix 10 times",
+          "date": "September 22, 2026"
+        },
+        {
+          "name": "Complete Lunar Plateau - Shattered ×10",
+          "date": "September 22, 2026"
+        },
+        {
+          "name": "Defeat 50,000 enemies in the Lunar Plateau",
+          "date": "September 22, 2026"
+        },
+        {
+          "name": "100,000,000 damage with Drone",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Viridium Gunners Pendant",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Lunar Hunter: Resurrected Bunny",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Defeat Hovertrix 10 times",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a piece of the T6 Foundation Bulwark set",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Defeat Spectra - Abyssal 25 times",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Craft a Cursed Celestial Sword",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Defeat 25,000 enemies in the Lunar Plateau",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Craft a piece of the T5 Neotilus Trailseeker set",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Craft 10 Voidweave",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Harvest 500 Aubergine",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Harvest 250 Cacao Pod",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "10,000,000 damage with Gleam Twins",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Craft a Celestial Samurai Cloak",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Provide 100,000 shielding with Fortify",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Defeat Spectra - Abyssal 10 times",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Provide 50,000 shielding with Fortify",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Death to Death itself",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Complete All Raids Achievements",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Defeat Spectra - Abyssal",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Viridium Blast Pendant",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Gleam Twins",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Defeat Spectra 5 times",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Provide 10,000 shielding with Fortify",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Defeat Spectra",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Provide 1,000 shielding with Fortify",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Discover the Lunar Plateau",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Grand Tour",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Settling In",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Mine 500 ChronoTerra",
+          "date": "September 6, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Pyrosphere",
+          "date": "August 31, 2026"
+        },
+        {
+          "name": "Defeat 5,000 enemies in Farpoint Rift",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Ice Cube",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "Treasure Hunter",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "Deep Pockets",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "It's Hammer Time",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Chain Lightning",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "Defeat 1,000 enemies in Farpoint Rift",
+          "date": "August 28, 2026"
+        },
+        {
+          "name": "Obtain a mount",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Spend 1,000 Gold at vendors",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Spend 5,000 Gold at vendors",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Earn 1,000 Gold",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "En Route",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Farpoint Rift",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Everdune",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover The Foundation",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Arcadia",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Neo-Tilus",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Body and Mind",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "First Steps",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover the South Virelda Caves",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover The Arcadia Bank",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover the Culinary Oasis",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover The Tired Soul",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover the Pioneer's Guild",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Everdune Ruins",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover the Virelda Ouskirts",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover MInamoto",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover West Arcadia",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Teshimi",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Discover Clifftop Pass",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 ChronoTerra",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Snakestone",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Fibre Weave",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Moonlace",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Tritium Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Copper Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Tritium Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 VoltGrass",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Fibre Weave",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Ghostcap",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Iron Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Shinjitsu Zakura",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Coal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Copper Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Coal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 VoltGrass",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Witherleaf",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Witherleaf",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 250 Raw Yokulite",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Witherleaf",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Raw Yokulite",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Starbloom",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Snakestone",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Mine 500 Iron Ore",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 VoltGrass",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Fibre Weave",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Ghostcap",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 5 Yoku Data Nexus",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Hemlock",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Spikeward",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Shinjitsu Zakura",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 5 Starbloom",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Ghostcap",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Yoku Resin",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Moonlace",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Yoku Resin",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Shinjitsu Zakura",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 10 Yoku Data Core",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Spikeward",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 1000 Yoku Resin",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Hemlock",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 10 Viridium",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Collect 10 Shinjitsu Zakura",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Starbloom",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 100 Starbloom",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Moonlace",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Hemlock",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Forage 500 Spikeward",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Watermelon",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Cabbage",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Bell Pepper",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Harvest 500 Potato",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Lunar Plateau - Collapsing",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Lunar Plateau - Shattered",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Shattered",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Shattered ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune Arena ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Virelda Outskirts",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Lunar Plateau - Abyssal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Arcadia Defence",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Shattered ×50",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Abyssal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Virelda Arena",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune Arena",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Fractured",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Operational Continuity",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Abyssal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Shattered",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Fractured",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Abyssal ×50",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Train Defence",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Collapsing",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Fractured ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Arcadia Arena ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Abyssal",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Fractured",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Abyssal ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Abyssal ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Shattered",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Abyssal Raid",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Fractured ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Arcadia Arena",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Shattered ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Everdune - Collapsing",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Farpoint - Abyssal ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Collapsing",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Abyssal Raid ×10",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Stable",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Slime Rancher",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Basic Buster",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Basic Destroyer",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Scrapclaw in Arcadia Arena 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Lunar Hunter: Nightmare Rodent",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactosaur 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Complete all Farpoint Mob Achievements",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Lunar Hunter: Flaming Skull",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Elite Scrapclaw 50 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro General 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro General 50 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Toxic Cactosaur 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactosaur 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Lunar Hunter: Nightmare Hunter",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Exterminator: Cactaro",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactosaur 50 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro General 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Exterminator: Bionic Scorpion",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Elite Scrapclaw 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Demolition Expert",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Elite Scrapclaw 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro Knight 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro Knight 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Toxic Cactosaur 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Scrapclaw 50 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro King 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Scrapclaw 10 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Defeat Scrapclaw 25 times",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Blue Steel",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Project Management",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Pest Control",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cactus Culling",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Fire Fighter",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Newt No More",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Riddle me this",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Roly Poly",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "The Cat's Pyre",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Basic Beater",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a ChronoMesh Gloves",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 5 Moonweave",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Quantum Cipher",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Cheap Fishing Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Brew 100 Vials",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Steel Pickaxe",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Voltscale Samurai Cloak",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cook 100 T6 Meals",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Elemental Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Viridium Elemental Locket",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Chrono Cipher",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Tritanium Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Midnight Brawler's Chain",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 5 Celestial Shard",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Obsidian Gauntlets",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 5 Astralite Ingot",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Dark Cipher",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 5 Celestial Alloy",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cook 250 Bread",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Celestial Blast Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Sakura Brawler's Chain",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Necklace of Explosions",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Voltspore Striker's Chain",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Astralite Pickaxe",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Brawler's Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Chrono Pickaxe",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Dark Locket of Fiery Wrath",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Wanderer's Encoded Cloak",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Celestial Yoku Gunner's Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Tritanium Elemental Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Celestial Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a KeyLime Hacking Tool",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a ChronoTehc Warden's Locket",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Steelward Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cook 250 Jam Toast",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Voltscale Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Fishing Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Scout's Voltscale Cloak",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Basalt Voltscale Cloak",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Hacking Tool",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Cook 50 Cup of Tea",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Gunner's Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Obsidian Pickaxe",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 10 Viridium Alloy",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Dark Cipher mk.II",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 10 Viridium Shard",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Viridium Rod",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft a Encoded Healer's Pendant",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Craft 10 Voidstone Ingot",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Iron-Clad Bunny",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Carrot Top",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Obtain a pet",
+          "date": "August 27, 2026"
+        },
+        {
+          "name": "Farming Adept",
+          "date": "August 25, 2026"
+        },
+        {
+          "name": "Crafting Adept",
+          "date": "August 16, 2026"
+        },
+        {
+          "name": "Hacking Journeyman",
+          "date": "August 14, 2026"
+        },
+        {
+          "name": "Foraging Journeyman",
+          "date": "August 10, 2026"
+        },
+        {
+          "name": "Gearforging Journeyman",
+          "date": "August 4, 2026"
+        },
+        {
+          "name": "Dexterity Journeyman",
+          "date": "August 2, 2026"
+        },
+        {
+          "name": "Cooking Journeyman",
+          "date": "August 1, 2026"
+        },
+        {
+          "name": "Marksmanship Journeyman",
+          "date": "July 29, 2026"
+        },
+        {
+          "name": "Farming Journeyman",
+          "date": "July 29, 2026"
+        },
+        {
+          "name": "Technology Journeyman",
+          "date": "July 29, 2026"
+        },
+        {
+          "name": "Strength Journeyman",
+          "date": "July 28, 2026"
+        },
+        {
+          "name": "Chemistry Apprentice",
+          "date": "July 27, 2026"
+        },
+        {
+          "name": "Knowledge Journeyman",
+          "date": "July 26, 2026"
+        },
+        {
+          "name": "Master of Motion",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Fishing Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Farming Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "High-Tech Hero",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Hacking Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Deadeye",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Mine Over Matter",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Gearforging Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Cooking Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Marksmanship Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Mining Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Dexterity Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Technology Apprentice",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Powerhouse",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "Crafting Journeyman",
+          "date": "July 24, 2026"
+        },
+        {
+          "name": "The Chemist",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Walking Encyclopedia",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Marksman",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Chemistry Initiate",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "You're Fintastic",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Knowledge Apprentice",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Foraging Apprentice",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Strength Apprentice",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Green Thumb",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Hackerman",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "The Chef",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Adept",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Crafting Apprentice",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "The Blacksmith",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "The Handyman",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Super Nerd",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "It's Mine!",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Finders Keepers",
+          "date": "July 22, 2026"
+        },
+        {
+          "name": "Farming Initiate",
+          "date": "July 21, 2026"
+        },
+        {
+          "name": "2 older achievements",
+          "date": "Not in the current achievement list"
+        }
+      ]
+    }
+  }
+]
