@@ -1,41 +1,45 @@
 [
   {
-    "slug": "extermin-kzpy1",
+    "slug": "diovani-c1mky",
     "diff_fields": [
       "equipment"
     ],
     "old": {
       "equipment": {
-        "Head": "Neotilus Trailseeker Visor",
-        "Chest": "Armor T6 Chest Necro 001",
-        "Back": "Necrotic Cape",
-        "Belt": "Titan's Cinch",
+        "Head": "Necrotic Warrior Crown",
+        "Chest": "Lunar Conduit Robe",
+        "Back": "Gecko Backpack",
+        "Belt": "Wraith Binding",
         "Feet": "Virelda Warcrest Greaves",
-        "Weapon": "Redeemed Celestial Katana",
-        "Neck": "Accessory T6 Necklace Necro 001",
-        "Ring 1": "Farpoint Signet",
+        "Weapon": "Celestial Greatsword",
+        "Neck": "Accessory T6 Necklace Necro 002",
+        "Ring 1": "Arcadia Signet",
         "Ring 2": "Neo-Tilus Signet",
-        "Head (Cosmetic)": "Raven Worshipper Hood",
-        "Feet (Cosmetic)": "Armor T6 Feet Necro 001",
-        "Mount": "Broom Mount",
-        "Follower": "Brown Pioneer Envelope"
+        "Head (Cosmetic)": "Elite Pioneer Hair - Navy",
+        "Weapon (Cosmetic)": "Daemonair Falchion",
+        "Chest (Cosmetic)": "Starter Shoulder Plate",
+        "Feet (Cosmetic)": "Blackwake Breeches",
+        "Back (Cosmetic)": "Bountiful Harvest",
+        "Mount": "Keyboard Mount"
       }
     },
     "new": {
       "equipment": {
-        "Head": "Neotilus Trailseeker Visor",
-        "Chest": "Necrotic Warrior Plate",
-        "Back": "Necrotic Cape",
-        "Belt": "Titan's Cinch",
+        "Head": "Necrotic Warrior Crown",
+        "Chest": "Lunar Conduit Robe",
+        "Back": "Gecko Backpack",
+        "Belt": "Wraith Binding",
         "Feet": "Virelda Warcrest Greaves",
-        "Weapon": "Redeemed Celestial Katana",
-        "Neck": "Ruinchain",
-        "Ring 1": "Farpoint Signet",
+        "Weapon": "Celestial Greatsword",
+        "Neck": "Spectra's Amulet",
+        "Ring 1": "Arcadia Signet",
         "Ring 2": "Neo-Tilus Signet",
-        "Head (Cosmetic)": "Raven Worshipper Hood",
-        "Feet (Cosmetic)": "Necrotic Warrior Boots",
-        "Mount": "Broom Mount",
-        "Follower": "Brown Pioneer Envelope"
+        "Head (Cosmetic)": "Elite Pioneer Hair - Navy",
+        "Weapon (Cosmetic)": "Daemonair Falchion",
+        "Chest (Cosmetic)": "Starter Shoulder Plate",
+        "Feet (Cosmetic)": "Blackwake Breeches",
+        "Back (Cosmetic)": "Bountiful Harvest",
+        "Mount": "Keyboard Mount"
       }
     }
   }
