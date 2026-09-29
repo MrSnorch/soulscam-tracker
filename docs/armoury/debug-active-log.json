@@ -1,139 +1,439 @@
 [
   {
-    "slug": "rajben-2nr7x",
+    "slug": "bunka-ba46e",
     "diff_fields": [
       "achievement_points",
       "equipment"
     ],
     "old": {
-      "achievement_points": "1490",
-      "equipment": {
-        "Head": "Old Pioneer Helm",
-        "Chest": "Farmer's Shawl",
-        "Back": "Chieftain's Desert Cloak",
-        "Feet": "Soulsand Shoes",
-        "Weapon": "Basic Hammer",
-        "Ring 1": "Explorer's Band",
-        "Ring 2": "Accessory T1 Ring Quest 001"
-      }
-    },
-    "new": {
-      "achievement_points": "900",
-      "equipment": {
-        "Head": "Old Pioneer Helm",
-        "Chest": "Farmer's Shawl",
-        "Back": "Chieftain's Desert Cloak",
-        "Feet": "Soulsand Shoes",
-        "Weapon": "Basic Hammer",
-        "Ring 1": "Explorer's Band",
-        "Ring 2": "Desert Dweller's Band"
-      }
-    }
-  },
-  {
-    "slug": "tof-cn5hg",
-    "diff_fields": [
-      "achievement_points"
-    ],
-    "old": {
-      "achievement_points": "605"
-    },
-    "new": {
-      "achievement_points": "0"
-    }
-  },
-  {
-    "slug": "bebop-ayyac",
-    "diff_fields": [
-      "equipment"
-    ],
-    "old": {
+      "achievement_points": "1585",
       "equipment": {
         "Head": "Desert Hair Wax",
-        "Chest": "Farmer's Shawl",
-        "Back": "Chieftain's Desert Cloak",
-        "Feet": "Cloth Boots",
-        "Weapon": "Weapon T1 Staff 001 Tutorial",
-        "Ring 1": "Explorer's Band",
-        "Ring 2": "Accessory T1 Ring Quest 001",
-        "Head (Cosmetic)": "Starter Anime Black",
-        "Chest (Cosmetic)": "Starter Red Shirt"
-      }
-    },
-    "new": {
-      "equipment": {
-        "Head": "Desert Hair Wax",
-        "Chest": "Farmer's Shawl",
-        "Back": "Chieftain's Desert Cloak",
-        "Feet": "Cloth Boots",
-        "Weapon": "Sandstorm Staff",
-        "Ring 1": "Explorer's Band",
-        "Ring 2": "Desert Dweller's Band",
-        "Head (Cosmetic)": "Starter Anime Black",
-        "Chest (Cosmetic)": "Starter Red Shirt"
-      }
-    }
-  },
-  {
-    "slug": "tgcowboy-srcfm",
-    "diff_fields": [
-      "achievement_points",
-      "equipment"
-    ],
-    "old": {
-      "achievement_points": "1050",
-      "equipment": {
-        "Head": "Nanofibre Lenses",
         "Chest": "Armor T2 Chest Quest 001",
         "Back": "Chieftain's Desert Cloak",
-        "Belt": "Sparkthread Belt",
-        "Feet": "Cloth Boots",
-        "Weapon": "Sandstorm Staff",
+        "Belt": "Stormforged Girdle",
+        "Feet": "Soulsand Shoes",
+        "Weapon": "Thorncore Cleaver",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Accessory T1 Ring Quest 001"
+      }
+    },
+    "new": {
+      "achievement_points": "1105",
+      "equipment": {
+        "Head": "Desert Hair Wax",
+        "Chest": "Ambassador's Raiment",
+        "Back": "Chieftain's Desert Cloak",
+        "Belt": "Stormforged Girdle",
+        "Feet": "Soulsand Shoes",
+        "Weapon": "Thorncore Cleaver",
+        "Ring 1": "Explorer's Band",
+        "Ring 2": "Desert Dweller's Band"
+      }
+    }
+  },
+  {
+    "slug": "sinpo-vfgxj",
+    "diff_fields": [
+      "level",
+      "achievements_count",
+      "achievement_points",
+      "equipment",
+      "skills",
+      "achievements"
+    ],
+    "old": {
+      "level": "11",
+      "achievements_count": "35",
+      "achievement_points": "1515",
+      "equipment": {
+        "Head": "Desert Hood",
+        "Chest": "Desert Chest",
+        "Back": "Chieftain's Desert Cloak",
+        "Feet": "Soulsand Shoes",
+        "Weapon": "Iron Cutlass",
         "Ring 1": "Explorer's Band",
         "Ring 2": "Accessory T1 Ring Quest 001",
         "Chest (Cosmetic)": "Crow Worshipper Coat"
-      }
+      },
+      "skills": {
+        "Dexterity": "19",
+        "Strength": "19",
+        "Knowledge": "18",
+        "Mining": "14",
+        "Marksmanship": "11",
+        "Technology": "11",
+        "Foraging": "9",
+        "Cooking": "8",
+        "Crafting": "8",
+        "Gearforging": "8",
+        "Hacking": "1"
+      },
+      "achievements": [
+        {
+          "name": "Complete Arcadia Arena",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover West Arcadia",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover The Arcadia Bank",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover Teshimi",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover Arcadia",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Complete Train Defence",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover the Culinary Oasis",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Super Nerd",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Stable",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Defeat 5,000 enemies in the Eastern Reach",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "It's Mine!",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Big Brain",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Gloves",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a Steel Pickaxe",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a piece of the T1 Desert set",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Mine 500 Copper Ore",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Mine 250 Coal",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Mine 250 Copper Ore",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Earn 1,000 Gold",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Marksman",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "First Steps",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Exterminator: Bionic Scorpion",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Bodybuilder",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Exterminator: Cactaro",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Defeat 1,000 enemies in the Eastern Reach",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a KeyLime Hacking Tool",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Adept",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Complete Virelda Arena",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Forage 100 Hemlock",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft a Copper Katana",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft your first weapon",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Complete Virelda Outskirts",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Strength Initiate",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Discover Virelda",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Dominated",
+          "date": "September 28, 2026"
+        }
+      ]
     },
     "new": {
-      "achievement_points": "235",
+      "level": "12",
+      "achievements_count": "41",
+      "achievement_points": "1635",
       "equipment": {
-        "Head": "Nanofibre Lenses",
+        "Head": "Desert Hood",
         "Chest": "Ambassador's Raiment",
         "Back": "Chieftain's Desert Cloak",
-        "Belt": "Sparkthread Belt",
+        "Feet": "Soulsand Shoes",
+        "Weapon": "Desert Spine",
+        "Ring 1": "Nebulite Circlet",
+        "Ring 2": "Desert Dweller's Band",
+        "Chest (Cosmetic)": "Crow Worshipper Coat"
+      },
+      "skills": {
+        "Strength": "21",
+        "Dexterity": "20",
+        "Knowledge": "19",
+        "Mining": "16",
+        "Foraging": "12",
+        "Marksmanship": "11",
+        "Technology": "11",
+        "Crafting": "9",
+        "Gearforging": "9",
+        "Cooking": "8",
+        "Hacking": "1"
+      },
+      "achievements": [
+        {
+          "name": "Craft a Desert Spine",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Forage 100 Spikeward",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Forage 500 Hemlock",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Finders Keepers",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Spend 1,000 Gold at vendors",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover The Tired Soul",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Complete Arcadia Arena",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover West Arcadia",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover The Arcadia Bank",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover Teshimi",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover Arcadia",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Complete Train Defence",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Discover the Culinary Oasis",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Super Nerd",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Stable",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Defeat 5,000 enemies in the Eastern Reach",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "It's Mine!",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Big Brain",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Gloves",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a Steel Pickaxe",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a piece of the T1 Desert set",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Mine 500 Copper Ore",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Mine 250 Coal",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Mine 250 Copper Ore",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Earn 1,000 Gold",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Marksman",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "First Steps",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Exterminator: Bionic Scorpion",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Bodybuilder",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Exterminator: Cactaro",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Defeat 1,000 enemies in the Eastern Reach",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Craft a KeyLime Hacking Tool",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Adept",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Complete Virelda Arena",
+          "date": "September 29, 2026"
+        },
+        {
+          "name": "Forage 100 Hemlock",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft a Copper Katana",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Craft your first weapon",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Complete Virelda Outskirts",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Strength Initiate",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Discover Virelda",
+          "date": "September 28, 2026"
+        },
+        {
+          "name": "Dominated",
+          "date": "September 28, 2026"
+        }
+      ]
+    }
+  },
+  {
+    "slug": "bodis-fc81w",
+    "diff_fields": [
+      "achievement_points",
+      "equipment"
+    ],
+    "old": {
+      "achievement_points": "1680",
+      "equipment": {
+        "Head": "Desert Hood",
+        "Chest": "Farmer's Shawl",
+        "Back": "Chieftain's Desert Cloak",
+        "Belt": "Voidtouched Belt",
         "Feet": "Cloth Boots",
         "Weapon": "Sandstorm Staff",
         "Ring 1": "Explorer's Band",
-        "Ring 2": "Desert Dweller's Band",
-        "Chest (Cosmetic)": "Crow Worshipper Coat"
-      }
-    }
-  },
-  {
-    "slug": "zenonit-tqd36",
-    "diff_fields": [
-      "achievement_points",
-      "equipment"
-    ],
-    "old": {
-      "achievement_points": "895",
-      "equipment": {
-        "Head": "Old Pioneer Helm",
-        "Chest": "Vraldean San-Poncho",
-        "Back": "Chieftain's Desert Cloak",
-        "Feet": "Old Pioneer Greaves",
-        "Weapon": "Sandstorm Staff",
-        "Ring 1": "Explorer's Band",
         "Ring 2": "Accessory T1 Ring Quest 001"
       }
     },
     "new": {
-      "achievement_points": "260",
+      "achievement_points": "535",
       "equipment": {
-        "Head": "Old Pioneer Helm",
-        "Chest": "Vraldean San-Poncho",
+        "Head": "Desert Hood",
+        "Chest": "Farmer's Shawl",
         "Back": "Chieftain's Desert Cloak",
-        "Feet": "Old Pioneer Greaves",
+        "Belt": "Voidtouched Belt",
+        "Feet": "Cloth Boots",
         "Weapon": "Sandstorm Staff",
         "Ring 1": "Explorer's Band",
         "Ring 2": "Desert Dweller's Band"
@@ -141,113 +441,48 @@
     }
   },
   {
-    "slug": "hollowdeath-fy99x",
-    "diff_fields": [
-      "achievement_points",
-      "equipment"
-    ],
-    "old": {
-      "achievement_points": "770",
-      "equipment": {
-        "Head": "Old Pioneer Helm",
-        "Chest": "Desert Chest",
-        "Back": "Chieftain's Desert Cloak",
-        "Feet": "Old Pioneer Greaves",
-        "Weapon": "Iron Cutlass",
-        "Ring 1": "Accessory T1 Ring Quest 001",
-        "Chest (Cosmetic)": "Crow Worshipper Coat"
-      }
-    },
-    "new": {
-      "achievement_points": "220",
-      "equipment": {
-        "Head": "Old Pioneer Helm",
-        "Chest": "Desert Chest",
-        "Back": "Chieftain's Desert Cloak",
-        "Feet": "Old Pioneer Greaves",
-        "Weapon": "Iron Cutlass",
-        "Ring 1": "Desert Dweller's Band",
-        "Chest (Cosmetic)": "Crow Worshipper Coat"
-      }
-    }
-  },
-  {
-    "slug": "kruxeldivik-p5b02",
+    "slug": "wrizar-1beht",
     "diff_fields": [
       "achievement_points"
     ],
     "old": {
-      "achievement_points": "630"
+      "achievement_points": "110"
     },
     "new": {
-      "achievement_points": "260"
+      "achievement_points": "1460"
     }
   },
   {
-    "slug": "uakmsun-0jxnv",
+    "slug": "darks-qmdvk",
     "diff_fields": [
       "achievement_points",
       "equipment"
     ],
     "old": {
-      "achievement_points": "225",
+      "achievement_points": "270",
       "equipment": {
         "Head": "Old Pioneer Helm",
-        "Chest": "Desert Chest",
+        "Chest": "Old Pioneer Chestplate",
         "Back": "Chieftain's Desert Cloak",
+        "Belt": "Cindercloth Belt",
         "Feet": "Old Pioneer Greaves",
-        "Weapon": "Sandstorm Staff",
+        "Weapon": "Copper Katana",
         "Ring 1": "Explorer's Band",
         "Ring 2": "Accessory T1 Ring Quest 001"
       }
     },
     "new": {
-      "achievement_points": "220",
+      "achievement_points": "255",
       "equipment": {
         "Head": "Old Pioneer Helm",
-        "Chest": "Desert Chest",
+        "Chest": "Old Pioneer Chestplate",
         "Back": "Chieftain's Desert Cloak",
+        "Belt": "Cindercloth Belt",
         "Feet": "Old Pioneer Greaves",
-        "Weapon": "Sandstorm Staff",
+        "Weapon": "Copper Katana",
         "Ring 1": "Explorer's Band",
         "Ring 2": "Desert Dweller's Band"
       }
-    }
-  },
-  {
-    "slug": "demonbane-p6adc",
-    "diff_fields": [
-      "achievement_points"
-    ],
-    "old": {
-      "achievement_points": "190"
-    },
-    "new": {
-      "achievement_points": "70"
-    }
-  },
-  {
-    "slug": "inkery-szrce",
-    "diff_fields": [
-      "achievement_points"
-    ],
-    "old": {
-      "achievement_points": "190"
-    },
-    "new": {
-      "achievement_points": "0"
-    }
-  },
-  {
-    "slug": "wicknuts-5jzre",
-    "diff_fields": [
-      "achievement_points"
-    ],
-    "old": {
-      "achievement_points": "190"
-    },
-    "new": {
-      "achievement_points": "0"
     }
   }
 ]
