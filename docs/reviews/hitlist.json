@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-02T17:11:34Z",
+  "generated_at": "2026-10-03T03:05:49Z",
   "appid": "4369490",
   "top_suspicious": [
     {
@@ -47,6 +47,20 @@
       "playtime_at_review_minutes": 55,
       "timestamp_created": 1784677007,
       "review_excerpt": "Well.. as every ♥♥♥♥♥♥ mmo that is released, you will have mostly negative reviews in the release. Nothing new there. Difference here is something related to a possible scam... well... game is relativ"
+    },
+    {
+      "recommendationid": "236710012",
+      "steamid": "76561198112230752",
+      "profile_url": "https://steamcommunity.com/profiles/76561198112230752",
+      "suspicion_score": 40,
+      "suspicion_reasons": [
+        "positive_under_30min",
+        "low_effort_text"
+      ],
+      "voted_up": true,
+      "playtime_at_review_minutes": 8,
+      "timestamp_created": 1790958713,
+      "review_excerpt": "请支持简体中文，谢谢"
     },
     {
       "recommendationid": "231112534",
