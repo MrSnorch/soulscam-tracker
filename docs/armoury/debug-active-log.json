@@ -1,1 +1,826 @@
-[]
+[
+  {
+    "slug": "tatarskicwel-y60nf",
+    "diff_fields": [
+      "level",
+      "achievements_count",
+      "achievement_points",
+      "equipment",
+      "skills",
+      "achievements",
+      "dungeon_records"
+    ],
+    "old": {
+      "level": "19",
+      "achievements_count": "67",
+      "achievement_points": "3195",
+      "equipment": {
+        "Head": "Nanofibre Vizor",
+        "Chest": "Ambassador's Raiment",
+        "Back": "Chieftain's Desert Cloak",
+        "Belt": "Scorchweave Belt",
+        "Feet": "Nanofibre Treads",
+        "Weapon": "Thorncore Cleaver",
+        "Neck": "Smuggler's Locket",
+        "Ring 1": "Ring of Intimidation",
+        "Ring 2": "Kusarigama Ring",
+        "Head (Cosmetic)": "Old Pioneer Helm",
+        "Weapon (Cosmetic)": "Dark Energon Saber",
+        "Mount": "Broken Mount"
+      },
+      "skills": {
+        "Crafting": "36",
+        "Foraging": "27",
+        "Mining": "27",
+        "Strength": "22",
+        "Technology": "21",
+        "Fishing": "19",
+        "Gearforging": "19",
+        "Knowledge": "18",
+        "Dexterity": "15",
+        "Marksmanship": "13",
+        "Cooking": "8",
+        "Hacking": "8",
+        "Chemistry": "7",
+        "Farming": "1"
+      },
+      "achievements": [
+        {
+          "name": "Defeat the Cactaro Knight 10 times",
+          "date": "September 30, 2026"
+        },
+        {
+          "name": "Craft a Chrono Cipher",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Discover Everdune Ruins",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Complete Everdune Arena",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 100 VoltGrass",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Foraging Apprentice",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 100 Yoku Resin",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Discover Everdune",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a piece of the T2 Nanofibre Plated set",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a ChronoMesh Gloves",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Chrono Pickaxe",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a piece of the T2 Nanofibre Gi set",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Chemistry Initiate",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 1000 Spikeward",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Mining Apprentice",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Discover MInamoto",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Crafting Apprentice",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Thorncore Axe",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Thorncore Greatsword",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 500 Spikeward",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 100 Spikeward",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Mine 500 Iron Ore",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Fishing Rod",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "You're Fintastic",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Mine 250 Iron Ore",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Discover Neo-Tilus",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Discover the South Virelda Caves",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover Hollow Rock",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Complete Arcadia Defence",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover The Tired Soul",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Spend 1,000 Gold at vendors",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "The Handyman",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Complete Arcadia Arena",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover West Arcadia",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover The Arcadia Bank",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover Teshimi",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover Arcadia",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Complete Train Defence",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover the Pioneer's Guild",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Big Brain",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Defeat 5,000 enemies in the Eastern Reach",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "It's Mine!",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Cheap Fishing Rod",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a KeyLime Hacking Tool",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Gloves",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Steel Pickaxe",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Mine 500 Coal",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Discover the Culinary Oasis",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Earn 1,000 Gold",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Marksman",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Adept",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "First Steps",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Stable",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Bodybuilder",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Super Nerd",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Complete Virelda Arena",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "The Blacksmith",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a piece of the T1 Desert set",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Forage 500 Hemlock",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Finders Keepers",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a piece of the T1 Farmer set",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Mine 250 Copper Ore",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Forage 100 Hemlock",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Copper Katana",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Complete Virelda Outskirts",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Strength Initiate",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Discover Virelda",
+          "date": "September 17, 2026"
+        }
+      ],
+      "dungeon_records": [
+        {
+          "dungeon": "Eastern Reach - Stable",
+          "mode": "Solo",
+          "score": "2,842"
+        },
+        {
+          "dungeon": "Virelda Outskirts",
+          "mode": "Solo",
+          "score": "2,592"
+        },
+        {
+          "dungeon": "Train Defence",
+          "mode": "Solo",
+          "score": "2,152"
+        },
+        {
+          "dungeon": "Arcadia Defence",
+          "mode": "Solo",
+          "score": "1,450"
+        },
+        {
+          "dungeon": "Everdune Arena",
+          "mode": "Solo",
+          "score": "1,427"
+        },
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Solo",
+          "score": "988"
+        },
+        {
+          "dungeon": "Eastern Reach - Fractured",
+          "mode": "Solo",
+          "score": "703"
+        },
+        {
+          "dungeon": "Virelda Arena",
+          "mode": "Solo",
+          "score": "613"
+        }
+      ]
+    },
+    "new": {
+      "level": "23",
+      "achievements_count": "94",
+      "achievement_points": "4025",
+      "equipment": {
+        "Head": "Ferrox Braids",
+        "Chest": "Ambassador's Raiment",
+        "Back": "Chieftain's Desert Cloak",
+        "Belt": "Scorchweave Belt",
+        "Feet": "Nanofibre Treads",
+        "Weapon": "Thorncore Cleaver",
+        "Neck": "Brawler's Pendant",
+        "Ring 1": "Ring of Intimidation",
+        "Ring 2": "Kusarigama Ring",
+        "Head (Cosmetic)": "Nanofibre Vizor",
+        "Weapon (Cosmetic)": "Dark Energon Saber",
+        "Mount": "Broken Mount"
+      },
+      "skills": {
+        "Crafting": "40",
+        "Foraging": "31",
+        "Mining": "29",
+        "Strength": "29",
+        "Technology": "28",
+        "Knowledge": "26",
+        "Dexterity": "22",
+        "Gearforging": "21",
+        "Fishing": "19",
+        "Hacking": "15",
+        "Chemistry": "14",
+        "Marksmanship": "13",
+        "Cooking": "8",
+        "Farming": "1"
+      },
+      "achievements": [
+        {
+          "name": "Body and Mind",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "Mine Over Matter",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "Walking Encyclopedia",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "High-Tech Hero",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "Dexterity Apprentice",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Chain Lightning",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "Powerhouse",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Drone",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "Basic Destroyer",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "Knowledge Apprentice",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "Defeat 5,000 enemies in the Virelda",
+          "date": "October 8, 2026"
+        },
+        {
+          "name": "Craft a Brawler's Pendant",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Technology Apprentice",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "1,000,000 damage with Swords",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Hackerman",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "The Chemist",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Complete Operational Continuity",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Treasure Hunter",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Deep Pockets",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Strength Apprentice",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Defeat 1,000 enemies in the Everdune",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Cactus Culling",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Basic Buster",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Basic Beater",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Forage 500 VoltGrass",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Forage 500 Yoku Resin",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Hacking Tool",
+          "date": "October 6, 2026"
+        },
+        {
+          "name": "Defeat the Cactaro Knight 10 times",
+          "date": "September 30, 2026"
+        },
+        {
+          "name": "Craft a Chrono Cipher",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Discover Everdune Ruins",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Complete Everdune Arena",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 100 VoltGrass",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Foraging Apprentice",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 100 Yoku Resin",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Discover Everdune",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a piece of the T2 Nanofibre Plated set",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a ChronoMesh Gloves",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Chrono Pickaxe",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a piece of the T2 Nanofibre Gi set",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Chemistry Initiate",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 1000 Spikeward",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Mining Apprentice",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Discover MInamoto",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Crafting Apprentice",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Thorncore Axe",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Thorncore Greatsword",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 500 Spikeward",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Forage 100 Spikeward",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Mine 500 Iron Ore",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Fishing Rod",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "You're Fintastic",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Mine 250 Iron Ore",
+          "date": "September 21, 2026"
+        },
+        {
+          "name": "Discover Neo-Tilus",
+          "date": "September 20, 2026"
+        },
+        {
+          "name": "Discover the South Virelda Caves",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover Hollow Rock",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Complete Arcadia Defence",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover The Tired Soul",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Spend 1,000 Gold at vendors",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "The Handyman",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Complete Arcadia Arena",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover West Arcadia",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover The Arcadia Bank",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover Teshimi",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover Arcadia",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Complete Train Defence",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Discover the Pioneer's Guild",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Big Brain",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "Defeat 5,000 enemies in the Eastern Reach",
+          "date": "September 19, 2026"
+        },
+        {
+          "name": "It's Mine!",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Cheap Fishing Rod",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a KeyLime Hacking Tool",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Coppercore Gloves",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Steel Pickaxe",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Mine 500 Coal",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Discover the Culinary Oasis",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Earn 1,000 Gold",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Marksman",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Adept",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "First Steps",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Complete Eastern Reach - Stable",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Bodybuilder",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Super Nerd",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Complete Virelda Arena",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "The Blacksmith",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a piece of the T1 Desert set",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Forage 500 Hemlock",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Finders Keepers",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a piece of the T1 Farmer set",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Mine 250 Copper Ore",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Forage 100 Hemlock",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Craft a Copper Katana",
+          "date": "September 18, 2026"
+        },
+        {
+          "name": "Complete Virelda Outskirts",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Strength Initiate",
+          "date": "September 17, 2026"
+        },
+        {
+          "name": "Discover Virelda",
+          "date": "September 17, 2026"
+        }
+      ],
+      "dungeon_records": [
+        {
+          "dungeon": "Eastern Reach - Stable",
+          "mode": "Solo",
+          "score": "2,842"
+        },
+        {
+          "dungeon": "Virelda Outskirts",
+          "mode": "Solo",
+          "score": "2,592"
+        },
+        {
+          "dungeon": "Train Defence",
+          "mode": "Solo",
+          "score": "2,152"
+        },
+        {
+          "dungeon": "Arcadia Defence",
+          "mode": "Solo",
+          "score": "1,450"
+        },
+        {
+          "dungeon": "Everdune Arena",
+          "mode": "Solo",
+          "score": "1,427"
+        },
+        {
+          "dungeon": "Arcadia Arena",
+          "mode": "Solo",
+          "score": "988"
+        },
+        {
+          "dungeon": "Eastern Reach - Fractured",
+          "mode": "Solo",
+          "score": "862"
+        },
+        {
+          "dungeon": "Operational Continuity",
+          "mode": "Solo",
+          "score": "748"
+        },
+        {
+          "dungeon": "Virelda Arena",
+          "mode": "Solo",
+          "score": "613"
+        },
+        {
+          "dungeon": "Everdune - Fractured",
+          "mode": "Solo",
+          "score": "209"
+        }
+      ]
+    }
+  }
+]
